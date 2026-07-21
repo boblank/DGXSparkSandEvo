@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1000" viewBox="0 0 1600 1000" role="img" aria-label="碱性热液喷口与矿物微孔的科学插画">
+  <defs>
+    <linearGradient id="sea" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#071d2b"/><stop offset=".48" stop-color="#082630"/><stop offset="1" stop-color="#020b0f"/></linearGradient>
+    <linearGradient id="chimney" x1="0" y1="0" x2="1" y2=".2"><stop stop-color="#182c2f"/><stop offset=".5" stop-color="#6b5a43"/><stop offset=".72" stop-color="#b1693e"/><stop offset="1" stop-color="#243334"/></linearGradient>
+    <radialGradient id="vent"><stop stop-color="#e7c25a" stop-opacity=".78"/><stop offset=".45" stop-color="#d8663f" stop-opacity=".24"/><stop offset="1" stop-color="#d8663f" stop-opacity="0"/></radialGradient>
+    <filter id="blur"><feGaussianBlur stdDeviation="18"/></filter>
+    <filter id="grain"><feTurbulence type="fractalNoise" baseFrequency=".75" numOctaves="3"/><feColorMatrix values="1 0 0 0 0 0 1 0 0 0 0 0 1 0 0 0 0 0 .15 0"/></filter>
+  </defs>
+  <rect width="1600" height="1000" fill="url(#sea)"/>
+  <path d="M0 820 Q250 760 480 830 T910 805 T1300 820 T1600 790 V1000 H0Z" fill="#071112"/>
+  <g opacity=".8" fill="#22434a">
+    <circle cx="170" cy="180" r="3"/><circle cx="340" cy="320" r="5"/><circle cx="555" cy="155" r="3"/><circle cx="780" cy="265" r="4"/><circle cx="1090" cy="180" r="3"/><circle cx="1360" cy="335" r="5"/>
+  </g>
+  <ellipse cx="845" cy="590" rx="440" ry="330" fill="url(#vent)" filter="url(#blur)"/>
+  <g fill="url(#chimney)" stroke="#bf7a48" stroke-opacity=".28" stroke-width="5">
+    <path d="M350 850 C370 700 430 650 420 520 C412 420 465 315 525 344 C575 370 542 470 565 540 C590 620 635 710 620 850Z"/>
+    <path d="M650 860 C660 720 714 678 700 572 C686 463 730 388 785 410 C830 430 806 526 830 600 C850 670 903 737 885 860Z"/>
+    <path d="M920 850 C945 745 1000 690 985 605 C968 510 1028 452 1075 482 C1115 510 1085 575 1110 650 C1132 720 1185 770 1170 850Z"/>
+  </g>
+  <g fill="#06191d" stroke="#e7c25a" stroke-opacity=".38">
+    <ellipse cx="482" cy="425" rx="37" ry="20"/><ellipse cx="760" cy="490" rx="31" ry="17"/><ellipse cx="1048" cy="555" rx="28" ry="16"/>
+  </g>
+  <g fill="none" stroke-linecap="round">
+    <path d="M480 398 C420 300 525 268 476 178" stroke="#d8663f" stroke-opacity=".48" stroke-width="13"/>
+    <path d="M760 468 C710 360 830 342 780 222" stroke="#e7c25a" stroke-opacity=".36" stroke-width="9"/>
+    <path d="M1048 536 C1008 438 1110 400 1078 306" stroke="#69d3be" stroke-opacity=".28" stroke-width="11"/>
+  </g>
+  <g fill="none" stroke="#69d3be" stroke-opacity=".4">
+    <circle cx="720" cy="706" r="52"/><circle cx="722" cy="707" r="35"/><circle cx="817" cy="755" r="31"/><circle cx="600" cy="760" r="24"/>
+  </g>
+  <g fill="#e7c25a" opacity=".66">
+    <circle cx="703" cy="691" r="7"/><circle cx="736" cy="720" r="5"/><circle cx="810" cy="748" r="6"/><circle cx="592" cy="756" r="5"/>
+  </g>
+  <rect width="1600" height="1000" filter="url(#grain)" opacity=".45"/>
+</svg>

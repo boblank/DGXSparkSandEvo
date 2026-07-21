@@ -201,6 +201,110 @@
       "tradeoffs": ["维持内环境和结构需要额外能量，可能挤压生长或繁殖"],
       "source_ids": ["SRC-CLI-002", "SRC-CLI-003"],
       "boundary": "不能把酸化直接画成所有物种失去外壳；结果受谱系和伴随压力共同约束。"
+    },
+    {
+      "knowledge_card_id": "PREBIOTIC_CHEMISTRY",
+      "transition_ids": ["O01"],
+      "pressure_ids": [],
+      "title": "有机分子出现了，生命还没有",
+      "body": "放电、紫外、热和矿物表面反应都能在没有生命时生成有机分子。实验还找到过通向核苷酸、氨基酸和脂质前体的相容反应网络，但这离会复制、代谢并持续进化的细胞还有很长一段。",
+      "evidence_class": "known_mechanism",
+      "prerequisites": ["有可用的含碳小分子、能量来源和浓缩环境"],
+      "mechanisms": ["非生物有机合成", "矿物吸附", "反应物浓缩"],
+      "tradeoffs": ["原料能够形成，不代表它们会自动组成一个可遗传系统"],
+      "source_ids": ["SRC-ORI-001", "SRC-ORI-002"],
+      "boundary": "这些实验说明若干步骤可行，没有复刻唯一真实早期地球环境，也没有从头造出自主进化细胞。"
+    },
+    {
+      "knowledge_card_id": "GEOCHEMICAL_ENERGY",
+      "transition_ids": ["O02"],
+      "pressure_ids": [],
+      "title": "喷口能供能，却不会自动制造生命",
+      "body": "碱性热液孔隙可以提供矿物表面、持续补料和跨膜样的质子梯度。代谢优先模型认为早期反应先借用这些条件，再逐步由膜和催化系统接管。",
+      "evidence_class": "teaching_simplification",
+      "prerequisites": ["稳定的水—岩反应", "酸碱或氧化还原梯度", "可浓缩反应物的微孔"],
+      "mechanisms": ["地球化学梯度", "矿物催化", "开放流反应"],
+      "tradeoffs": ["能量可持续输入，但系统容易被锁在喷口，且并非所有遗传分子都耐受同样条件"],
+      "source_ids": ["SRC-ORI-002"],
+      "boundary": "热液起源是竞争假说之一。现有证据没有证明完整生命链路只在喷口发生。"
+    },
+    {
+      "knowledge_card_id": "PROTOCELL_COMPARTMENT",
+      "transition_ids": ["O03", "O05"],
+      "pressure_ids": [],
+      "title": "一层膜把反应的好处留在了里面",
+      "body": "脂肪酸等两亲分子能在水中自组装成囊泡。囊泡可以包住 RNA 和催化分子；当内部反应帮助它争取膜材料时，选择第一次有机会作用于整个区室。",
+      "evidence_class": "known_mechanism",
+      "prerequisites": ["环境中存在可自组装的两亲分子", "膜在当前盐度和酸碱度下足够稳定"],
+      "mechanisms": ["膜自组装", "分子包裹", "区室级竞争"],
+      "tradeoffs": ["有用分子不易流失，营养进入、废物排出和寄生复制子却会成为新问题"],
+      "source_ids": ["SRC-ORI-004", "SRC-ORI-005"],
+      "boundary": "实验模型只重建了原始细胞的一部分功能，不等于第一个细胞已经被完整复原。"
+    },
+    {
+      "knowledge_card_id": "RNA_REPLICATION",
+      "transition_ids": ["O04"],
+      "pressure_ids": [],
+      "title": "能带出副本，才有历史可供选择",
+      "body": "RNA 既能保存序列，也能催化反应。实验室演化出的 RNA 聚合酶核酶可以复制和扩增若干模板，但仍需要人工准备的条件，离持续复制完整自身系统还有距离。",
+      "evidence_class": "known_mechanism",
+      "prerequisites": ["可作为模板的聚合物", "持续供应单体", "误差没有高到立刻抹掉信息"],
+      "mechanisms": ["模板复制", "催化 RNA", "复制误差"],
+      "tradeoffs": ["误差提供变异，也会把长序列推过信息崩溃阈值"],
+      "source_ids": ["SRC-ORI-003"],
+      "boundary": "RNA 世界能解释部分信息与催化问题，不证明 RNA 是唯一或最早的遗传聚合物。"
+    },
+    {
+      "knowledge_card_id": "ORIGIN_OF_LIFE_GAP",
+      "transition_ids": ["O06"],
+      "pressure_ids": [],
+      "title": "最难的一步，是让三个系统同时工作",
+      "body": "膜、代谢和复制都能在实验里分别重建一部分。真正的缺口是让它们在同一开放环境中持续补料、共同生长、完成分裂，并把差异可靠地传给后继体系。",
+      "evidence_class": "teaching_simplification",
+      "prerequisites": ["区室、能量和遗传模块能在相容条件下共存", "复制误差低于信息崩溃阈值"],
+      "mechanisms": ["膜—代谢—遗传耦合", "生长与分裂", "可遗传变异"],
+      "tradeoffs": ["模块越多，彼此的盐度、温度、金属和原料条件越容易冲突"],
+      "source_ids": ["SRC-ORI-002", "SRC-ORI-003", "SRC-ORI-004"],
+      "boundary": "科学界还没有从常见无机原料出发，完整重建一个能自主开放式进化的细胞。界面不能把一次成功推演写成历史答案。"
+    },
+    {
+      "knowledge_card_id": "CAMBRIAN_TRANSITION",
+      "transition_ids": ["E01", "E02", "E06", "E08"],
+      "pressure_ids": [],
+      "title": "寒武纪变化不是一个突然按下的开关",
+      "body": "晚埃迪卡拉纪到早寒武纪，动物体型、矿化结构、移动方式、捕食和掘穴明显增加。氧气、营养、发育工具、捕食反馈和化石保存条件可能彼此放大，没有一个因素能单独解释全部变化。",
+      "evidence_class": "teaching_simplification",
+      "prerequisites": ["多细胞动物谱系已经存在", "局部氧气和生态互动允许更主动的生活方式"],
+      "mechanisms": ["生态军备竞赛", "发育调控重接", "矿化", "保存偏差"],
+      "tradeoffs": ["主动移动与防护扩展生态位，也显著提高能量和材料成本"],
+      "source_ids": ["SRC-CAM-001"],
+      "boundary": "化石记录中的快速增加不等于现代动物门在一个瞬间凭空出现；各因素的相对权重仍在研究。"
+    },
+    {
+      "knowledge_card_id": "BIOTURBATION",
+      "transition_ids": ["E04"],
+      "pressure_ids": [],
+      "title": "挖一条孔道，也会改写别人的海床",
+      "body": "掘穴把氧气带进沉积物，也把埋藏的营养翻到表层。原本连续的微生物席被打断后，海床从平面栖息地变成有深度的生态空间。",
+      "evidence_class": "known_mechanism",
+      "prerequisites": ["身体能推动沉积物", "低氧环境中仍能完成取食或通气"],
+      "mechanisms": ["掘穴", "沉积物混合", "生态位建构"],
+      "tradeoffs": ["得到藏身和新食物，也要维护孔道并承担低氧风险"],
+      "source_ids": ["SRC-CAM-001"],
+      "boundary": "不同痕迹化石的制造者常无法确定，不能把一条孔道直接指定给某个现代动物祖先。"
+    },
+    {
+      "knowledge_card_id": "CONVERGENT_VISION",
+      "transition_ids": ["E05"],
+      "pressure_ids": [],
+      "title": "眼睛可以独立出现，却不是每次都从零开始",
+      "body": "光敏蛋白、感光细胞和部分发育调控工具很古老。不同谱系可以在这些旧材料上独立形成复眼、相机眼或其他结构，物理约束带来相似功能，历史则留下不同接线。",
+      "evidence_class": "known_mechanism",
+      "prerequisites": ["已有感光分子和细胞", "方向信息能改善避敌、取食或定向"],
+      "mechanisms": ["深层同源", "色素遮光", "凹陷与折光", "趋同进化"],
+      "tradeoffs": ["方向和图像信息增加，感光组织、神经处理和发育都要付出能量"],
+      "source_ids": ["SRC-EYE-001"],
+      "boundary": "说眼睛多次独立演化，不等于每次都重新发明全部分子和发育工具。"
     }
   ],
   "sources": [
@@ -224,6 +328,55 @@
       "url": "https://www.nature.com/articles/nrg.2017.21",
       "supports": "动物多细胞化之前已有的细胞黏附、通讯和调控基础。",
       "boundary": "动物谱系案例不能代表所有多细胞谱系的唯一路径。"
+    },
+    {
+      "source_id": "SRC-ORI-001",
+      "title": "Synthesis of activated pyrimidine ribonucleotides in prebiotically plausible conditions",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/19444213/",
+      "supports": "在前生物化学上可理解的条件下，绕开游离核糖与碱基直接偶联的困难，合成活化嘧啶核糖核苷酸。",
+      "boundary": "支持一条可行合成路线，不证明该路线在真实早期地球环境中独占或完整运行。"
+    },
+    {
+      "source_id": "SRC-ORI-002",
+      "title": "Common origins of RNA, protein and lipid precursors in a cyanosulfidic protometabolism",
+      "url": "https://www.nature.com/articles/nchem.2202",
+      "supports": "一组共同小分子和光化学反应可以通向 RNA、氨基酸与脂质前体。",
+      "boundary": "实验说明反应网络可以相容，没有证明完整网络在单一真实古环境中自然运行。"
+    },
+    {
+      "source_id": "SRC-ORI-003",
+      "title": "Amplification of RNA by an RNA polymerase ribozyme",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/27528667/",
+      "supports": "实验室演化的 RNA 聚合酶核酶可以复制和扩增若干 RNA 模板。",
+      "boundary": "系统依赖人工条件，尚不能无外部帮助持续复制完整自身机器。"
+    },
+    {
+      "source_id": "SRC-ORI-004",
+      "title": "Competition between model protocells driven by an encapsulated catalyst",
+      "url": "https://www.nature.com/articles/nchem.1650",
+      "supports": "模型原始细胞中，内部催化反应可以改变囊泡争取膜材料的能力。",
+      "boundary": "这是区室级竞争的实验模型，不是早期地球第一细胞的直接重建。"
+    },
+    {
+      "source_id": "SRC-ORI-005",
+      "title": "Protocells by spontaneous reaction of cysteine with short-chain thioesters",
+      "url": "https://www.nature.com/articles/s41557-024-01666-y",
+      "supports": "短链硫酯与半胱氨酸在水中反应可生成能够形成囊泡的双酰基脂质。",
+      "boundary": "展示了一条形成膜材料的可行化学路线，不代表完整原始细胞已经出现。"
+    },
+    {
+      "source_id": "SRC-CAM-001",
+      "title": "Environmental change and evolutionary innovation challenge the Cambrian Explosion",
+      "url": "https://www.nature.com/articles/s41559-019-0821-6",
+      "supports": "把晚埃迪卡拉纪至早古生代的动物辐射放在环境变化、生态反馈和化石记录共同作用的框架中。",
+      "boundary": "综合框架不确定各因素在每个地区和谱系中的精确权重。"
+    },
+    {
+      "source_id": "SRC-EYE-001",
+      "title": "Deep homology and the origins of evolutionary novelty",
+      "url": "https://www.nature.com/articles/nature07891",
+      "supports": "不同谱系的形态创新可以复用古老的遗传与发育工具，为趋同和深层同源提供框架。",
+      "boundary": "共享工具不等于器官只有一次起源，也不能单凭相似基因还原完整形态路径。"
     }
   ]
 }

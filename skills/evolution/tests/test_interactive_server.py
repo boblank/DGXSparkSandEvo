@@ -81,6 +81,23 @@ class InteractiveServerTests(unittest.TestCase):
             self.assertEqual(response.headers.get_content_type(), "image/svg+xml")
             self.assertTrue(response.read().startswith(b"<svg"))
 
+    def test_scenario_registry_and_scene_selection_contract(self) -> None:
+        status, registry = self._json_request("/api/scenarios")
+        self.assertEqual(status, 200)
+        self.assertEqual(len(registry["scenarios"]), 4)
+        self.assertEqual(registry["default_scenario_id"], "tidal_symbiosis")
+
+        status, envelope = self._json_request(
+            "/api/sessions",
+            {"scenario_id": "ediacaran_seafloor"},
+        )
+        self.assertEqual(status, 201)
+        self.assertEqual(envelope["session"]["scenario_id"], "ediacaran_seafloor")
+        self.assertEqual(
+            envelope["choices"]["chapter"],
+            "海床不再安静",
+        )
+
     def test_static_server_does_not_expose_environment_or_source_files(self) -> None:
         for path in ("/.env", "/skills/evolution/interactive_engine.py", "/demo-ui/../.env"):
             with self.assertRaises(urllib.error.HTTPError) as context:

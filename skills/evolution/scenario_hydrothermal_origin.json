@@ -1,0 +1,238 @@
+{
+  "contract_version": "0.7.0",
+  "initial_stage": {
+    "stage_id": "origin",
+    "organism_name": "矿物孔隙里的反应网络",
+    "lineage_summary": "碱性热液从矿物微孔中渗出，与较冷、富含二氧化碳的海水交汇。这里还没有可以确认的生命，只有被孔隙困住的分子和持续存在的能量差。",
+    "change_summary": "故事从生命出现之前开始。我们追踪的是一套化学系统，而不是已经存在的生物祖先。",
+    "traits": [
+      "铁硫矿物微孔",
+      "跨孔壁的质子梯度",
+      "被局部浓缩的小分子",
+      "持续但会熄灭的地球化学能"
+    ],
+    "internal_causes": ["部分矿物表面能吸附分子并改变反应路径"],
+    "external_causes": ["热液与海水不断混合，温度、酸碱度和离子浓度反复变化"],
+    "benefits": ["微孔让原本稀散的反应物更容易相遇"],
+    "costs": ["体系完全依赖喷口，金属、盐度和高温也会破坏刚形成的分子"],
+    "evidence_tag": "MECHANISM_HYPOTHESIS",
+    "uncertainty_note": "热液起源是竞争假说之一。它能解释部分能量与浓缩问题，还没有打通从常见原料到自主进化细胞的完整链路。",
+    "knowledge_card_id": "PREBIOTIC_CHEMISTRY",
+    "transition_id": "O01"
+  },
+  "rounds": {
+    "1": {
+      "chapter": "先让分子留在一起",
+      "time_scope": "PREBIOTIC_CHEMISTRY",
+      "fixture_name": "孔隙浓缩反应体",
+      "environments": [
+        {
+          "id": "alkaline_gradient",
+          "title": "碱性热液遇到酸性海水",
+          "description": "孔壁两侧保持酸碱差，反应可以持续借用这份能量。"
+        },
+        {
+          "id": "iron_sulfur_pores",
+          "title": "铁硫矿物长出细密孔道",
+          "description": "矿物表面吸附含碳小分子，让它们不再立刻散进整片海水。"
+        },
+        {
+          "id": "cool_mixing_zone",
+          "title": "喷口边缘形成温和混合区",
+          "description": "高温反应物进入较冷海水，破坏和合成轮流占上风。"
+        }
+      ],
+      "contingencies": [
+        {
+          "id": "catalytic_surface",
+          "title": "一块矿物表面碰巧更会催化",
+          "description": "某些反应在这块表面更容易重复，产物开始局部积累。"
+        },
+        {
+          "id": "organic_delivery",
+          "title": "富含有机物的颗粒沉了下来",
+          "description": "外来的碳化合物进入孔隙，给原有反应网络添了新的原料。"
+        },
+        {
+          "id": "thermal_cycle",
+          "title": "喷流忽强忽弱",
+          "description": "温度周期让分子反复结合和分开，少数结构因此被保留下来。"
+        }
+      ],
+      "directions": [
+        {
+          "id": "concentrate_carbon",
+          "transition_id": "O01",
+          "knowledge_card_id": "PREBIOTIC_CHEMISTRY",
+          "evidence_tag": "MECHANISM_HYPOTHESIS",
+          "title": "把含碳分子困在孔里",
+          "description": "优先形成能被矿物吸附、又能继续参与反应的小分子网络。",
+          "mechanism_hint": "矿物吸附、表面催化与局部浓缩",
+          "tradeoff_hint": "反应物更容易相遇，但产物仍离不开矿物表面"
+        },
+        {
+          "id": "couple_energy_gradient",
+          "transition_id": "O02",
+          "knowledge_card_id": "GEOCHEMICAL_ENERGY",
+          "evidence_tag": "MECHANISM_HYPOTHESIS",
+          "title": "借用孔壁两侧的能量差",
+          "description": "让一部分反应与天然质子梯度耦合，维持更长的反应链。",
+          "mechanism_hint": "天然质子梯度与原始能量耦合",
+          "tradeoff_hint": "反应链更持久，却更难离开喷口环境"
+        },
+        {
+          "id": "assemble_amphiphiles",
+          "transition_id": "O03",
+          "knowledge_card_id": "PROTOCELL_COMPARTMENT",
+          "evidence_tag": "KNOWN_MECHANISM",
+          "title": "让两亲分子围出小泡",
+          "description": "让亲水和疏水部分自动排成边界，把一小团反应包在里面。",
+          "mechanism_hint": "两亲分子自组装与分子包裹",
+          "tradeoff_hint": "内部反应不易流失，小泡也可能被盐和金属迅速拆散"
+        }
+      ]
+    },
+    "2": {
+      "chapter": "让一次差异留到下一次",
+      "time_scope": "PREBIOTIC_CHEMISTRY",
+      "fixture_name": "会延续差异的原始小泡",
+      "environments": [
+        {
+          "id": "gentle_flow",
+          "title": "喷流变缓，孔隙开始长期稳定",
+          "description": "补料速度下降，却给短聚合物留下更长的反应时间。"
+        },
+        {
+          "id": "salinity_swings",
+          "title": "盐度在混合区来回摆动",
+          "description": "有些膜更容易破裂，另一些组合能撑过多次变化。"
+        },
+        {
+          "id": "metal_stress",
+          "title": "金属离子突然增多",
+          "description": "它们能帮助某些反应，也会让脆弱聚合物降解。"
+        }
+      ],
+      "contingencies": [
+        {
+          "id": "template_copy",
+          "title": "一条短聚合物带出了相似副本",
+          "description": "副本并不准确，但序列差异第一次可能延续到后续循环。"
+        },
+        {
+          "id": "vesicle_split",
+          "title": "一个小泡长大后被水流扯成两个",
+          "description": "内部成分被不均匀分给两个后继小泡，产生了可比较的差异。"
+        },
+        {
+          "id": "parasite_sequence",
+          "title": "更短的复制片段抢走原料",
+          "description": "它复制得快，却没有给整个体系带来新的催化能力。"
+        }
+      ],
+      "directions": [
+        {
+          "id": "template_replication",
+          "transition_id": "O04",
+          "knowledge_card_id": "RNA_REPLICATION",
+          "evidence_tag": "KNOWN_MECHANISM",
+          "title": "优先保留能带出副本的序列",
+          "description": "让模板复制和误差共同出现，开始积累可以延续的差异。",
+          "mechanism_hint": "模板复制、复制误差与序列选择",
+          "tradeoff_hint": "信息可以延续，但误差过高会让长序列很快崩溃"
+        },
+        {
+          "id": "vesicle_selection",
+          "transition_id": "O05",
+          "knowledge_card_id": "PROTOCELL_COMPARTMENT",
+          "evidence_tag": "KNOWN_MECHANISM",
+          "title": "让整个小泡一起接受筛选",
+          "description": "把催化分子和它带来的好处留在同一个边界里。",
+          "mechanism_hint": "区室化、囊泡生长与分裂",
+          "tradeoff_hint": "合作成果不易外流，内部寄生片段也可能一同扩散"
+        },
+        {
+          "id": "mineral_metabolism",
+          "transition_id": "O02",
+          "knowledge_card_id": "GEOCHEMICAL_ENERGY",
+          "evidence_tag": "MECHANISM_HYPOTHESIS",
+          "title": "继续依赖矿物维持代谢",
+          "description": "不急着获得独立复制，而是先让反应网络更稳地利用喷口能量。",
+          "mechanism_hint": "代谢优先、表面反应网络与持续补料",
+          "tradeoff_hint": "能量来源稳定，体系却仍不能离开矿物孔"
+        }
+      ]
+    },
+    "3": {
+      "chapter": "试着跨过达尔文门槛",
+      "time_scope": "ORIGIN_OF_LIFE_GAP",
+      "fixture_name": "仍未闭合的原始细胞系统",
+      "environments": [
+        {
+          "id": "vent_weakens",
+          "title": "热液喷口开始衰弱",
+          "description": "天然能量差越来越小，依附矿物的体系必须停下或找到替代方案。"
+        },
+        {
+          "id": "pore_opens",
+          "title": "矿物孔道被水流冲开",
+          "description": "封闭环境消失，一部分小泡被带向周围海水。"
+        },
+        {
+          "id": "fresh_feedstock",
+          "title": "新喷流带来一批不同原料",
+          "description": "原有反应被打乱，也出现了重新组合膜、模板和催化剂的机会。"
+        }
+      ],
+      "contingencies": [
+        {
+          "id": "coupled_cycle",
+          "title": "膜、复制和供能碰巧在同一小泡中配合",
+          "description": "三个模块第一次没有立刻互相破坏，但协调仍十分脆弱。"
+        },
+        {
+          "id": "error_crisis",
+          "title": "复制错误突然累积",
+          "description": "长序列的信息开始散失，短而快的片段占满有限原料。"
+        },
+        {
+          "id": "neighbor_exchange",
+          "title": "相邻小泡交换了部分分子",
+          "description": "缺失的模块得到补充，同时也带来新的寄生者。"
+        }
+      ],
+      "directions": [
+        {
+          "id": "attempt_autonomy",
+          "transition_id": "O06",
+          "knowledge_card_id": "ORIGIN_OF_LIFE_GAP",
+          "evidence_tag": "MECHANISM_HYPOTHESIS",
+          "title": "尝试离开矿物孔独立循环",
+          "description": "让膜、能量和复制共同经历生长、分裂与继承。",
+          "mechanism_hint": "膜—代谢—遗传耦合与原始细胞周期",
+          "tradeoff_hint": "可能出现可选择的个体，任何一个模块失同步都会让系统瓦解"
+        },
+        {
+          "id": "remain_vent_bound",
+          "transition_id": "O06",
+          "knowledge_card_id": "ORIGIN_OF_LIFE_GAP",
+          "evidence_tag": "MECHANISM_HYPOTHESIS",
+          "title": "留在喷口，成为依附体系",
+          "description": "放弃独立性，继续借用稳定孔隙和天然梯度维持反应。",
+          "mechanism_hint": "环境依赖的开放反应网络",
+          "tradeoff_hint": "短期更稳，喷口熄灭时整套系统也会消失"
+        },
+        {
+          "id": "communal_protocells",
+          "transition_id": "O06",
+          "knowledge_card_id": "ORIGIN_OF_LIFE_GAP",
+          "evidence_tag": "MECHANISM_HYPOTHESIS",
+          "title": "让许多小泡交换零件",
+          "description": "用群体互补缓解单个小泡缺少某个模块的问题。",
+          "mechanism_hint": "原始区室之间的分子交换与群体选择",
+          "tradeoff_hint": "模块更容易补齐，寄生和共同崩溃的风险也更高"
+        }
+      ]
+    }
+  }
+}

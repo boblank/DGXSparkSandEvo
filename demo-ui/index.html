@@ -5,148 +5,209 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       name="description"
-      content="EvoLab 是一场可以亲手推动的三轮生物演化实验。选择环境、偶然事件和生存方向，看一条生命谱系如何改变。"
+      content="从四段生命史中选择一个世界，改变环境、偶发事件和延续方向，看每一步怎样带着旧痕迹走向下一阶段。"
     />
-    <title>EvoLab · 把进化握在手里</title>
+    <title>EvoLab · 从生命史的任意一处开始</title>
     <link
       rel="icon"
-      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%A7%AC%3C/text%3E%3C/svg%3E"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='42' fill='%2306171d'/%3E%3Cpath d='M25 58c14-34 36-34 50 0' fill='none' stroke='%2369d3be' stroke-width='8'/%3E%3Ccircle cx='50' cy='42' r='8' fill='%23d8663f'/%3E%3C/svg%3E"
     />
     <link rel="stylesheet" href="./styles.css" />
     <script src="./app.js" defer></script>
   </head>
   <body>
     <header class="topbar">
-      <a class="brand" href="./" aria-label="重新进入 EvoLab">
+      <a id="brand-link" class="brand" href="./" aria-label="回到 EvoLab 世界图谱">
         <span class="brand-glyph" aria-hidden="true"><i></i><i></i><i></i></span>
-        <span><strong>EvoLab</strong><small>生命演化实验室</small></span>
+        <span><strong>EvoLab</strong><small>开放世界演化模拟器</small></span>
       </a>
       <div class="topbar-actions">
-        <span id="runtime-state" class="runtime-state"><i></i><span>正在唤醒实验室</span></span>
-        <button id="restart-button" class="quiet-button" type="button">重新开始</button>
+        <button id="world-button" class="quiet-button" type="button" hidden>回到世界图谱</button>
+        <span id="runtime-state" class="runtime-state"><i></i><span>正在连接实验室</span></span>
       </div>
     </header>
 
-    <main class="experience" aria-live="polite">
-      <nav class="lineage-rail" aria-label="演化进度">
-        <div class="rail-title">
-          <span>这条谱系已经走到</span>
-          <strong id="round-label">起点</strong>
-        </div>
-        <ol id="round-rail">
-          <li class="is-current" data-round="0"><span>00</span><b>起源</b></li>
-          <li data-round="1"><span>01</span><b>第一次改变</b></li>
-          <li data-round="2"><span>02</span><b>第二次改变</b></li>
-          <li data-round="3"><span>03</span><b>未来分支</b></li>
-        </ol>
-      </nav>
-
-      <section class="evolution-stage" aria-labelledby="organism-name">
-        <div class="habitat-frame">
-          <img id="organism-image" alt="当前生命谱系所处的环境和形态" />
-          <div id="image-placeholder" class="image-placeholder" aria-hidden="true">
-            <span class="cell cell-a"></span><span class="cell cell-b"></span><span class="cell cell-c"></span>
+    <main>
+      <section id="world-atlas" class="world-atlas" aria-labelledby="atlas-title">
+        <header class="atlas-intro">
+          <p class="eyebrow">DEEP TIME ATLAS · 45.4 亿年仍在继续</p>
+          <h1 id="atlas-title">你想从哪一段<br />生命史开始？</h1>
+          <p>
+            四个世界，四套起点和规则。你可以从生命出现以前开始，也可以站到海床、潮池或水陆边缘。没有一条路默认通向人类。
+          </p>
+          <div class="atlas-legend" aria-label="证据图例">
+            <span><i class="legend-fact"></i>已知机制</span>
+            <span><i class="legend-hypothesis"></i>竞争假说</span>
+            <span><i class="legend-simulation"></i>教学推演</span>
           </div>
-          <div class="frame-grain" aria-hidden="true"></div>
+        </header>
 
-          <div class="frame-caption frame-caption-top">
-            <span id="time-scope">很久以前</span>
-            <span id="habitat-label">浅海热泉边缘</span>
+        <section class="time-transect" aria-label="可进入的生命史世界">
+          <div class="transect-scale" aria-hidden="true">
+            <span>44 亿年前</span><span>20 亿年前</span><span>5 亿年前</span><span>现在</span>
           </div>
+          <div class="transect-line" aria-hidden="true"><i></i></div>
+          <div id="scenario-list" class="scenario-list" aria-live="polite"></div>
+        </section>
 
-          <div class="organism-intro">
-            <p id="stage-kicker">演化起点</p>
-            <h1 id="organism-name">一群依赖化学能的原始细胞</h1>
-            <p id="organism-summary">它们活在矿物、热流和稀薄氧气交错的浅海里。眼下没有器官，也没有计划，只有一次次复制留下的差异。</p>
-            <ul id="trait-list" class="trait-list" aria-label="当前可见特征"></ul>
+        <aside id="world-preview" class="world-preview" aria-live="polite">
+          <div class="preview-image-wrap">
+            <img id="world-preview-image" alt="" />
+            <div class="preview-coordinate">
+              <span id="world-preview-era">正在读取年代</span>
+              <span id="world-preview-depth">正在读取环境</span>
+            </div>
           </div>
-
-          <div id="generation-overlay" class="generation-overlay" hidden>
-            <span class="generation-orbit" aria-hidden="true"></span>
-            <p>下一代正在形成</p>
-            <strong id="generation-message">先读懂上一代留下的特征…</strong>
-            <small>这通常需要一点时间。你的选择不会丢。</small>
-          </div>
-        </div>
-
-        <aside class="choice-deck" aria-labelledby="choice-title">
-          <div id="choice-content">
-            <p class="deck-step">第 <span id="round-number">1</span> / 3 轮</p>
-            <h2 id="choice-title">它接下来要解决什么？</h2>
-            <p class="deck-lead">先改变世界，再决定这条谱系把生存的赌注押在哪里。</p>
-
-            <form id="evolution-form">
-              <fieldset class="choice-group">
-                <legend><span>01</span> 环境正在变成…</legend>
-                <div id="environment-choices" class="choice-list"></div>
-              </fieldset>
-
-              <fieldset class="choice-group">
-                <legend><span>02</span> 这一轮，偶然发生…</legend>
-                <div id="contingency-choices" class="choice-list choice-list-compact"></div>
-              </fieldset>
-
-              <fieldset class="choice-group direction-group">
-                <legend><span>03</span> 谱系把赌注押在…</legend>
-                <div id="direction-choices" class="direction-list"></div>
-              </fieldset>
-
-              <div id="selection-recap" class="selection-recap">
-                还差三步：选环境、选偶然事件，再选一个方向。
-              </div>
-              <button id="evolve-button" class="evolve-button" type="submit" disabled>
-                <span>看看它会变成什么</span><i aria-hidden="true">→</i>
-              </button>
-            </form>
-          </div>
-
-          <div id="ending-content" class="ending-content" hidden>
-            <p class="deck-step">三轮演化完成</p>
-            <h2>没有终点，只有暂时活下来的样子。</h2>
-            <p id="ending-summary">回看下面三次选择：每一次获得，都伴随着新的代价。</p>
-            <button id="ending-restart" class="evolve-button" type="button">
-              <span>换一条路，再走一次</span><i aria-hidden="true">↻</i>
+          <div class="preview-copy">
+            <p id="world-preview-habitat" class="preview-habitat">选择一个世界</p>
+            <h2 id="world-preview-title">生命史还没有打开</h2>
+            <p id="world-preview-summary">实验室连接后，这里会出现四个可以进入的起点。</p>
+            <blockquote id="world-preview-question">你会从哪里开始改变历史？</blockquote>
+            <p id="world-preview-evidence" class="preview-evidence"></p>
+            <button id="enter-world-button" class="primary-button" type="button" disabled>
+              <span>进入这个世界</span><i aria-hidden="true">↘</i>
             </button>
           </div>
         </aside>
       </section>
 
-      <section class="context-band">
-        <article id="knowledge-note" class="knowledge-note" aria-labelledby="knowledge-title">
-          <div class="knowledge-index" aria-hidden="true">K</div>
-          <div class="knowledge-copy">
-            <p id="knowledge-kicker">这一刻还没有知识注脚</p>
-            <h2 id="knowledge-title">先做一次选择</h2>
-            <p id="knowledge-body">如果这一步对应已知的演化节点，我们会告诉你它在人类知识里叫什么；如果没有，就把推演依据和不确定性说清楚。</p>
+      <section id="simulation-view" class="simulation-view" hidden aria-live="polite">
+        <nav class="world-coordinate" aria-label="当前世界和演化进度">
+          <div class="coordinate-name">
+            <span id="active-world-era">年代未定</span>
+            <strong id="active-world-title">当前世界</strong>
           </div>
-          <button id="evidence-button" class="evidence-button" type="button" disabled>
-            查看证据边界 <span aria-hidden="true">↗</span>
-          </button>
-        </article>
+          <ol id="round-rail">
+            <li class="is-current" data-round="0"><span>00</span><b>起点</b></li>
+            <li data-round="1"><span>01</span><b>第一次改变</b></li>
+            <li data-round="2"><span>02</span><b>第二次改变</b></li>
+            <li data-round="3"><span>03</span><b>第三次改变</b></li>
+          </ol>
+          <div class="coordinate-actions">
+            <span id="round-label">还在起点</span>
+            <button id="restart-button" class="quiet-button quiet-button-dark" type="button">重走这个世界</button>
+          </div>
+        </nav>
 
-        <section class="lineage-film" aria-labelledby="film-title">
-          <div class="film-heading">
-            <div><span>YOUR LINEAGE</span><h2 id="film-title">你留下的生命谱系</h2></div>
-            <p>每一张图都继承上一代，而不是另起炉灶。</p>
+        <section class="evolution-stage" aria-labelledby="organism-name">
+          <div class="habitat-frame">
+            <img id="organism-image" alt="当前阶段所处的环境和形态" />
+            <div id="image-placeholder" class="image-placeholder" aria-hidden="true">
+              <span class="cell cell-a"></span><span class="cell cell-b"></span><span class="cell cell-c"></span>
+            </div>
+            <div class="frame-grain" aria-hidden="true"></div>
+
+            <div class="frame-caption frame-caption-top">
+              <span id="time-scope">正在读取时间</span>
+              <span id="habitat-label">正在读取环境</span>
+            </div>
+
+            <div class="organism-intro">
+              <p id="stage-kicker">演化起点</p>
+              <h1 id="organism-name">正在找到这个世界的第一位居民</h1>
+              <p id="organism-summary">场景准备好后，你会先看清这里发生了什么，再决定下一步往哪里走。</p>
+              <ul id="trait-list" class="trait-list" aria-label="当前可辨认特征"></ul>
+            </div>
+
+            <div id="generation-overlay" class="generation-overlay" hidden>
+              <span class="generation-orbit" aria-hidden="true"></span>
+              <p id="generation-title">下一代正在形成</p>
+              <strong id="generation-message">正在核对这条路是否走得通…</strong>
+              <small>原来的记录和你的选择都已经保存。</small>
+            </div>
           </div>
-          <ol id="lineage-history" class="film-strip"></ol>
+
+          <aside class="choice-deck" aria-labelledby="choice-title">
+            <div id="choice-content">
+              <p class="deck-step">第 <span id="round-number">1</span> / 3 轮 · <span id="chapter-label">新的难题</span></p>
+              <h2 id="choice-title">这一代要面对什么？</h2>
+              <p id="choice-lead" class="deck-lead">先让世界发生变化，再给偶然一次机会。最后决定哪些差异更可能被留下。</p>
+
+              <form id="evolution-form">
+                <fieldset class="choice-group">
+                  <legend><span>01</span> 周围的世界变了</legend>
+                  <div id="environment-choices" class="choice-list"></div>
+                </fieldset>
+
+                <fieldset class="choice-group">
+                  <legend><span>02</span> 偏偏又发生了这件事</legend>
+                  <div id="contingency-choices" class="choice-list"></div>
+                </fieldset>
+
+                <fieldset class="choice-group direction-group">
+                  <legend><span>03</span> <b id="direction-legend">哪些后代会留下更多</b></legend>
+                  <div id="direction-choices" class="direction-list"></div>
+                </fieldset>
+
+                <div id="selection-recap" class="selection-recap">先选出这一轮的环境、偶然事件和方向。</div>
+                <button id="evolve-button" class="primary-button" type="submit" disabled>
+                  <span id="evolve-button-label">让下一代出现</span><i aria-hidden="true">→</i>
+                </button>
+              </form>
+            </div>
+
+            <div id="ending-content" class="ending-content" hidden>
+              <p id="ending-kicker" class="deck-step">这条谱系走完了三次改变</p>
+              <h2 id="ending-title">它暂时活了下来，世界没有因此停住。</h2>
+              <p id="ending-summary">回看每一次获得和代价，再决定要不要回到图谱，从别的时代开始。</p>
+              <button id="ending-restart" class="primary-button" type="button">
+                <span>在这个世界换一条路</span><i aria-hidden="true">↻</i>
+              </button>
+              <button id="ending-worlds" class="text-button" type="button">去另一个世界看看</button>
+            </div>
+          </aside>
+        </section>
+
+        <section class="context-band">
+          <article id="knowledge-note" class="knowledge-note" aria-labelledby="knowledge-title">
+            <div class="knowledge-index" aria-hidden="true">K</div>
+            <div class="knowledge-copy">
+              <p id="knowledge-kicker">正在寻找这一步的知识锚点</p>
+              <h2 id="knowledge-title">证据和推演会分开放</h2>
+              <p id="knowledge-body">已知机制会给出来源；没有对应历史节点时，界面会直接说明这里是推演。</p>
+            </div>
+            <button id="evidence-button" class="evidence-button" type="button" disabled>
+              看证据能说到哪里 <span aria-hidden="true">↗</span>
+            </button>
+          </article>
+
+          <section class="lineage-film" aria-labelledby="film-title">
+            <div class="film-heading">
+              <div><span id="film-kicker">YOUR LINEAGE</span><h2 id="film-title">这条谱系留下的四个瞬间</h2></div>
+              <p>后面的图要认得出前一阶段。改变可以很大，来路不能凭空消失。</p>
+            </div>
+            <ol id="lineage-history" class="film-strip"></ol>
+          </section>
+        </section>
+
+        <section class="generation-trace" aria-labelledby="trace-title">
+          <div class="trace-heading">
+            <p>生成路径</p>
+            <h2 id="trace-title">这一张图经过了什么</h2>
+          </div>
+          <ol>
+            <li id="trace-world"><span>01</span><strong>场景规则</strong><small>读取时代、父代和可达方向</small></li>
+            <li id="trace-knowledge"><span>02</span><strong>知识约束</strong><small>匹配机制、来源和边界</small></li>
+            <li id="trace-plan"><span>03</span><strong>下一步规划</strong><small>平衡继承、收益和代价</small></li>
+            <li id="trace-render"><span>04</span><strong>DGX 本地绘制</strong><small>保留场景与前一阶段的视觉锚点</small></li>
+          </ol>
         </section>
       </section>
     </main>
 
     <div id="error-toast" class="error-toast" role="alert" hidden>
-      <strong>这一轮没有长出来</strong>
-      <span id="error-message">服务暂时没有回应。你的选择还在，可以再试一次。</span>
+      <strong>刚才这一步没有完成</strong>
+      <span id="error-message">原来的记录还在，可以再试一次。</span>
       <button id="dismiss-error" type="button" aria-label="关闭提示">×</button>
     </div>
 
     <dialog id="evidence-dialog" class="evidence-dialog">
-      <form method="dialog" class="dialog-top"><span>知识注脚</span><button aria-label="关闭">×</button></form>
+      <form method="dialog" class="dialog-top"><span>知识与边界</span><button aria-label="关闭">×</button></form>
       <div class="dialog-body">
-        <p id="evidence-tag" class="evidence-tag">已知机制</p>
-        <h2 id="evidence-title">知识解释</h2>
+        <p id="evidence-tag" class="evidence-tag">证据类型</p>
+        <h2 id="evidence-title">这条解释能说什么</h2>
         <p id="evidence-summary"></p>
-        <div class="boundary-box"><strong>这段解释能说到哪里</strong><p id="evidence-boundary"></p></div>
+        <div class="boundary-box"><strong>不能顺手推成什么</strong><p id="evidence-boundary"></p></div>
         <div id="evidence-sources" class="evidence-sources"></div>
       </div>
     </dialog>

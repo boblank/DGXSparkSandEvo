@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1000" viewBox="0 0 1600 1000" role="img" aria-label="埃迪卡拉纪浅海海床与柔软多细胞生物的科学插画">
+  <defs>
+    <linearGradient id="water" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#6f9dad"/><stop offset=".4" stop-color="#315f6d"/><stop offset="1" stop-color="#102c32"/></linearGradient>
+    <linearGradient id="floor" x1="0" y1="0" x2="1" y2="0"><stop stop-color="#846f4b"/><stop offset=".5" stop-color="#b59a63"/><stop offset="1" stop-color="#6b5c45"/></linearGradient>
+    <radialGradient id="body"><stop stop-color="#e9e2d0"/><stop offset=".55" stop-color="#e7c25a"/><stop offset="1" stop-color="#9a6c50"/></radialGradient>
+    <filter id="soft"><feGaussianBlur stdDeviation="10"/></filter>
+    <filter id="grain"><feTurbulence type="fractalNoise" baseFrequency=".55" numOctaves="3"/><feColorMatrix values="1 0 0 0 0 0 1 0 0 0 0 0 1 0 0 0 0 0 .12 0"/></filter>
+  </defs>
+  <rect width="1600" height="1000" fill="url(#water)"/>
+  <g opacity=".22" fill="#e9e2d0"><circle cx="180" cy="200" r="3"/><circle cx="370" cy="350" r="5"/><circle cx="820" cy="180" r="4"/><circle cx="1110" cy="320" r="3"/><circle cx="1390" cy="210" r="5"/></g>
+  <path d="M0 655 Q270 610 520 665 T1050 645 T1600 670 V1000 H0Z" fill="url(#floor)"/>
+  <path d="M0 728 Q300 690 620 735 T1200 715 T1600 740" fill="none" stroke="#263f36" stroke-width="26" opacity=".38"/>
+  <g opacity=".7" fill="#2f594e"><path d="M120 740 q45-90 90 0 q-45-25-90 0"/><path d="M1340 760 q55-110 110 0 q-55-30-110 0"/><path d="M1020 710 q35-78 70 0 q-35-24-70 0"/></g>
+  <g transform="translate(640 660) rotate(-8)">
+    <ellipse rx="255" ry="165" fill="#102c32" opacity=".22" filter="url(#soft)"/>
+    <path d="M0-185 C135-173 232-86 238 10 C244 110 128 181 0 195 C-128 181-244 110-238 10 C-232-86-135-173 0-185Z" fill="url(#body)" stroke="#f2df9b" stroke-opacity=".7" stroke-width="6"/>
+    <g fill="none" stroke="#7e5f4a" stroke-width="6" stroke-linecap="round" opacity=".72">
+      <path d="M0-170 C-12-90-16 10 0 174"/><path d="M0-148 C-52-120-104-84-174-27"/><path d="M0-114 C-64-74-121-38-201 28"/><path d="M0-72 C-65-35-126 8-193 75"/><path d="M0-28 C-58 14-105 55-157 112"/>
+      <path d="M0-148 C52-120 104-84 174-27"/><path d="M0-114 C64-74 121-38 201 28"/><path d="M0-72 C65-35 126 8 193 75"/><path d="M0-28 C58 14 105 55 157 112"/>
+    </g>
+  </g>
+  <g transform="translate(1170 720) scale(.55) rotate(13)" opacity=".86"><path d="M0-185 C135-173 232-86 238 10 C244 110 128 181 0 195 C-128 181-244 110-238 10 C-232-86-135-173 0-185Z" fill="url(#body)"/><path d="M0-160 C-5-60-7 64 0 170" stroke="#7e5f4a" stroke-width="9" fill="none"/></g>
+  <path d="M260 830 C380 780 470 800 555 850" fill="none" stroke="#263f36" stroke-width="18" stroke-linecap="round" opacity=".65"/>
+  <rect width="1600" height="1000" filter="url(#grain)" opacity=".5"/>
+</svg>

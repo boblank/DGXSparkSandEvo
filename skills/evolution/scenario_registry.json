@@ -1,0 +1,70 @@
+{
+  "contract_version": "0.7.0",
+  "default_scenario_id": "tidal_symbiosis",
+  "scenarios": [
+    {
+      "id": "hydrothermal_origin",
+      "catalog_file": "scenario_hydrothermal_origin.json",
+      "title": "热液喷口：生命门槛之前",
+      "short_title": "热液喷口",
+      "era": "约 44–40 亿年前",
+      "habitat": "碱性热液微孔",
+      "summary": "这里还没有能确认的细胞。矿物孔隙、质子梯度和有机小分子反复相遇，试着把一次反应留到下一次。",
+      "entry_question": "化学反应怎样开始保存自己的历史？",
+      "evidence_note": "竞争假说较多；每一步都要保留未解边界",
+      "accent": "#D8663F",
+      "depth": "深海 · 化学尺度",
+      "origin_asset": "demo-assets/interactive/origin-hydrothermal.svg",
+      "visual_anchor": "an alkaline hydrothermal vent mineral labyrinth, iron-sulfur pores, pale mineral chimneys, amber chemical gradients, microscopic scale, no developed organisms",
+      "negative_prompt": "modern animals, plants, coral reef, human technology, laboratory glassware"
+    },
+    {
+      "id": "tidal_symbiosis",
+      "catalog_file": "interactive_catalog.json",
+      "title": "潮池：把伙伴留进身体",
+      "short_title": "潮池共生",
+      "era": "约 24–16 亿年前",
+      "habitat": "古老浅海与潮池",
+      "summary": "一群交换代谢产物的原核生物挤在矿物表面。它们可以继续合作，也可能把一次偶然共生变成再也分不开的关系。",
+      "entry_question": "松散群落会不会变成新的个体？",
+      "evidence_note": "以内共生、多细胞化和遗传重组为知识锚点",
+      "accent": "#69D3BE",
+      "depth": "浅海 · 细胞尺度",
+      "origin_asset": "demo-assets/interactive/origin.png",
+      "visual_anchor": "an ancient shallow tidal pool, translucent teal microbial membranes, amber metabolic granules, mineral surface, microscopic documentary view",
+      "negative_prompt": "flower, terrestrial plant, coral, modern animal, tree"
+    },
+    {
+      "id": "ediacaran_seafloor",
+      "catalog_file": "scenario_ediacaran_seafloor.json",
+      "title": "埃迪卡拉海床：猎手出现以前",
+      "short_title": "埃迪卡拉海床",
+      "era": "约 5.71–5.39 亿年前",
+      "habitat": "覆着微生物席的浅海海床",
+      "summary": "柔软的多细胞生物贴着海床生活。氧气忽高忽低，移动和取食方式开始改变，捕食者还只是若隐若现的压力。",
+      "entry_question": "当海床第一次被追逐，身体会先改变哪里？",
+      "evidence_note": "化石记录、环境变化和竞争模型需要分开表达",
+      "accent": "#E7C25A",
+      "depth": "海床 · 个体与生态尺度",
+      "origin_asset": "demo-assets/interactive/origin-ediacaran.svg",
+      "visual_anchor": "an Ediacaran shallow seafloor covered in microbial mats, soft quilted organisms, muted gold and blue water, no modern fish or coral",
+      "negative_prompt": "dinosaur, modern fish, trilobite swarm, coral reef, flower, mammal"
+    },
+    {
+      "id": "devonian_estuary",
+      "catalog_file": "scenario_devonian_estuary.json",
+      "title": "泥盆纪河口：水边没有现成的路",
+      "short_title": "泥盆纪河口",
+      "era": "约 3.75 亿年前",
+      "habitat": "季节性缺氧的三角洲浅水",
+      "summary": "一支肉鳍鱼类近缘谱系在浅水、泥滩和残留水池之间活动。水能托住身体，岸上却有新的食物和新的麻烦。",
+      "entry_question": "离开水的浮力后，哪一项旧结构还能派上用场？",
+      "evidence_note": "只复演四足动物相关路径，不代表所有登陆事件",
+      "accent": "#91B8CE",
+      "depth": "河口 · 身体与栖息地尺度",
+      "origin_asset": "demo-assets/interactive/origin-devonian.svg",
+      "visual_anchor": "a Devonian delta shallows with a lobe-finned fish lineage, submerged roots and mudflats, low oxygen water, natural history reconstruction",
+      "negative_prompt": "modern amphibian, dinosaur, mammal, flowering plant, human, beach resort"
+    }
+  ]
+}

@@ -97,6 +97,38 @@
       "pressure_ids": [
         "OCEAN_ACIDIFICATION"
       ]
+    },
+    {
+      "knowledge_card_id": "PREBIOTIC_CHEMISTRY",
+      "transition_ids": ["O01"]
+    },
+    {
+      "knowledge_card_id": "GEOCHEMICAL_ENERGY",
+      "transition_ids": ["O02"]
+    },
+    {
+      "knowledge_card_id": "PROTOCELL_COMPARTMENT",
+      "transition_ids": ["O03", "O05"]
+    },
+    {
+      "knowledge_card_id": "RNA_REPLICATION",
+      "transition_ids": ["O04"]
+    },
+    {
+      "knowledge_card_id": "ORIGIN_OF_LIFE_GAP",
+      "transition_ids": ["O06"]
+    },
+    {
+      "knowledge_card_id": "CAMBRIAN_TRANSITION",
+      "transition_ids": ["E01", "E02", "E06", "E08"]
+    },
+    {
+      "knowledge_card_id": "BIOTURBATION",
+      "transition_ids": ["E04"]
+    },
+    {
+      "knowledge_card_id": "CONVERGENT_VISION",
+      "transition_ids": ["E05"]
     }
   ],
   "sources": [
@@ -522,6 +554,76 @@
         "FUTURE_OCEAN_DEOXYGENATION",
         "FUTURE_OCEAN_ACIDIFICATION"
       ]
+    },
+    {
+      "source_id": "SRC-ORI-001",
+      "title": "Synthesis of activated pyrimidine ribonucleotides in prebiotically plausible conditions",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/19444213/",
+      "supports": "在前生物化学上可理解的条件下合成活化嘧啶核糖核苷酸，说明部分生命原料存在可行合成路线。",
+      "boundary": "不证明该路线在真实早期地球环境中独占或完整运行。",
+      "transition_ids": ["O01"],
+      "pressure_ids": [],
+      "knowledge_card_ids": ["PREBIOTIC_CHEMISTRY"]
+    },
+    {
+      "source_id": "SRC-ORI-002",
+      "title": "Common origins of RNA, protein and lipid precursors in a cyanosulfidic protometabolism",
+      "url": "https://www.nature.com/articles/nchem.2202",
+      "supports": "共同的小分子和光化学反应可通向 RNA、氨基酸与脂质前体。",
+      "boundary": "反应网络可以相容，不等于完整网络曾在单一真实古环境中自然运行。",
+      "transition_ids": ["O01", "O02", "O06"],
+      "pressure_ids": [],
+      "knowledge_card_ids": ["PREBIOTIC_CHEMISTRY", "GEOCHEMICAL_ENERGY", "ORIGIN_OF_LIFE_GAP"]
+    },
+    {
+      "source_id": "SRC-ORI-003",
+      "title": "Amplification of RNA by an RNA polymerase ribozyme",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/27528667/",
+      "supports": "实验室演化的 RNA 聚合酶核酶可以复制和扩增若干 RNA 模板。",
+      "boundary": "依赖人工准备条件，不能持续复制完整自身系统。",
+      "transition_ids": ["O04", "O06"],
+      "pressure_ids": [],
+      "knowledge_card_ids": ["RNA_REPLICATION", "ORIGIN_OF_LIFE_GAP"]
+    },
+    {
+      "source_id": "SRC-ORI-004",
+      "title": "Competition between model protocells driven by an encapsulated catalyst",
+      "url": "https://www.nature.com/articles/nchem.1650",
+      "supports": "内部催化反应可以改变模型囊泡争取膜材料的能力。",
+      "boundary": "这是区室级竞争模型，不是早期地球第一细胞的直接重建。",
+      "transition_ids": ["O03", "O05", "O06"],
+      "pressure_ids": [],
+      "knowledge_card_ids": ["PROTOCELL_COMPARTMENT", "ORIGIN_OF_LIFE_GAP"]
+    },
+    {
+      "source_id": "SRC-ORI-005",
+      "title": "Protocells by spontaneous reaction of cysteine with short-chain thioesters",
+      "url": "https://www.nature.com/articles/s41557-024-01666-y",
+      "supports": "短链硫酯与半胱氨酸在水中反应可生成能够形成囊泡的双酰基脂质。",
+      "boundary": "展示一条膜材料合成路线，不代表完整原始细胞已经出现。",
+      "transition_ids": ["O03", "O05"],
+      "pressure_ids": [],
+      "knowledge_card_ids": ["PROTOCELL_COMPARTMENT"]
+    },
+    {
+      "source_id": "SRC-CAM-001",
+      "title": "Environmental change and evolutionary innovation challenge the Cambrian Explosion",
+      "url": "https://www.nature.com/articles/s41559-019-0821-6",
+      "supports": "把晚埃迪卡拉纪至早古生代的动物辐射放进环境变化、生态反馈和化石记录共同作用的框架。",
+      "boundary": "不能确定每个地区和谱系中各因素的精确权重。",
+      "transition_ids": ["E01", "E02", "E04", "E06", "E08"],
+      "pressure_ids": [],
+      "knowledge_card_ids": ["CAMBRIAN_TRANSITION", "BIOTURBATION"]
+    },
+    {
+      "source_id": "SRC-EYE-001",
+      "title": "Deep homology and the origins of evolutionary novelty",
+      "url": "https://www.nature.com/articles/nature07891",
+      "supports": "不同谱系的形态创新可以复用古老的遗传与发育工具。",
+      "boundary": "共享工具不等于器官只有一次起源，也不能还原完整形态路径。",
+      "transition_ids": ["E05"],
+      "pressure_ids": [],
+      "knowledge_card_ids": ["CONVERGENT_VISION"]
     }
   ]
 }

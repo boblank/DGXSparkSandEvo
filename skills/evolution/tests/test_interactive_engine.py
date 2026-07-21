@@ -66,6 +66,73 @@ class InteractiveEvolutionServiceTests(unittest.TestCase):
         persisted = json.loads((self.root / session_id / "session.json").read_text())
         self.assertEqual(persisted["history"], envelope["session"]["history"])
 
+    def test_open_world_registry_creates_four_distinct_scenarios(self) -> None:
+        service = engine.InteractiveEvolutionService(self.root, dry_run=True)
+        registry = service.list_scenarios()
+        scenario_ids = [item["id"] for item in registry["scenarios"]]
+        self.assertEqual(
+            scenario_ids,
+            [
+                "hydrothermal_origin",
+                "tidal_symbiosis",
+                "ediacaran_seafloor",
+                "devonian_estuary",
+            ],
+        )
+        first_chapters: set[str] = set()
+        first_organisms: set[str] = set()
+        for scenario_id in scenario_ids:
+            envelope = service.create_session(scenario_id)
+            session = envelope["session"]
+            self.assertEqual(session["scenario_id"], scenario_id)
+            self.assertEqual(session["scenario"]["id"], scenario_id)
+            self.assertEqual(session["max_rounds"], 3)
+            self.assertTrue(envelope["choices"]["directions"])
+            first_chapters.add(envelope["choices"]["chapter"])
+            first_organisms.add(session["current_stage"]["organism_name"])
+            asset_name = session["current_stage"]["image_url"].rsplit("/", 1)[1]
+            self.assertTrue(service.asset_path(session["session_id"], asset_name).is_file())
+        self.assertEqual(len(first_chapters), 4)
+        self.assertEqual(len(first_organisms), 4)
+
+    def test_every_world_has_three_complete_rounds_and_curated_direction_cards(self) -> None:
+        service = engine.InteractiveEvolutionService(self.root, dry_run=True)
+        for scenario in service.list_scenarios()["scenarios"]:
+            catalog = service._catalog_for(scenario["id"])
+            self.assertEqual(set(catalog["rounds"]), {"1", "2", "3"})
+            for round_no in ("1", "2", "3"):
+                spec = catalog["rounds"][round_no]
+                self.assertGreaterEqual(len(spec["environments"]), 3)
+                self.assertGreaterEqual(len(spec["contingencies"]), 3)
+                self.assertGreaterEqual(len(spec["directions"]), 3)
+                for direction in spec["directions"]:
+                    card_id = direction["knowledge_card_id"]
+                    if card_id != "NONE":
+                        self.assertIn(card_id, service._cards)
+                    else:
+                        self.assertTrue(direction["transition_id"])
+
+    def test_prebiotic_dry_run_never_calls_chemical_stages_descendants_or_species(self) -> None:
+        service = engine.InteractiveEvolutionService(self.root, dry_run=True)
+        envelope = service.create_session("hydrothermal_origin")
+        session_id = envelope["session"]["session_id"]
+        for round_no in range(1, 4):
+            envelope = service.evolve(session_id, first_selection(envelope, round_no))
+            stage = envelope["session"]["current_stage"]
+            visible_copy = " ".join(
+                str(stage.get(field, ""))
+                for field in ("organism_name", "lineage_summary", "change_summary", "uncertainty_note")
+            )
+            for forbidden in ("后代", "身体", "物种", "谱系", "下一代"):
+                self.assertNotIn(forbidden, visible_copy)
+
+    def test_unknown_scenario_is_rejected_before_session_directory_is_created(self) -> None:
+        service = engine.InteractiveEvolutionService(self.root, dry_run=True)
+        with self.assertRaises(engine.InteractiveError) as context:
+            service.create_session("unknown_world")
+        self.assertEqual(context.exception.code, "invalid_scenario")
+        self.assertEqual(list(self.root.iterdir()), [])
+
     def test_known_transition_returns_curated_knowledge(self) -> None:
         service = engine.InteractiveEvolutionService(self.root, dry_run=True)
         envelope = service.create_session()

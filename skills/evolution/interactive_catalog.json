@@ -32,6 +32,7 @@
     "1": {
       "chapter": "细胞开始变复杂",
       "time_scope": "DEEP_TIME_HISTORY",
+      "fixture_name": "内潮共生细胞",
       "environments": [
         {
           "id": "oxygen_pulses",
@@ -99,6 +100,7 @@
     "2": {
       "chapter": "个体的边界被重写",
       "time_scope": "MULTIGENERATIONAL_TRANSITION",
+      "fixture_name": "潮纹协作体",
       "environments": [
         {
           "id": "predator_rise",
@@ -170,6 +172,7 @@
     "3": {
       "chapter": "把谱系推向未来",
       "time_scope": "FUTURE_SCENARIO",
+      "fixture_name": "暖潮迁游体",
       "environments": [
         {
           "id": "global_warming",

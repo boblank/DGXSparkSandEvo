@@ -1,0 +1,238 @@
+{
+  "contract_version": "0.7.0",
+  "initial_stage": {
+    "stage_id": "origin",
+    "organism_name": "微生物席上的柔软滤食体",
+    "lineage_summary": "扁平、柔软的多细胞身体贴在海床上，水流把细小有机物送到体表。它没有硬壳，也没有现代动物那样清楚的头尾。",
+    "change_summary": "故事从晚埃迪卡拉纪的浅海海床开始。这里的形态借用化石世界的边界，不对应某一个被完整复原的祖先。",
+    "traits": [
+      "扁平柔软的分叶身体",
+      "紧贴微生物席生活",
+      "靠体表交换物质",
+      "移动缓慢且方向性不强"
+    ],
+    "internal_causes": ["多细胞身体已经能维持基本的细胞分工和形态"],
+    "external_causes": ["浅海氧气和营养在水层与昼夜之间明显波动"],
+    "benefits": ["低矮身体能利用贴近海床的水流和有机物"],
+    "costs": ["缺少快速移动与坚硬防护，一旦海床生态改变就很被动"],
+    "evidence_tag": "TEACHING_SIMPLIFICATION",
+    "uncertainty_note": "埃迪卡拉生物与现生动物门类的关系并不清楚。这个起点只复原生态难题，不指定它属于哪一支现代谱系。",
+    "knowledge_card_id": "CAMBRIAN_TRANSITION",
+    "transition_id": "E01"
+  },
+  "rounds": {
+    "1": {
+      "chapter": "海床不再安静",
+      "time_scope": "EARLY_ANIMAL_ECOSYSTEM",
+      "fixture_name": "会沿海床移动的分叶体",
+      "environments": [
+        {
+          "id": "oxygen_pocket",
+          "title": "一股富氧水贴着海床流过",
+          "description": "短暂增加的氧气支持更主动的收缩和移动，也可能很快消失。"
+        },
+        {
+          "id": "food_current",
+          "title": "有机颗粒被水流带成窄带",
+          "description": "食物不再均匀铺开，能改变位置的身体更容易碰到资源。"
+        },
+        {
+          "id": "mat_breakup",
+          "title": "微生物席被扰动出一道缺口",
+          "description": "稳定附着面减少，裸露沉积物形成新的栖息位置。"
+        }
+      ],
+      "contingencies": [
+        {
+          "id": "directional_contraction",
+          "title": "一侧肌样细胞先收缩",
+          "description": "身体第一次出现较稳定的前后方向，移动不再完全随机。"
+        },
+        {
+          "id": "surface_cilia",
+          "title": "体表纤毛排列得更整齐",
+          "description": "微小水流被引向摄食表面，也能推动身体缓慢滑行。"
+        },
+        {
+          "id": "body_fold",
+          "title": "身体边缘多出一道褶皱",
+          "description": "交换面积增加，但褶皱也更容易藏住沉积物和病原体。"
+        }
+      ],
+      "directions": [
+        {
+          "id": "active_crawler",
+          "transition_id": "E02",
+          "knowledge_card_id": "CAMBRIAN_TRANSITION",
+          "evidence_tag": "MECHANISM_HYPOTHESIS",
+          "title": "开始主动寻找食物",
+          "description": "把方向性收缩、感觉和摄食逐步连在一起。",
+          "mechanism_hint": "身体轴、感觉—运动耦合与定向移动",
+          "tradeoff_hint": "更容易追上资源，也要持续消耗氧气"
+        },
+        {
+          "id": "anchored_filter",
+          "transition_id": "E03",
+          "knowledge_card_id": "MULTICELLULARITY",
+          "evidence_tag": "KNOWN_MECHANISM",
+          "title": "留在原地，把水流导向身体",
+          "description": "加强附着和体表分工，让经过的水替身体搬运食物。",
+          "mechanism_hint": "附着、体表分工与滤食水流",
+          "tradeoff_hint": "不用追逐食物，水流改道时却难以离开"
+        },
+        {
+          "id": "shallow_burrower",
+          "transition_id": "E04",
+          "knowledge_card_id": "BIOTURBATION",
+          "evidence_tag": "KNOWN_MECHANISM",
+          "title": "钻进微生物席下方",
+          "description": "在沉积物表层开出短通道，寻找有机物并躲开水流。",
+          "mechanism_hint": "掘穴、沉积物摄食与低氧耐受",
+          "tradeoff_hint": "能避开表面扰动，孔道里的氧气更少"
+        }
+      ]
+    },
+    "2": {
+      "chapter": "第一批猎手改变了距离",
+      "time_scope": "EARLY_ANIMAL_ECOSYSTEM",
+      "fixture_name": "有方向感的海床躲避者",
+      "environments": [
+        {
+          "id": "predator_traces",
+          "title": "海床上出现反复追逐的痕迹",
+          "description": "会移动的取食者开始接近，停在原地不再总是安全。"
+        },
+        {
+          "id": "clearer_water",
+          "title": "悬浮物减少，光线照得更深",
+          "description": "远处明暗变化变得可用，方向感有了新的信息来源。"
+        },
+        {
+          "id": "calcium_rich_water",
+          "title": "海水更利于沉积矿物",
+          "description": "体表有机会形成硬质颗粒，但制造和维护它们需要资源。"
+        }
+      ],
+      "contingencies": [
+        {
+          "id": "light_sensitive_patch",
+          "title": "身体前端聚起一小片感光细胞",
+          "description": "它还看不见图像，却能分辨光从哪边来。"
+        },
+        {
+          "id": "mineral_spicules",
+          "title": "体表沉积出零散硬颗粒",
+          "description": "局部更难被撕开，身体也因此变重。"
+        },
+        {
+          "id": "chemical_alarm",
+          "title": "受伤同伴释放的分子触发收缩",
+          "description": "危险到来前，附近个体能更早停止取食并离开。"
+        }
+      ],
+      "directions": [
+        {
+          "id": "directional_sight",
+          "transition_id": "E05",
+          "knowledge_card_id": "CONVERGENT_VISION",
+          "evidence_tag": "KNOWN_MECHANISM",
+          "title": "先分清光从哪里来",
+          "description": "用色素遮光和凹陷结构提高方向判断，不直接跳到完整眼睛。",
+          "mechanism_hint": "感光蛋白、色素遮光与方向感",
+          "tradeoff_hint": "能更早发现阴影，感光组织和神经连接需要持续供能"
+        },
+        {
+          "id": "patchy_armor",
+          "transition_id": "E06",
+          "knowledge_card_id": "CAMBRIAN_TRANSITION",
+          "evidence_tag": "MECHANISM_HYPOTHESIS",
+          "title": "只在要害处加硬",
+          "description": "把有限矿物集中到身体边缘和受攻击位置。",
+          "mechanism_hint": "局部矿化、材料分配与损伤修复",
+          "tradeoff_hint": "防护提高，柔软移动和生长速度会受限"
+        },
+        {
+          "id": "escape_pulse",
+          "transition_id": "E07",
+          "knowledge_card_id": "NERVOUS_SYSTEM_AND_BRAIN",
+          "evidence_tag": "KNOWN_MECHANISM",
+          "title": "把感知和一次快速收缩连起来",
+          "description": "建立短而可靠的感觉—运动回路，优先躲过最近的攻击。",
+          "mechanism_hint": "感觉细胞、信号传递与快速收缩",
+          "tradeoff_hint": "逃脱速度提高，平时要为高功率反应保留能量"
+        }
+      ]
+    },
+    "3": {
+      "chapter": "身体方案开始分叉",
+      "time_scope": "CAMBRIAN_TRANSITION",
+      "fixture_name": "海床军备竞赛中的新分支",
+      "environments": [
+        {
+          "id": "burrowed_seafloor",
+          "title": "海床被越来越多孔道翻动",
+          "description": "原本完整的微生物席碎裂，氧气和营养进入更深的沉积物。"
+        },
+        {
+          "id": "predator_escalation",
+          "title": "捕食者开始反复追赶猎物",
+          "description": "防护、速度和感知互相施压，任何一项都不能免费增加。"
+        },
+        {
+          "id": "oxygen_retreat",
+          "title": "富氧水团突然退去",
+          "description": "高耗能活动者先承受压力，缓慢路线重新获得机会。"
+        }
+      ],
+      "contingencies": [
+        {
+          "id": "development_switch",
+          "title": "发育时序提前了一小段",
+          "description": "同一套细胞工具在不同位置表达，身体比例因此改变。"
+        },
+        {
+          "id": "failed_attack",
+          "title": "一次攻击只咬伤了身体边缘",
+          "description": "幸存者留下的局部防护和逃逸性状进入下一代。"
+        },
+        {
+          "id": "new_niche",
+          "title": "掘穴者留下了空置孔道",
+          "description": "新的藏身与取食空间出现，也带来更低的氧气。"
+        }
+      ],
+      "directions": [
+        {
+          "id": "mobile_hunter",
+          "transition_id": "E08",
+          "knowledge_card_id": "CAMBRIAN_TRANSITION",
+          "evidence_tag": "MECHANISM_HYPOTHESIS",
+          "title": "把速度、感知和取食接成一套",
+          "description": "走向更主动的捕食身体，但不指定现代动物门类。",
+          "mechanism_hint": "定向身体、感觉—运动整合与捕食反馈",
+          "tradeoff_hint": "获得主动取食能力，低氧或缺粮时更容易崩溃"
+        },
+        {
+          "id": "armored_grazer",
+          "transition_id": "E08",
+          "knowledge_card_id": "CAMBRIAN_TRANSITION",
+          "evidence_tag": "MECHANISM_HYPOTHESIS",
+          "title": "披着局部硬甲刮食海床",
+          "description": "用防护和低速取食换取更稳定的生存。",
+          "mechanism_hint": "矿化防护、底栖摄食与材料权衡",
+          "tradeoff_hint": "不易被撕开，换壳、生长和快速转向都更困难"
+        },
+        {
+          "id": "sediment_engineer",
+          "transition_id": "E04",
+          "knowledge_card_id": "BIOTURBATION",
+          "evidence_tag": "KNOWN_MECHANISM",
+          "title": "把海床挖成自己的栖息地",
+          "description": "沿孔道取食、通气和藏身，同时改变周围生物的环境。",
+          "mechanism_hint": "深掘穴、沉积物混合与生态位建构",
+          "tradeoff_hint": "获得隐蔽空间，也要维护孔道并忍受低氧"
+        }
+      ]
+    }
+  }
+}

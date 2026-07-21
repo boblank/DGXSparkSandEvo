@@ -37,7 +37,7 @@ class EvoLabHandler(SimpleHTTPRequestHandler):
     """Same-origin static and JSON handler."""
 
     protocol_version = "HTTP/1.1"
-    server_version = "EvoLab/0.6"
+    server_version = "EvoLab/0.7"
     service: Any
 
     def _send_json(self, status: int, payload: dict[str, Any]) -> None:
@@ -122,8 +122,12 @@ class EvoLabHandler(SimpleHTTPRequestHandler):
                         "planner": "fixture" if self.service.dry_run else engine.STEP_MODEL,
                         "reasoning_effort": "not_applicable" if self.service.dry_run else "high",
                         "strict_schema": True,
+                        "scenario_count": len(self.service.list_scenarios()["scenarios"]),
                     },
                 )
+                return
+            if path == "/api/scenarios":
+                self._send_json(200, self.service.list_scenarios())
                 return
             match = re.fullmatch(r"/api/sessions/([0-9]{8}T[0-9]{6}-[a-f0-9]{8})", path)
             if match:
@@ -173,14 +177,16 @@ class EvoLabHandler(SimpleHTTPRequestHandler):
         try:
             if path == "/api/sessions":
                 content_length = int(self.headers.get("Content-Length", "0"))
+                payload: dict[str, Any] = {}
                 if content_length:
                     payload = self._read_json_body()
-                    if payload:
+                    if set(payload) - {"scenario_id"}:
                         raise engine.InteractiveError(
                             "invalid_request",
-                            "新建谱系不需要额外参数。",
+                            "创建世界时只需要选择一个场景。",
                         )
-                self._send_json(201, self.service.create_session())
+                scenario_id = payload.get("scenario_id")
+                self._send_json(201, self.service.create_session(scenario_id))
                 return
             match = re.fullmatch(
                 r"/api/sessions/([0-9]{8}T[0-9]{6}-[a-f0-9]{8})/evolve", path

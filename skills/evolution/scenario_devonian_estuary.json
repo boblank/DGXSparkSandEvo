@@ -1,0 +1,238 @@
+{
+  "contract_version": "0.7.0",
+  "initial_stage": {
+    "stage_id": "origin",
+    "organism_name": "缺氧河口里的肉鳍鱼类近缘谱系",
+    "lineage_summary": "它在浑浊浅水中贴近河床活动，成对肉质鳍能推开水草和泥沙。水仍托着大部分体重，头部也还主要适应水下取食。",
+    "change_summary": "故事从泥盆纪三角洲浅水开始。这个谱系借用过渡化石揭示的性状组合，不把任何化石指定为唯一祖先。",
+    "traits": [
+      "有内部骨骼支撑的肉质鳍",
+      "水下呼吸为主",
+      "贴近河床的伏行方式",
+      "能短时利用空气中的氧"
+    ],
+    "internal_causes": ["鳍内已有可被重新分配功能的骨骼和肌肉"],
+    "external_causes": ["三角洲水浅、浑浊、季节性缺氧，并会留下彼此隔开的水池"],
+    "benefits": ["浅水里食物丰富，肉质鳍能撑开植物和底泥"],
+    "costs": ["离开水的浮力后，承重、呼吸、感觉和失水问题会同时出现"],
+    "evidence_tag": "TEACHING_SIMPLIFICATION",
+    "uncertainty_note": "这是四足动物相关登陆路径的教学重建。植物、节肢动物和其他谱系曾用完全不同的办法进入陆地。",
+    "knowledge_card_id": "WATER_TO_LAND",
+    "transition_id": "M07"
+  },
+  "rounds": {
+    "1": {
+      "chapter": "浅水先改变了旧结构的用途",
+      "time_scope": "DEVONIAN_TRANSITION",
+      "fixture_name": "能撑起前身的浅水伏行者",
+      "environments": [
+        {
+          "id": "oxygen_poor_pool",
+          "title": "水池里的氧气快耗尽了",
+          "description": "腐败植物消耗溶氧，继续高强度游动越来越困难。"
+        },
+        {
+          "id": "weedy_shallows",
+          "title": "浅水被茎叶和倒木堵住",
+          "description": "连续游动空间变少，撑、推和转向比追求速度更有用。"
+        },
+        {
+          "id": "isolated_pools",
+          "title": "退水把河口切成许多小池",
+          "description": "食物和捕食者被分开，水池之间只隔着短短一段泥滩。"
+        }
+      ],
+      "contingencies": [
+        {
+          "id": "stronger_wrist_joint",
+          "title": "鳍的远端关节更能抵住河床",
+          "description": "它仍是鳍，却能把身体前部稍稍撑离底泥。"
+        },
+        {
+          "id": "air_gulping_reflex",
+          "title": "缺氧时更频繁地到水面吞气",
+          "description": "原有空气呼吸能力在闷热水池里更常派上用场。"
+        },
+        {
+          "id": "mobile_neck",
+          "title": "头部和肩带之间多了一点活动空间",
+          "description": "不用转动全身也能调整取食方向，但连接变得更脆弱。"
+        }
+      ],
+      "directions": [
+        {
+          "id": "bottom_support",
+          "transition_id": "M07",
+          "knowledge_card_id": "WATER_TO_LAND",
+          "evidence_tag": "KNOWN_MECHANISM",
+          "title": "用鳍把身体撑过障碍",
+          "description": "加强鳍骨、关节和躯干，让伏行在浅水里更稳定。",
+          "mechanism_hint": "鳍骨重组、关节承力与躯干支撑",
+          "tradeoff_hint": "越过障碍更容易，开阔水域里的高速游动会受影响"
+        },
+        {
+          "id": "air_breathing",
+          "transition_id": "M07",
+          "knowledge_card_id": "WATER_TO_LAND",
+          "evidence_tag": "KNOWN_MECHANISM",
+          "title": "把短时吞气变成稳定补氧",
+          "description": "提高空气交换和循环配合，让低氧水池不再立刻致命。",
+          "mechanism_hint": "空气呼吸、循环分配与呼吸节律",
+          "tradeoff_hint": "低氧时更能坚持，频繁上浮也更容易暴露给捕食者"
+        },
+        {
+          "id": "deepwater_return",
+          "transition_id": "D01",
+          "knowledge_card_id": "WATER_TO_LAND",
+          "evidence_tag": "KNOWN_MECHANISM",
+          "title": "回到更深、更稳定的水里",
+          "description": "保留游泳优势，不把浅水压力当成必须登陆的命令。",
+          "mechanism_hint": "栖息地追踪、扩散与水生专化",
+          "tradeoff_hint": "避开泥滩难题，也失去浅水新资源和隔离机会"
+        }
+      ]
+    },
+    "2": {
+      "chapter": "水退了，身体问题一起出现",
+      "time_scope": "DEVONIAN_TRANSITION",
+      "fixture_name": "能越过短泥滩的水边伏行者",
+      "environments": [
+        {
+          "id": "seasonal_drought",
+          "title": "旱季让小水池一天天变浅",
+          "description": "水温升高、氧气下降，湿泥地带短暂连接了相邻水池。"
+        },
+        {
+          "id": "shoreline_food",
+          "title": "水边聚起大量小型猎物",
+          "description": "岸边食物多，但身体必须在更少浮力的地方完成转向和取食。"
+        },
+        {
+          "id": "aquatic_predator",
+          "title": "大型水中捕食者封住了深水出口",
+          "description": "留在水里风险升高，短暂进入极浅水反而可能逃脱。"
+        }
+      ],
+      "contingencies": [
+        {
+          "id": "reinforced_rib",
+          "title": "躯干支撑比同伴更结实",
+          "description": "身体离开水底时不易塌下，但额外骨骼增加了重量。"
+        },
+        {
+          "id": "moist_skin",
+          "title": "皮肤分泌层更能留住水分",
+          "description": "短时暴露不再立刻损伤体表，长时间干燥仍无法承受。"
+        },
+        {
+          "id": "shoreline_hearing",
+          "title": "头部更能感到空气和地面的振动",
+          "description": "离水后仍能察觉附近动静，水下听觉方式却要重新调整。"
+        }
+      ],
+      "directions": [
+        {
+          "id": "pool_hopper",
+          "transition_id": "M07",
+          "knowledge_card_id": "WATER_TO_LAND",
+          "evidence_tag": "KNOWN_MECHANISM",
+          "title": "先学会越过一小段湿泥",
+          "description": "只解决短距离承重、推进和方向控制，不直接变成陆生动物。",
+          "mechanism_hint": "附肢承重、躯干稳定与间歇推进",
+          "tradeoff_hint": "能换到邻近水池，离水时间和活动范围仍很有限"
+        },
+        {
+          "id": "shoreline_ambush",
+          "transition_id": "M07",
+          "knowledge_card_id": "WATER_TO_LAND",
+          "evidence_tag": "KNOWN_MECHANISM",
+          "title": "伏在水边等猎物靠近",
+          "description": "加强头颈转动和空气中的感觉，把身体大部分留在水里。",
+          "mechanism_hint": "头颈活动、视觉与空气振动感知",
+          "tradeoff_hint": "取食范围扩大，呼吸和感觉系统需要同时重配"
+        },
+        {
+          "id": "buried_dormancy",
+          "transition_id": "D02",
+          "knowledge_card_id": "WATER_TO_LAND",
+          "evidence_tag": "KNOWN_MECHANISM",
+          "title": "留在泥里熬过旱季",
+          "description": "降低活动和代谢，用休眠躲过水池最危险的阶段。",
+          "mechanism_hint": "代谢抑制、黏液保护与季节性休眠",
+          "tradeoff_hint": "不用远行，休眠期间无法取食也可能错过繁殖"
+        }
+      ]
+    },
+    "3": {
+      "chapter": "岸边是一组新代价，不是终点",
+      "time_scope": "DEVONIAN_TRANSITION",
+      "fixture_name": "仍依赖水边的早期四足型谱系",
+      "environments": [
+        {
+          "id": "mudflat_expands",
+          "title": "潮湿泥滩在雨季持续扩大",
+          "description": "浅水和裸露地面交错，水边小型猎物与植物碎屑增多。"
+        },
+        {
+          "id": "temperature_swings",
+          "title": "昼夜温差离开水后变得明显",
+          "description": "水不再替身体缓冲温度，活动时间必须重新安排。"
+        },
+        {
+          "id": "water_refuge",
+          "title": "一条新河道重新连通深水",
+          "description": "回到水里又变得容易，登陆相关性状不再始终占优势。"
+        }
+      ],
+      "contingencies": [
+        {
+          "id": "broader_digits",
+          "title": "附肢末端分散成更宽的支点",
+          "description": "压力不再集中在一点，软泥上的推进更稳定。"
+        },
+        {
+          "id": "stronger_lung_cycle",
+          "title": "吞咽式呼吸节律更可靠",
+          "description": "空气交换时间延长，但头部和口腔要承担更多工作。"
+        },
+        {
+          "id": "aquatic_breeding",
+          "title": "卵和幼体仍只能在水中发育",
+          "description": "成体可以走得更远，繁殖季仍必须回到浅水。"
+        }
+      ],
+      "directions": [
+        {
+          "id": "amphibious_edge",
+          "transition_id": "M07",
+          "knowledge_card_id": "WATER_TO_LAND",
+          "evidence_tag": "KNOWN_MECHANISM",
+          "title": "把水边变成日常活动范围",
+          "description": "继续协调承重、空气呼吸和陆地感觉，但保留水中繁殖。",
+          "mechanism_hint": "承重附肢、空气呼吸、感觉重配与行为切换",
+          "tradeoff_hint": "能利用两种环境，也难在任何一边做到完全专化"
+        },
+        {
+          "id": "aquatic_specialist",
+          "transition_id": "D01",
+          "knowledge_card_id": "WATER_TO_LAND",
+          "evidence_tag": "KNOWN_MECHANISM",
+          "title": "重新把身体交给水的浮力",
+          "description": "回到连通水域，保留部分浅水能力但恢复游泳效率。",
+          "mechanism_hint": "水生回归、鳍形优化与栖息地追踪",
+          "tradeoff_hint": "游泳性能恢复，短暂陆地机会不再值得维护成本"
+        },
+        {
+          "id": "shoreline_forager",
+          "transition_id": "M07",
+          "knowledge_card_id": "WATER_TO_LAND",
+          "evidence_tag": "KNOWN_MECHANISM",
+          "title": "只在潮湿时上岸觅食",
+          "description": "把登陆限制在夜间、雨季和短距离，用行为避开最难的生理问题。",
+          "mechanism_hint": "活动节律、行为避险与有限陆地运动",
+          "tradeoff_hint": "减少失水和过热，食物与活动窗口都很短"
+        }
+      ]
+    }
+  }
+}

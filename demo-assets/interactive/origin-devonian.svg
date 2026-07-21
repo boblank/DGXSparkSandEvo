@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1000" viewBox="0 0 1600 1000" role="img" aria-label="泥盆纪河口浅水与肉鳍鱼类近缘谱系的科学插画">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#b4c8c5"/><stop offset=".32" stop-color="#72969a"/><stop offset=".33" stop-color="#315e69"/><stop offset="1" stop-color="#14343b"/></linearGradient>
+    <linearGradient id="mud"><stop stop-color="#8e7653"/><stop offset="1" stop-color="#302f29"/></linearGradient>
+    <linearGradient id="fish" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#91b8ce"/><stop offset=".5" stop-color="#4d7c83"/><stop offset="1" stop-color="#d8663f"/></linearGradient>
+    <filter id="blur"><feGaussianBlur stdDeviation="16"/></filter>
+    <filter id="grain"><feTurbulence type="fractalNoise" baseFrequency=".7" numOctaves="3"/><feColorMatrix values="1 0 0 0 0 0 1 0 0 0 0 0 1 0 0 0 0 0 .12 0"/></filter>
+  </defs>
+  <rect width="1600" height="1000" fill="url(#sky)"/>
+  <circle cx="1250" cy="155" r="105" fill="#e7c25a" opacity=".26" filter="url(#blur)"/>
+  <path d="M0 355 Q240 300 430 340 T820 320 T1220 350 T1600 325 V450 H0Z" fill="#273f3d" opacity=".72"/>
+  <path d="M0 780 Q260 705 500 760 T970 730 T1340 770 T1600 745 V1000 H0Z" fill="url(#mud)"/>
+  <g stroke="#263c35" stroke-width="18" stroke-linecap="round" opacity=".82"><path d="M190 850 Q180 650 230 470"/><path d="M245 850 Q270 660 335 510"/><path d="M1320 830 Q1305 610 1360 455"/><path d="M1380 850 Q1420 660 1485 520"/></g>
+  <g fill="#4b684f" opacity=".88"><path d="M225 510 q-80-80-110-10 q65 18 110 45"/><path d="M240 545 q95-90 135-15 q-75 12-135 48"/><path d="M1365 500 q-85-80-125-6 q78 15 125 44"/><path d="M1380 555 q95-75 135-6 q-75 9-135 40"/></g>
+  <ellipse cx="825" cy="662" rx="390" ry="150" fill="#06171d" opacity=".24" filter="url(#blur)"/>
+  <g transform="translate(810 610) rotate(-4)">
+    <path d="M-390 10 C-285-102-70-118 135-76 C245-54 332-12 395 22 C328 66 240 102 110 105 C-98 112-290 86-390 10Z" fill="url(#fish)" stroke="#d7dfcf" stroke-opacity=".45" stroke-width="6"/>
+    <path d="M-380 10 L-510-90 Q-485 8-520 112Z" fill="#587c7d" stroke="#d7dfcf" stroke-opacity=".35" stroke-width="5"/>
+    <path d="M65 86 Q-10 205-155 225 Q-102 122-18 60Z" fill="#4c7376" stroke="#d7dfcf" stroke-opacity=".4" stroke-width="6"/>
+    <path d="M245 60 Q205 166 102 188 Q132 97 184 42Z" fill="#5f8582" stroke="#d7dfcf" stroke-opacity=".4" stroke-width="6"/>
+    <path d="M-75-79 Q-25-178 75-185 Q62-111 5-66Z" fill="#648b86" opacity=".9"/>
+    <circle cx="292" cy="-13" r="25" fill="#06171d"/><circle cx="299" cy="-20" r="7" fill="#e7c25a"/>
+    <path d="M330 39 Q375 55 397 22" fill="none" stroke="#17292b" stroke-width="8"/>
+    <g stroke="#26494d" stroke-width="5" opacity=".65"><path d="M-245-67 Q-188 6-232 79"/><path d="M-145-88 Q-96 2-138 96"/><path d="M-30-91 Q22 7-12 103"/><path d="M92-74 Q136 8 104 94"/></g>
+  </g>
+  <g fill="#e9e2d0" opacity=".22"><circle cx="300" cy="470" r="4"/><circle cx="510" cy="560" r="5"/><circle cx="980" cy="480" r="3"/><circle cx="1190" cy="610" r="5"/></g>
+  <rect width="1600" height="1000" filter="url(#grain)" opacity=".45"/>
+</svg>

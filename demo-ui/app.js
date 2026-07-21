@@ -4,23 +4,37 @@
   const API_ROOT = "/api";
   const TIME_LABELS = {
     DEEP_TIME_HISTORY: "深时历史 · 细胞世界",
-    MULTIGENERATIONAL_TRANSITION: "许多代以后 · 个体边界改变",
+    MULTIGENERATIONAL_TRANSITION: "跨越许多代 · 个体边界改变",
     FUTURE_SCENARIO: "未来情景 · 不是确定预言",
+    PREBIOTIC_CHEMISTRY: "生命出现以前 · 化学演化",
+    ORIGIN_OF_LIFE_GAP: "生命起源缺口 · 竞争假说",
+    EARLY_ANIMAL_ECOSYSTEM: "晚埃迪卡拉纪 · 海床生态",
+    CAMBRIAN_TRANSITION: "埃迪卡拉—寒武纪过渡",
+    DEVONIAN_TRANSITION: "泥盆纪 · 水陆边缘",
   };
   const EVIDENCE_LABELS = {
     KNOWN_MECHANISM: "已知机制",
     MECHANISM_HYPOTHESIS: "机制仍在研究",
-    TEACHING_SIMPLIFICATION: "教学简化",
+    TEACHING_SIMPLIFICATION: "教学重建",
     SCENARIO_EXTRAPOLATION: "未来情景推演",
   };
-  const WAITING_MESSAGES = [
-    "先读懂上一代留下的特征…",
-    "把环境压力放进下一代…",
-    "让收益和代价彼此制衡…",
-    "DGX Spark 正在绘制新的形态…",
+  const LINEAGE_WAITING_MESSAGES = [
+    "正在核对这条路是否走得通…",
+    "正在把上一代留下的特征带过来…",
+    "正在检查获得了什么，又付出了什么…",
+    "DGX Spark 正在画出这一代的环境和身体…",
+  ];
+  const CHEMISTRY_WAITING_MESSAGES = [
+    "正在核对这组反应是否走得通…",
+    "正在把上一阶段留下的结构带过来…",
+    "正在检查获得了什么，又付出了什么…",
+    "DGX Spark 正在画出这一阶段的环境与化学系统…",
   ];
 
   const state = {
+    scenarios: [],
+    selectedScenarioId: null,
+    currentScenarioId: null,
     envelope: null,
     selected: { environment: null, contingency: null, direction: null },
     busy: false,
@@ -33,29 +47,50 @@
   document.addEventListener("DOMContentLoaded", function () {
     cacheElements();
     bindEvents();
-    startSession();
+    setView("atlas");
+    loadWorldAtlas();
   });
 
   function cacheElements() {
     [
-      "runtime-state", "restart-button", "round-label", "round-rail", "organism-image",
-      "image-placeholder", "time-scope", "habitat-label", "stage-kicker", "organism-name",
-      "organism-summary", "trait-list", "generation-overlay", "generation-message",
-      "choice-content", "ending-content", "round-number", "evolution-form",
-      "environment-choices", "contingency-choices", "direction-choices", "selection-recap",
-      "evolve-button", "ending-restart", "ending-summary", "knowledge-note", "knowledge-kicker",
-      "knowledge-title", "knowledge-body", "evidence-button", "lineage-history", "error-toast",
-      "error-message", "dismiss-error", "evidence-dialog", "evidence-tag", "evidence-title",
-      "evidence-summary", "evidence-boundary", "evidence-sources",
+      "brand-link", "world-button", "runtime-state", "world-atlas", "simulation-view",
+      "scenario-list", "world-preview", "world-preview-image", "world-preview-era",
+      "world-preview-depth", "world-preview-habitat", "world-preview-title",
+      "world-preview-summary", "world-preview-question", "world-preview-evidence",
+      "enter-world-button", "active-world-era", "active-world-title", "restart-button",
+      "round-label", "round-rail", "organism-image", "image-placeholder", "time-scope",
+      "habitat-label", "stage-kicker", "organism-name", "organism-summary", "trait-list",
+      "generation-overlay", "generation-title", "generation-message", "choice-content", "ending-content",
+      "round-number", "chapter-label", "choice-title", "choice-lead", "direction-legend",
+      "evolve-button-label", "ending-kicker", "ending-title", "evolution-form", "environment-choices",
+      "contingency-choices", "direction-choices", "selection-recap", "evolve-button",
+      "ending-restart", "ending-worlds", "ending-summary", "knowledge-note",
+      "knowledge-kicker", "knowledge-title", "knowledge-body", "evidence-button",
+      "lineage-history", "film-kicker", "film-title", "trace-world", "trace-knowledge", "trace-plan", "trace-render",
+      "error-toast", "error-message", "dismiss-error", "evidence-dialog", "evidence-tag",
+      "evidence-title", "evidence-summary", "evidence-boundary", "evidence-sources",
     ].forEach(function (id) {
       el[id] = document.getElementById(id);
     });
   }
 
   function bindEvents() {
+    el["brand-link"].addEventListener("click", function (event) {
+      event.preventDefault();
+      showWorldAtlas();
+    });
+    el["world-button"].addEventListener("click", showWorldAtlas);
+    el["enter-world-button"].addEventListener("click", function () {
+      startSession(state.selectedScenarioId);
+    });
+    el["restart-button"].addEventListener("click", function () {
+      startSession(state.currentScenarioId);
+    });
+    el["ending-restart"].addEventListener("click", function () {
+      startSession(state.currentScenarioId);
+    });
+    el["ending-worlds"].addEventListener("click", showWorldAtlas);
     el["evolution-form"].addEventListener("submit", evolve);
-    el["restart-button"].addEventListener("click", startSession);
-    el["ending-restart"].addEventListener("click", startSession);
     el["dismiss-error"].addEventListener("click", hideError);
     el["evidence-button"].addEventListener("click", openEvidence);
     el["organism-image"].addEventListener("load", function () {
@@ -78,41 +113,138 @@
     }
     if (!response.ok) {
       const message = payload && payload.error && payload.error.message;
-      throw new Error(message || "实验室暂时没有回应，请稍后再试。");
+      throw new Error(message || "实验室暂时没有回应，请过一会儿再试。");
     }
     return payload;
   }
 
-  async function startSession() {
-    if (state.busy) return;
+  async function loadWorldAtlas() {
     hideError();
-    setBusy(true, "正在准备一片新的远古浅海…");
+    setRuntime("正在读取四个世界", "busy");
     try {
-      const health = await request("/health");
-      const envelope = await request("/sessions", { method: "POST" });
+      const results = await Promise.all([request("/health"), request("/scenarios")]);
+      const health = results[0] || {};
+      const registry = results[1] || {};
+      state.scenarios = Array.isArray(registry.scenarios) ? registry.scenarios : [];
+      renderScenarioList();
+      selectScenario(registry.default_scenario_id || (state.scenarios[0] && state.scenarios[0].id));
+      setRuntime(health.mode === "live" ? "DGX Spark 已就绪" : "四个世界可以预演", "ready");
+    } catch (error) {
+      setRuntime("世界图谱暂时没有打开", "error");
+      showError(readableError(error));
+    }
+  }
+
+  function renderScenarioList() {
+    el["scenario-list"].replaceChildren();
+    state.scenarios.forEach(function (scenario, index) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "scenario-node";
+      button.dataset.scenarioId = safeText(scenario.id);
+      button.style.setProperty("--scene-accent", safeColor(scenario.accent));
+      button.style.setProperty("--scene-index", String(index));
+      button.setAttribute("aria-pressed", "false");
+
+      const image = document.createElement("img");
+      image.src = assetUrl(scenario.origin_asset);
+      image.alt = "";
+      const veil = document.createElement("span");
+      veil.className = "scenario-veil";
+      const era = document.createElement("small");
+      era.textContent = safeText(scenario.era);
+      const title = document.createElement("strong");
+      title.textContent = safeText(scenario.short_title, scenario.title);
+      const habitat = document.createElement("span");
+      habitat.textContent = safeText(scenario.depth, scenario.habitat);
+      button.append(image, veil, era, title, habitat);
+      button.addEventListener("click", function () {
+        selectScenario(scenario.id, true);
+      });
+      el["scenario-list"].appendChild(button);
+    });
+  }
+
+  function selectScenario(scenarioId, focusPreview) {
+    const scenario = state.scenarios.find(function (item) { return item.id === scenarioId; });
+    if (!scenario) return;
+    state.selectedScenarioId = scenario.id;
+    Array.from(el["scenario-list"].querySelectorAll(".scenario-node")).forEach(function (node) {
+      const active = node.dataset.scenarioId === scenario.id;
+      node.classList.toggle("is-selected", active);
+      node.setAttribute("aria-pressed", active ? "true" : "false");
+    });
+    el["world-preview"].style.setProperty("--scene-accent", safeColor(scenario.accent));
+    el["world-preview-image"].src = assetUrl(scenario.origin_asset);
+    el["world-preview-image"].alt = safeText(scenario.title) + "的起始环境";
+    el["world-preview-era"].textContent = safeText(scenario.era);
+    el["world-preview-depth"].textContent = safeText(scenario.depth, scenario.habitat);
+    el["world-preview-habitat"].textContent = safeText(scenario.habitat);
+    el["world-preview-title"].textContent = safeText(scenario.title);
+    el["world-preview-summary"].textContent = safeText(scenario.summary);
+    el["world-preview-question"].textContent = safeText(scenario.entry_question);
+    el["world-preview-evidence"].textContent = "知识边界：" + safeText(scenario.evidence_note);
+    el["enter-world-button"].disabled = false;
+    if (focusPreview && window.matchMedia("(max-width: 800px)").matches) {
+      el["world-preview"].scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }
+
+  async function startSession(scenarioId) {
+    if (state.busy || !scenarioId) return;
+    hideError();
+    setBusy(true, "正在把这个时代的起点放进观察舱…");
+    setRuntime("正在进入这个世界", "busy");
+    try {
+      const envelope = await request("/sessions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ scenario_id: scenarioId }),
+      });
       state.envelope = envelope;
+      state.currentScenarioId = envelope.session.scenario_id;
       state.selected = { environment: null, contingency: null, direction: null };
       render(envelope);
-      const mode = health && health.mode === "live" ? "DGX Spark 已就绪" : "互动预演已就绪";
-      setRuntime(mode, "ready");
+      setView("simulation");
+      setRuntime("可以开始第一次改变", "ready");
     } catch (error) {
-      setRuntime("实验室暂未连接", "error");
+      setRuntime("这个世界暂时进不去", "error");
       showError(readableError(error));
     } finally {
       setBusy(false);
     }
   }
 
+  function showWorldAtlas() {
+    if (state.busy) return;
+    hideError();
+    setView("atlas");
+    if (state.currentScenarioId) selectScenario(state.currentScenarioId);
+  }
+
+  function setView(view) {
+    const atlas = view === "atlas";
+    el["world-atlas"].hidden = !atlas;
+    el["simulation-view"].hidden = atlas;
+    el["world-button"].hidden = atlas;
+    document.body.dataset.view = view;
+    window.scrollTo({ top: 0, behavior: "auto" });
+  }
+
   function render(envelope) {
     if (!envelope || !envelope.session) return;
     const session = envelope.session;
     const stage = session.current_stage || {};
+    const scenario = session.scenario || {};
     const round = numberOr(session.round_index, 0);
+    el["active-world-era"].textContent = safeText(scenario.era, "年代未定");
+    el["active-world-title"].textContent = safeText(scenario.title, "当前世界");
+    document.documentElement.style.setProperty("--active-accent", safeColor(scenario.accent));
     renderRail(round);
-    renderStage(stage, round);
-    renderHistory(session.history || []);
+    renderStage(stage, round, scenario);
+    renderHistory(session.history || [], numberOr(session.max_rounds, 3));
     renderKnowledge(stage, round);
-
+    renderTrace(stage, round, scenario);
     if (round >= numberOr(session.max_rounds, 3)) {
       renderEnding(stage);
     } else {
@@ -121,8 +253,8 @@
   }
 
   function renderRail(round) {
-    const labels = ["起点", "第一次改变", "第二次改变", "走向未来"];
-    el["round-label"].textContent = labels[round] || "仍在继续";
+    const labels = ["还在起点", "走过第一次改变", "走过第二次改变", "三次改变完成"];
+    el["round-label"].textContent = labels[round] || (isChemistryWorld() ? "这组反应还会继续" : "这条谱系还会继续");
     Array.from(el["round-rail"].children).forEach(function (item) {
       const itemRound = Number(item.dataset.round);
       item.classList.toggle("is-done", itemRound < round);
@@ -130,23 +262,23 @@
     });
   }
 
-  function renderStage(stage, round) {
+  function renderStage(stage, round, scenario) {
     const imageUrl = safeText(stage.image_url);
     if (imageUrl && el["organism-image"].getAttribute("src") !== imageUrl) {
       el["organism-image"].classList.remove("is-visible");
       el["organism-image"].src = imageUrl;
     }
     const selection = stage.selection || {};
-    el["organism-image"].alt = safeText(stage.organism_name) + "在当前环境中的生成图";
-    el["time-scope"].textContent = TIME_LABELS[stage.time_scope] || (round === 0 ? "深时历史 · 演化起点" : "许多代以后");
+    el["organism-image"].alt = safeText(stage.organism_name, "当前阶段") + "在当前环境中的图像";
+    el["time-scope"].textContent = TIME_LABELS[stage.time_scope] || (round === 0 ? safeText(scenario.era, "演化起点") : "许多代以后");
     el["habitat-label"].textContent = selection.environment && selection.environment.title
       ? selection.environment.title
-      : "古老浅海 · 潮池边缘";
+      : safeText(scenario.habitat, "起始环境");
     el["stage-kicker"].textContent = round === 0
-      ? "演化起点"
-      : "第 " + round + " 次改变 · " + safeText(selection.direction && selection.direction.title, "谱系发生改变");
-    el["organism-name"].textContent = safeText(stage.organism_name, "尚未命名的生命谱系");
-    el["organism-summary"].textContent = safeText(stage.lineage_summary, stage.change_summary || "这条谱系仍在等待下一次改变。");
+      ? "这个世界的起点"
+      : "第 " + round + " 次改变 · " + safeText(selection.direction && selection.direction.title, isChemistryWorld() ? "化学路径发生变化" : "谱系发生变化");
+    el["organism-name"].textContent = safeText(stage.organism_name, isChemistryWorld() ? "尚未命名的化学系统" : "尚未命名的谱系");
+    el["organism-summary"].textContent = safeText(stage.lineage_summary, stage.change_summary || "它还在等待下一次环境变化。");
     el["trait-list"].replaceChildren();
     (Array.isArray(stage.traits) ? stage.traits.slice(0, 5) : []).forEach(function (trait) {
       const item = document.createElement("li");
@@ -156,9 +288,17 @@
   }
 
   function renderChoices(choices) {
+    const chemistry = isChemistryWorld();
     el["choice-content"].hidden = false;
     el["ending-content"].hidden = true;
     el["round-number"].textContent = String(choices.round || "—");
+    el["chapter-label"].textContent = safeText(choices.chapter, "新的难题");
+    el["choice-title"].textContent = chemistry ? "这一阶段会发生什么？" : "这一代要面对什么？";
+    el["choice-lead"].textContent = chemistry
+      ? "先改变周围条件，再让偶然扰动进入系统。最后决定哪类化学路径更容易延续。"
+      : "先让世界发生变化，再给偶然一次机会。最后决定哪些差异更可能被留下。";
+    el["direction-legend"].textContent = chemistry ? "哪类反应路径更容易延续" : "哪些后代会留下更多";
+    el["evolve-button-label"].textContent = chemistry ? "看看下一阶段" : "让下一代出现";
     state.selected = { environment: null, contingency: null, direction: null };
     renderChoiceGroup("environment", choices.environments || [], el["environment-choices"], false);
     renderChoiceGroup("contingency", choices.contingencies || [], el["contingency-choices"], false);
@@ -174,21 +314,19 @@
       button.className = isDirection ? "direction-option" : "choice-option";
       button.dataset.choiceId = safeText(choice.id);
       button.setAttribute("aria-pressed", "false");
+      const mark = document.createElement("span");
+      mark.className = isDirection ? "direction-mark" : "choice-mark";
+      mark.setAttribute("aria-hidden", "true");
+      const title = document.createElement("strong");
+      title.textContent = safeText(choice.title);
+      const detail = document.createElement("small");
+      detail.textContent = safeText(choice.description);
+      button.append(mark, title, detail);
       if (isDirection) {
-        const mark = document.createElement("span");
-        mark.className = "direction-mark";
-        mark.setAttribute("aria-hidden", "true");
-        const title = document.createElement("strong");
-        title.textContent = safeText(choice.title);
-        const detail = document.createElement("small");
-        detail.textContent = safeText(choice.description);
         const arrow = document.createElement("i");
         arrow.textContent = "→";
         arrow.setAttribute("aria-hidden", "true");
-        button.append(mark, title, detail, arrow);
-      } else {
-        button.textContent = safeText(choice.title);
-        button.title = safeText(choice.description);
+        button.appendChild(arrow);
       }
       button.addEventListener("click", function () {
         selectChoice(group, choice, container, button);
@@ -209,19 +347,21 @@
   }
 
   function updateSelectionRecap() {
+    if (!el["selection-recap"]) return;
     const selected = state.selected;
     const complete = selected.environment && selected.contingency && selected.direction;
     el["evolve-button"].disabled = !complete || state.busy;
     if (complete) {
       el["selection-recap"].textContent =
-        "在“" + selected.environment.title + "”中，遇上“" + selected.contingency.title + "”，这条谱系选择“" + selected.direction.title + "”。";
+        selected.environment.title + "；" + selected.contingency.title + "。" +
+        (isChemistryWorld() ? "接下来更容易延续的是：“" : "接下来留下更多的是：“") + selected.direction.title + "”。";
       return;
     }
     const missing = [];
-    if (!selected.environment) missing.push("环境");
+    if (!selected.environment) missing.push("周围发生的变化");
     if (!selected.contingency) missing.push("偶然事件");
-    if (!selected.direction) missing.push("演化方向");
-    el["selection-recap"].textContent = "还需要选择：" + missing.join("、") + "。";
+    if (!selected.direction) missing.push(isChemistryWorld() ? "更容易延续的化学路径" : "留下更多的方向");
+    el["selection-recap"].textContent = "还要选：" + missing.join("、") + "。";
   }
 
   async function evolve(event) {
@@ -248,12 +388,14 @@
       });
       state.envelope = envelope;
       render(envelope);
-      setRuntime(envelope.session.status === "completed" ? "三轮演化完成" : "可以继续选择", "ready");
+      setRuntime(envelope.session.status === "completed"
+        ? (isChemistryWorld() ? "这套反应走完三次改变" : "这条谱系走完三次改变")
+        : "可以继续下一次改变", "ready");
       if (window.matchMedia("(max-width: 820px)").matches) {
         document.querySelector(".evolution-stage").scrollIntoView({ behavior: "smooth", block: "start" });
       }
     } catch (error) {
-      setRuntime("这一轮可以重试", "error");
+      setRuntime("原来的记录还在，可以重试", "error");
       showError(readableError(error));
     } finally {
       stopWaitingMessages();
@@ -263,22 +405,24 @@
   }
 
   function renderKnowledge(stage, round) {
-    if (round === 0) {
-      el["knowledge-kicker"].textContent = "这是一片教学用的起始生态";
-      el["knowledge-title"].textContent = "先做一次选择";
-      el["knowledge-body"].textContent = "如果下一步对应已知的演化节点，我们会告诉你它在人类知识里叫什么；如果没有，就把推演依据和不确定性说清楚。";
+    const match = stage.knowledge_match || {};
+    const matched = match.status === "matched";
+    if (round === 0 && !matched) {
+      el["knowledge-kicker"].textContent = "这里是教学用的起点";
+      el["knowledge-title"].textContent = "先看清它怎样活着";
+      el["knowledge-body"].textContent = safeText(stage.uncertainty_note, "下一步命中已知机制时，这里会给出来源；没有命中时，会直接说明是推演。");
       el["evidence-button"].disabled = true;
       return;
     }
-    const match = stage.knowledge_match || {};
-    const matched = match.status === "matched";
     const outcomeUnknown = match.generated_outcome_status === "no_match";
     el["knowledge-kicker"].textContent = matched
-      ? (outcomeUnknown ? "环境事实有证据，未来形态仍是推演" : "这一步在人类知识里有名字")
-      : "没有对应到已知的历史节点";
-    el["knowledge-title"].textContent = matched ? safeText(match.title, "知识注脚") : "这是一次有约束的推演";
-    el["knowledge-body"].textContent = safeText(match.summary, "系统按环境压力、遗传差异和生存代价给出这条路线，但不会把它冒充成已经发现的物种。");
-    el["evidence-button"].disabled = false;
+      ? (outcomeUnknown ? "环境事实有来源，生成形态仍是推演" : "这一步能在知识库里找到锚点")
+      : "知识库没有对应的历史节点";
+    el["knowledge-title"].textContent = matched ? safeText(match.title, "知识注脚") : "这次结果只能算受约束的假说";
+    el["knowledge-body"].textContent = safeText(match.summary, isChemistryWorld()
+      ? "系统按照环境、已有结构和代价给出这条路，没有把化学演化写成已经出现了生命。"
+      : "系统按照环境、继承性状和代价给出这条路，没有把它写成已经发现的物种。");
+    el["evidence-button"].disabled = !match.status;
   }
 
   function openEvidence() {
@@ -286,22 +430,25 @@
     const stage = state.envelope.session.current_stage || {};
     const match = stage.knowledge_match || {};
     const sources = uniqueSources([].concat(match.sources || [], match.context_sources || []));
-    el["evidence-tag"].textContent = EVIDENCE_LABELS[stage.evidence_tag] || (match.status === "matched" ? "有来源的知识解释" : "受约束的演化假说");
+    el["evidence-tag"].textContent = EVIDENCE_LABELS[stage.evidence_tag]
+      || (match.status === "matched" ? "有来源的机制解释" : "受约束的推演");
     el["evidence-title"].textContent = match.status === "matched" ? safeText(match.title, "知识解释") : "这条路线的证据边界";
-    el["evidence-summary"].textContent = safeText(match.summary, stage.uncertainty_note || "这次结果用于解释因果关系，不是确定预测。");
-    el["evidence-boundary"].textContent = safeText(match.boundary, stage.uncertainty_note || "生成形态不等于已发现物种，也不代表演化只有一条路。");
+    el["evidence-summary"].textContent = safeText(match.summary, stage.uncertainty_note || "这次结果用来解释因果关系，不是确定预测。");
+    el["evidence-boundary"].textContent = safeText(match.boundary, stage.uncertainty_note || (isChemistryWorld()
+      ? "生成结果只是竞争假说下的教学重建，不能据此宣布生命已经出现。"
+      : "生成形态不等于已经发现的物种，也不代表演化只有一条路。"));
     el["evidence-sources"].replaceChildren();
     if (!sources.length) {
       const empty = document.createElement("p");
-      empty.textContent = "这里没有硬贴一条参考文献。知识库未命中时，我们宁愿明确留白。";
+      empty.textContent = "这里没有硬贴一条参考文献。知识库没命中时，我们把空白留出来。";
       el["evidence-sources"].appendChild(empty);
     } else {
-      sources.slice(0, 5).forEach(function (source) {
+      sources.slice(0, 6).forEach(function (source) {
         const link = document.createElement("a");
         link.href = safeUrl(source.url);
         link.target = "_blank";
         link.rel = "noopener noreferrer";
-        link.textContent = safeText(source.title, "查看来源");
+        link.textContent = safeText(source.title, "打开来源");
         el["evidence-sources"].appendChild(link);
       });
     }
@@ -310,22 +457,25 @@
     }
   }
 
-  function renderHistory(history) {
+  function renderHistory(history, maxRounds) {
+    const frameCount = maxRounds + 1;
+    el["film-kicker"].textContent = isChemistryWorld() ? "REACTION RECORD" : "YOUR LINEAGE";
+    el["film-title"].textContent = isChemistryWorld() ? "这套化学系统留下的四个瞬间" : "这条谱系留下的四个瞬间";
     el["lineage-history"].replaceChildren();
-    history.slice(0, 4).forEach(function (stage, index) {
+    history.slice(0, frameCount).forEach(function (stage, index) {
       const frame = document.createElement("li");
       frame.className = "film-frame";
       const image = document.createElement("img");
       image.src = safeText(stage.image_url);
-      image.alt = safeText(stage.organism_name) + "的阶段缩略图";
+      image.alt = safeText(stage.organism_name, "这一阶段") + "的缩略图";
       const number = document.createElement("span");
       number.textContent = String(index).padStart(2, "0");
       const title = document.createElement("b");
-      title.textContent = safeText(stage.organism_name, "未命名谱系");
+      title.textContent = safeText(stage.organism_name, isChemistryWorld() ? "未命名化学系统" : "未命名谱系");
       frame.append(image, number, title);
       el["lineage-history"].appendChild(frame);
     });
-    for (let index = history.length; index < 4; index += 1) {
+    for (let index = history.length; index < frameCount; index += 1) {
       const frame = document.createElement("li");
       frame.className = "film-frame is-empty";
       frame.textContent = index === 0 ? "起点" : "等待第 " + index + " 次改变";
@@ -336,27 +486,57 @@
   function renderEnding(stage) {
     el["choice-content"].hidden = true;
     el["ending-content"].hidden = false;
+    el["ending-kicker"].textContent = isChemistryWorld() ? "这套反应走完了三次改变" : "这条谱系走完了三次改变";
     const benefits = Array.isArray(stage.benefits) ? stage.benefits[0] : "适应了新的环境";
     const costs = Array.isArray(stage.costs) ? stage.costs[0] : "也承担了新的代价";
-    el["ending-summary"].textContent = "最后一轮里，它“" + benefits + "”，同时也“" + costs + "”。回到起点，换一个选择，就会得到另一条仍然讲得通的谱系。";
+    el["ending-title"].textContent = isChemistryWorld()
+      ? "反应继续了下去，生命仍没有被轻易宣布。"
+      : "它暂时活了下来，世界没有因此停住。";
+    el["ending-summary"].textContent = "最后一次改变带来“" + benefits + "”，代价是“" + costs + "”。换一个起点或选择，留下来的会是另一套答案。";
+  }
+
+  function renderTrace(stage, round, scenario) {
+    const match = stage.knowledge_match || {};
+    const model = stage.model || {};
+    setTrace(el["trace-world"], true, safeText(scenario.short_title, scenario.title) + " · " + safeText(TIME_LABELS[stage.time_scope], "起点规则"));
+    setTrace(el["trace-knowledge"], Boolean(match.status), match.status === "matched" ? safeText(match.title, "已匹配知识卡") : "没有硬套历史节点，保留为空");
+    const plannerLabel = model.planner === "fixture" ? "离线预演" : safeText(model.planner);
+    el["trace-plan"].querySelector("strong").textContent = isChemistryWorld() ? "化学路径规划" : "下一代规划";
+    setTrace(el["trace-plan"], Boolean(model.planner), model.planner ? plannerLabel + " · 严格结构输出" : "起点来自场景包，还没有生成" + (isChemistryWorld() ? "下一阶段" : "下一代"));
+    const renderDone = round > 0 && Boolean(stage.render_source);
+    const generator = stage.render_source === "fixture"
+      ? "浏览器预演图"
+      : safeText(stage.render_metadata && stage.render_metadata.generator, stage.render_source);
+    setTrace(el["trace-render"], renderDone, renderDone ? generator : "起点图来自场景包；" + (isChemistryWorld() ? "下一阶段" : "下一代") + "将在 DGX 绘制");
+  }
+
+  function setTrace(item, done, detail) {
+    item.classList.toggle("is-done", done);
+    const small = item.querySelector("small");
+    if (small) small.textContent = detail;
   }
 
   function setBusy(busy, message) {
     state.busy = busy;
+    el["enter-world-button"].disabled = busy || !state.selectedScenarioId;
     el["restart-button"].disabled = busy;
-    el["generation-overlay"].hidden = !busy;
-    if (message) el["generation-message"].textContent = message;
-    if (busy) setRuntime("下一代正在形成", "busy");
+    if (!el["simulation-view"].hidden) {
+      el["generation-overlay"].hidden = !busy;
+      if (message) el["generation-message"].textContent = message;
+    }
+    if (busy) setRuntime(isChemistryWorld() ? "下一阶段正在形成" : "下一代正在形成", "busy");
     updateSelectionRecap();
   }
 
   function startWaitingMessages() {
+    const messages = isChemistryWorld() ? CHEMISTRY_WAITING_MESSAGES : LINEAGE_WAITING_MESSAGES;
     state.waitingIndex = 0;
-    el["generation-message"].textContent = WAITING_MESSAGES[0];
+    el["generation-title"].textContent = isChemistryWorld() ? "下一阶段正在形成" : "下一代正在形成";
+    el["generation-message"].textContent = messages[0];
     window.clearInterval(state.waitingTimer);
     state.waitingTimer = window.setInterval(function () {
-      state.waitingIndex = (state.waitingIndex + 1) % WAITING_MESSAGES.length;
-      el["generation-message"].textContent = WAITING_MESSAGES[state.waitingIndex];
+      state.waitingIndex = (state.waitingIndex + 1) % messages.length;
+      el["generation-message"].textContent = messages[state.waitingIndex];
     }, 4200);
   }
 
@@ -383,16 +563,32 @@
   function uniqueSources(sources) {
     const seen = new Set();
     return sources.filter(function (source) {
-      const key = source && safeText(source.title, source.url || source.source_id).toLowerCase();
+      const key = source && safeText(source.source_id, source.title || source.url).toLowerCase();
       if (!key || seen.has(key)) return false;
       seen.add(key);
       return true;
     });
   }
 
+  function assetUrl(value) {
+    const path = safeText(value);
+    return path ? "/" + path.replace(/^\/+/, "") : "";
+  }
+
+  function isChemistryWorld() {
+    const session = state.envelope && state.envelope.session;
+    const scenarioId = (session && session.scenario_id) || state.currentScenarioId || state.selectedScenarioId;
+    return scenarioId === "hydrothermal_origin";
+  }
+
   function safeText(value, fallback) {
     if (typeof value === "string" && value.trim()) return value.trim();
     return fallback || "";
+  }
+
+  function safeColor(value) {
+    const text = safeText(value, "#69D3BE");
+    return /^#[0-9a-f]{6}$/i.test(text) ? text : "#69D3BE";
   }
 
   function safeUrl(value) {
@@ -410,6 +606,6 @@
   }
 
   function readableError(error) {
-    return error && typeof error.message === "string" ? error.message : "服务暂时没有回应。你的选择还在，可以再试一次。";
+    return error && typeof error.message === "string" ? error.message : "实验室暂时没有回应。原来的选择还在，可以再试一次。";
   }
 })();

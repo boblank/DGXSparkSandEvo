@@ -24,11 +24,11 @@ from typing import Any, Callable
 SCRIPT_DIR = Path(__file__).resolve().parent
 REPO_ROOT = SCRIPT_DIR.parents[1]
 CATALOG_FILE = SCRIPT_DIR / "interactive_catalog.json"
+SCENARIO_REGISTRY_FILE = SCRIPT_DIR / "scenario_registry.json"
 SCHEMA_FILE = SCRIPT_DIR / "interactive_schema.json"
 WORKFLOW_FILE = SCRIPT_DIR / "creature_workflow.json"
 KNOWLEDGE_CARDS_FILE = SCRIPT_DIR / "knowledge_cards.json"
 CURATED_SOURCES_FILE = REPO_ROOT / "knowledge" / "sources.json"
-ORIGIN_IMAGE_FILE = REPO_ROOT / "demo-assets" / "interactive" / "origin.png"
 
 STEP_ENDPOINT = "https://api.stepfun.com/step_plan/v1/chat/completions"
 STEP_MODEL = "step-3.7-flash"
@@ -120,7 +120,21 @@ class InteractiveEvolutionService:
         self.data_root = data_root.expanduser().resolve()
         self.data_root.mkdir(parents=True, exist_ok=True)
         self.dry_run = dry_run
-        self.catalog = _read_json(CATALOG_FILE)
+        self.registry = _read_json(SCENARIO_REGISTRY_FILE)
+        self._scenario_defs = {
+            item["id"]: item for item in self.registry.get("scenarios", [])
+        }
+        self.default_scenario_id = str(self.registry["default_scenario_id"])
+        if self.default_scenario_id not in self._scenario_defs:
+            raise RuntimeError("default scenario is missing from registry")
+        self._catalogs: dict[str, dict[str, Any]] = {}
+        for scenario_id, scenario in self._scenario_defs.items():
+            filename = str(scenario.get("catalog_file", ""))
+            if not re.fullmatch(r"[a-z0-9_]+\.json", filename):
+                raise RuntimeError(f"unsafe scenario catalog: {filename}")
+            self._catalogs[scenario_id] = _read_json(SCRIPT_DIR / filename)
+        # Kept as the default catalog for compatibility with existing helper tests.
+        self.catalog = self._catalogs[self.default_scenario_id]
         self.schema = _read_json(SCHEMA_FILE)
         self.step_timeout = step_timeout
         self.comfy_timeout = comfy_timeout
@@ -132,7 +146,48 @@ class InteractiveEvolutionService:
 
     @property
     def contract_version(self) -> str:
-        return str(self.catalog["contract_version"])
+        return str(self.registry["contract_version"])
+
+    @staticmethod
+    def _public_scenario(scenario: dict[str, Any]) -> dict[str, str]:
+        return {
+            key: str(scenario.get(key, ""))
+            for key in (
+                "id",
+                "title",
+                "short_title",
+                "era",
+                "habitat",
+                "summary",
+                "entry_question",
+                "evidence_note",
+                "accent",
+                "depth",
+                "origin_asset",
+            )
+        }
+
+    def list_scenarios(self) -> dict[str, Any]:
+        return {
+            "contract_version": self.contract_version,
+            "default_scenario_id": self.default_scenario_id,
+            "scenarios": [
+                self._public_scenario(scenario)
+                for scenario in self.registry.get("scenarios", [])
+            ],
+        }
+
+    def _scenario(self, scenario_id: str | None = None) -> dict[str, Any]:
+        candidate = scenario_id or self.default_scenario_id
+        if not isinstance(candidate, str) or not SAFE_ID_PATTERN.fullmatch(candidate):
+            raise InteractiveError("invalid_scenario", "没有找到这个世界，请回到图谱重新选择。")
+        scenario = self._scenario_defs.get(candidate)
+        if not scenario:
+            raise InteractiveError("invalid_scenario", "没有找到这个世界，请回到图谱重新选择。")
+        return scenario
+
+    def _catalog_for(self, scenario_id: str | None = None) -> dict[str, Any]:
+        return self._catalogs[self._scenario(scenario_id)["id"]]
 
     def _load_knowledge(self) -> tuple[dict[str, dict[str, Any]], list[dict[str, Any]]]:
         cards: dict[str, dict[str, Any]] = {}
@@ -160,24 +215,26 @@ class InteractiveEvolutionService:
 
     def _session_dir(self, session_id: str) -> Path:
         if not SESSION_ID_PATTERN.fullmatch(session_id):
-            raise InteractiveError("session_not_found", "没有找到这条演化谱系。", http_status=404)
+            raise InteractiveError("session_not_found", "没有找到这段演化记录。", http_status=404)
         return self.data_root / session_id
 
     def _load_session(self, session_id: str) -> dict[str, Any]:
         manifest = self._session_dir(session_id) / "session.json"
         if not manifest.is_file():
-            raise InteractiveError("session_not_found", "没有找到这条演化谱系。", http_status=404)
+            raise InteractiveError("session_not_found", "没有找到这段演化记录。", http_status=404)
         try:
             session = _read_json(manifest)
         except (OSError, json.JSONDecodeError) as exc:
             raise InteractiveError(
                 "session_unavailable",
-                "这条谱系的记录暂时无法读取。",
+                "这段演化记录暂时无法读取。",
                 http_status=500,
                 retryable=True,
             ) from exc
         if session.get("session_id") != session_id:
-            raise InteractiveError("session_unavailable", "这条谱系的记录不完整。", http_status=500)
+            raise InteractiveError("session_unavailable", "这段演化记录不完整。", http_status=500)
+        # Sessions created before the open-world registry belong to the original tidal scene.
+        session.setdefault("scenario_id", self.default_scenario_id)
         return session
 
     def _write_session(self, session: dict[str, Any]) -> None:
@@ -212,7 +269,7 @@ class InteractiveEvolutionService:
                 "knowledge_card_id": knowledge_card_id,
                 "title": card["title"],
                 "summary": card["body"],
-                "boundary": card.get("boundary", "这是机制解释，不是对生成物种的实证认定。"),
+                "boundary": card.get("boundary", "这是机制解释，不是对生成结果的实证认定。"),
                 "sources": [_public_source(source) for source in card_sources],
                 "context_sources": [],
                 "generated_outcome_status": (
@@ -231,7 +288,7 @@ class InteractiveEvolutionService:
             "title": "这条路没有现成的历史节点",
             "summary": (
                 "知识库没有命中能与这次形态变化一一对应的已知演化事件。"
-                "下面展示的是按环境压力、遗传差异和生存代价推出来的情景，不是已经发现的物种。"
+                "下面展示的是按环境压力、已有差异和代价推出来的情景，不是已经观察到的历史结果。"
             ),
             "boundary": "只把它当作受约束的演化假说，不当作确定预测。",
             "sources": [],
@@ -240,11 +297,26 @@ class InteractiveEvolutionService:
             "generated_outcome_reason": "知识库没有与这次形态变化一一对应的已知节点。",
         }
 
-    def _round_spec(self, round_no: int) -> dict[str, Any]:
+    def _round_spec(
+        self,
+        round_no: int,
+        scenario_id: str | None = None,
+    ) -> dict[str, Any]:
         try:
-            return self.catalog["rounds"][str(round_no)]
+            spec = copy.deepcopy(self._catalog_for(scenario_id)["rounds"][str(round_no)])
+            scenario = self._scenario(scenario_id)
+            spec["world"] = {
+                "id": scenario["id"],
+                "title": scenario["title"],
+                "era": scenario["era"],
+                "habitat": scenario["habitat"],
+                "summary": scenario["summary"],
+                "visual_anchor": scenario.get("visual_anchor", ""),
+                "visual_negative": scenario.get("visual_negative", ""),
+            }
+            return spec
         except KeyError as exc:
-            raise InteractiveError("session_completed", "这条谱系已经走完三轮演化。", http_status=409) from exc
+            raise InteractiveError("session_completed", "这条路线已经走完三轮。", http_status=409) from exc
 
     def _effective_round_spec(
         self,
@@ -252,7 +324,7 @@ class InteractiveEvolutionService:
         round_no: int,
     ) -> dict[str, Any]:
         """Filter choices that would contradict the branch already taken."""
-        spec = copy.deepcopy(self._round_spec(round_no))
+        spec = self._round_spec(round_no, session.get("scenario_id"))
         parent_selection = (session.get("current_stage") or {}).get("selection") or {}
         parent_direction_id = (parent_selection.get("direction") or {}).get("id")
         if not parent_direction_id:
@@ -267,7 +339,8 @@ class InteractiveEvolutionService:
 
     def _choices_for(self, session: dict[str, Any]) -> dict[str, Any]:
         next_round = int(session["round_index"]) + 1
-        if next_round > 3:
+        max_rounds = int(session.get("max_rounds", 3))
+        if next_round > max_rounds:
             return {
                 "round": None,
                 "chapter": "演化仍会继续",
@@ -302,6 +375,7 @@ class InteractiveEvolutionService:
             for key in (
                 "contract_version",
                 "session_id",
+                "scenario_id",
                 "status",
                 "round_index",
                 "max_rounds",
@@ -312,40 +386,61 @@ class InteractiveEvolutionService:
                 "updated_at",
             )
         }
+        public_session["scenario"] = self._public_scenario(
+            self._scenario(session.get("scenario_id"))
+        )
         return {
             "session": public_session,
             "choices": self._choices_for(session),
         }
 
-    def create_session(self) -> dict[str, Any]:
+    def create_session(self, scenario_id: str | None = None) -> dict[str, Any]:
+        scenario = self._scenario(scenario_id)
+        scenario_id = scenario["id"]
+        catalog = self._catalog_for(scenario_id)
         session_id = time.strftime("%Y%m%dT%H%M%S") + "-" + uuid.uuid4().hex[:8]
         session_dir = self.data_root / session_id
         session_dir.mkdir(parents=True, exist_ok=False)
-        initial = copy.deepcopy(self.catalog["initial_stage"])
-        if ORIGIN_IMAGE_FILE.is_file():
-            filename = "stage_00_origin.png"
-            shutil.copy2(ORIGIN_IMAGE_FILE, session_dir / filename)
+        initial = copy.deepcopy(catalog["initial_stage"])
+        origin_relative = Path(str(scenario.get("origin_asset", "")))
+        origin_file = (REPO_ROOT / origin_relative).resolve()
+        if REPO_ROOT not in origin_file.parents or origin_file.suffix.lower() not in {".png", ".svg"}:
+            raise RuntimeError("unsafe origin asset path")
+        if origin_file.is_file():
+            filename = "stage_00_origin" + origin_file.suffix.lower()
+            shutil.copy2(origin_file, session_dir / filename)
             origin_source = "curated_origin"
         else:
             filename = "stage_00_origin.svg"
-            self._write_stage_svg(session_dir / filename, 0, initial["organism_name"], "origin")
+            self._write_stage_svg(
+                session_dir / filename,
+                0,
+                initial["organism_name"],
+                "origin",
+                scenario_id,
+            )
             origin_source = "illustrated_start"
         initial.update(
             {
                 "round": 0,
+                "scenario_id": scenario_id,
                 "image_url": f"/api/assets/{session_id}/{filename}",
                 "render_source": origin_source,
                 "selection": None,
-                "knowledge_match": self._knowledge_match("NONE", initial["transition_id"]),
+                "knowledge_match": self._knowledge_match(
+                    initial.get("knowledge_card_id", "NONE"),
+                    initial["transition_id"],
+                ),
             }
         )
         now = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
         session = {
             "contract_version": self.contract_version,
             "session_id": session_id,
+            "scenario_id": scenario_id,
             "status": "ready",
             "round_index": 0,
-            "max_rounds": 3,
+            "max_rounds": len(catalog["rounds"]),
             "current_stage": initial,
             "history": [initial],
             "last_error": None,
@@ -392,8 +487,9 @@ class InteractiveEvolutionService:
         with self._session_lock(session_id):
             session = self._load_session(session_id)
             next_round = int(session["round_index"]) + 1
-            if next_round > 3:
-                raise InteractiveError("session_completed", "这条谱系已经走完三轮演化。", http_status=409)
+            max_rounds = int(session.get("max_rounds", 3))
+            if next_round > max_rounds:
+                raise InteractiveError("session_completed", "这条路线已经走完三轮。", http_status=409)
             if session["status"] == "generating":
                 raise InteractiveError(
                     "session_busy",
@@ -406,7 +502,7 @@ class InteractiveEvolutionService:
             if selection["expected_round"] != next_round:
                 raise InteractiveError(
                     "round_conflict",
-                    "谱系已经向前走了一步，请刷新后再选。",
+                    "这段记录已经向前走了一步，请刷新后再选。",
                     http_status=409,
                 )
 
@@ -454,14 +550,14 @@ class InteractiveEvolutionService:
                 session["status"] = "error"
                 session["last_error"] = {
                     "code": "generation_failed",
-                    "message": "这次演化没有生成成功。原来的谱系还在，可以直接重试。",
+                    "message": "这次改变没有生成成功。原来的记录还在，可以直接重试。",
                     "retryable": True,
                 }
                 session["updated_at"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
                 self._write_session(session)
                 raise InteractiveError(
                     "generation_failed",
-                    "这次演化没有生成成功。原来的谱系还在，可以直接重试。",
+                    "这次改变没有生成成功。原来的记录还在，可以直接重试。",
                     http_status=502,
                     retryable=True,
                 ) from exc
@@ -469,7 +565,7 @@ class InteractiveEvolutionService:
             session["round_index"] = next_round
             session["current_stage"] = stage
             session["history"].append(stage)
-            session["status"] = "completed" if next_round == 3 else "ready"
+            session["status"] = "completed" if next_round == max_rounds else "ready"
             session["last_error"] = None
             session["updated_at"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
             self._write_session(session)
@@ -485,17 +581,23 @@ class InteractiveEvolutionService:
         metadata: dict[str, Any],
     ) -> dict[str, Any]:
         direction = selection["direction"]
-        evidence_tag = (
+        evidence_tag = direction.get("evidence_tag") or (
             "SCENARIO_EXTRAPOLATION"
-            if round_no == 3
+            if spec.get("time_scope") == "FUTURE_SCENARIO"
             else "KNOWN_MECHANISM"
             if direction["knowledge_card_id"] in self._cards
             else "MECHANISM_HYPOTHESIS"
+        )
+        match_scope = direction.get("knowledge_match_scope") or (
+            "external_pressure"
+            if spec.get("time_scope") == "FUTURE_SCENARIO"
+            else "transition"
         )
         inherited_traits = list(previous.get("traits", []))[:2]
         traits = list(dict.fromkeys(inherited_traits + result["traits"]))[:6]
         return {
             "round": round_no,
+            "scenario_id": previous.get("scenario_id", self.default_scenario_id),
             "stage_id": f"round_{round_no}",
             "transition_id": direction["transition_id"],
             "lineage_parent": {
@@ -526,11 +628,11 @@ class InteractiveEvolutionService:
             "knowledge_match": self._knowledge_match(
                 (
                     selection["environment"].get("knowledge_card_id", "NONE")
-                    if round_no == 3
+                    if match_scope == "external_pressure"
                     else direction["knowledge_card_id"]
                 ),
                 direction["transition_id"],
-                match_scope="external_pressure" if round_no == 3 else "transition",
+                match_scope=match_scope,
             ),
             "model": {
                 "planner": metadata["planner"],
@@ -548,23 +650,34 @@ class InteractiveEvolutionService:
         retry_errors: list[str] | None = None,
     ) -> list[dict[str, str]]:
         direction = selection["direction"]
+        chemistry_world = spec.get("world", {}).get("id") == "hydrothermal_origin"
         retry_note = ""
         if retry_errors:
             retry_note = "\n上次输出未通过结构校验，请只修复这些问题：" + "；".join(retry_errors[:10])
+        subject_rule = (
+            "当前世界位于生命起源之前。主语只能是化学系统、反应网络或原始区室；"
+            "使用结构、反应循环和延续，不得写身体、后代、物种或已确认生物。"
+            if chemistry_world
+            else "当前世界已有生物谱系。你描述的是跨多代选择，不是一个个体主动变形。"
+        )
         system = (
-            "你是 EvoLab 的演化生物学情景规划器。你描述的是跨多代选择，不是一个个体主动变形。"
-            "必须继承上一阶段的谱系与至少一项可辨识特征，再叠加本轮环境、偶发事件和用户选择的方向。"
+            "你是 EvoLab 的受约束科学情景规划器。" + subject_rule +
+            "必须继承上一阶段至少一项可辨识特征，再叠加本轮环境、偶发事件和用户选择的方向。"
             "允许被本轮机制改变的旧性状发生转化，禁止把已经被替代的旧性状机械照搬。"
             "收益和代价必须同时出现，禁止目的论、必然论和没有来源的精确适合度数值。"
             "深时节点可以解释已知机制；未来阶段必须明确是受约束的情景推演，不是确定预测。"
-            "image_prompt 必须使用英文，描述一张无文字、无标签、单一主体明确的电影感科学插画，"
-            "并保留上一阶段的青绿、琥珀、半透明生物材质等视觉连续性。"
+            "竞争假说要明确写出未解之处，不要用宏大口号、论文摘要腔或整齐排比。"
+            "image_prompt 必须使用英文，描述一张无文字、无标签、单一主体明确的电影感科学插画；"
+            f"遵循当前世界的视觉锚点：{spec['world'].get('visual_anchor', '')}；"
+            f"避免：{spec['world'].get('visual_negative', '')}；并保留上一阶段至少一项可辨认视觉特征。"
             "其余字段使用自然、简洁的简体中文。只返回符合指定 JSON Schema 的 JSON。"
         )
         user = (
+            f"当前世界：{spec['world']['title']}（{spec['world']['era']}，{spec['world']['habitat']}）\n"
+            f"世界边界：{spec['world']['summary']}\n"
             f"当前章节：{spec['chapter']}\n"
             f"上一阶段名称：{previous['organism_name']}\n"
-            f"上一阶段谱系：{previous['lineage_summary']}\n"
+            f"上一阶段记录：{previous['lineage_summary']}\n"
             f"上一阶段可供继承或转化的性状：{'；'.join(previous['traits'])}\n"
             f"本轮环境：{selection['environment']['title']}——{selection['environment']['description']}\n"
             f"偶发事件：{selection['contingency']['title']}——{selection['contingency']['description']}\n"
@@ -621,7 +734,7 @@ class InteractiveEvolutionService:
             except Exception as exc:
                 raise InteractiveError(
                     "planner_unavailable",
-                    "演化规划服务暂时没有响应。原来的谱系还在，可以稍后重试。",
+                    "演化规划服务暂时没有响应。原来的记录还在，可以稍后重试。",
                     http_status=502,
                     retryable=True,
                 ) from exc
@@ -662,7 +775,7 @@ class InteractiveEvolutionService:
             retry_errors = errors
         raise InteractiveError(
             "planner_invalid_output",
-            "演化规划没有通过结构校验。原来的谱系还在，可以重试。",
+            "演化规划没有通过结构校验。原来的记录还在，可以重试。",
             http_status=502,
             retryable=True,
         )
@@ -684,11 +797,13 @@ class InteractiveEvolutionService:
             f" Preserve recognizable inherited features: {previous_traits}."
             f" New environmental pressure: {environment['title']} — {environment['description']}"
             f" Chosen evolutionary direction: {direction['title']} — {direction['description']}"
-            " Show a gradual biological modification at the same approximate scale and in the same aquatic lineage."
-            " Do not jump to a flower, terrestrial plant, coral, anemone, tree, beach animal, or unrelated macroscopic body plan"
-            " unless the chosen transition explicitly introduces that capability."
-            " Keep translucent teal membranes, amber metabolic structures, and cinematic natural-history documentary lighting."
+            " Show a gradual modification at the same approximate scale and in the same lineage or chemical system."
             " Show the environment and adaptation as one coherent scene, with no comparison grid, text, letters, labels, or watermark."
+        )
+        scenario = self._scenario(previous.get("scenario_id"))
+        continuity += (
+            f" World-specific visual anchor: {scenario.get('visual_anchor', '')}."
+            f" Avoid: {scenario.get('negative_prompt', '')}."
         )
         if direction["id"] == "multicellular_body":
             continuity += (
@@ -702,7 +817,8 @@ class InteractiveEvolutionService:
             )
         workflow["2"]["inputs"]["text"] = result["image_prompt"] + continuity
         workflow["3"]["inputs"]["text"] = (
-            "flower, petals, terrestrial plant, tree, coral, anemone, moss, unrelated species, "
+            str(scenario.get("negative_prompt", ""))
+            + ", text, labels, comparison grid, unrelated species, "
             + workflow["3"]["inputs"]["text"]
         )
         if selection["direction"]["id"] in {"multicellular_body", "cooperative_colony"}:
@@ -747,17 +863,35 @@ class InteractiveEvolutionService:
         direction = selection["direction"]
         environment = selection["environment"]
         contingency = selection["contingency"]
-        result = {
-            "organism_name": {
-                1: "内潮共生细胞",
-                2: "潮纹协作体",
-                3: "暖潮迁游体",
-            }[selection["expected_round"]],
-            "lineage_summary": (
-                f"它保留了{previous['organism_name']}的青绿膜与琥珀色能量结构，"
+        inherited = [str(item) for item in previous.get("traits", [])[:2]]
+        chemistry_world = spec.get("world", {}).get("id") == "hydrothermal_origin"
+        inherited_phrase = "和".join(inherited) if inherited else ("上一阶段的结构" if chemistry_world else "上一阶段的身体特征")
+        scenario = self._scenario(spec.get("world", {}).get("id"))
+        if chemistry_world:
+            lineage_summary = (
+                f"这套系统保留了{previous['organism_name']}的{inherited_phrase}，"
                 f"在{environment['title']}中，经由“{contingency['title']}”逐步走向{direction['title']}。"
+            )
+            change_summary = f"反应系统没有被提前写成生命；能稳定{direction['mechanism_hint']}的结构在多次循环中延续得更久。"
+            uncertainty_note = "这是浏览器验收用的离线样例；生命起源仍有多种竞争假说，真实运行会由 Step 严格结构化生成。"
+        else:
+            lineage_summary = (
+                f"它保留了{previous['organism_name']}的{inherited_phrase}，"
+                f"在{environment['title']}中，经由“{contingency['title']}”逐步走向{direction['title']}。"
+            )
+            change_summary = f"谱系没有突然变身；能稳定{direction['mechanism_hint']}的后代在多代中留下得更多。"
+            uncertainty_note = (
+                "这是浏览器验收用的离线样例。未来形态只是受约束的假说。"
+                if spec.get("time_scope") == "FUTURE_SCENARIO"
+                else "这是浏览器验收用的离线样例；真实运行会由 Step 严格结构化生成。"
+            )
+        result = {
+            "organism_name": spec.get(
+                "fixture_name",
+                f"第 {selection['expected_round']} 轮测试阶段",
             ),
-            "change_summary": f"谱系没有突然变身；能稳定{direction['mechanism_hint']}的后代在多代中留下得更多。",
+            "lineage_summary": lineage_summary,
+            "change_summary": change_summary,
             "traits": [previous["traits"][0], direction["title"], environment["title"]],
             "internal_causes": [direction["mechanism_hint"]],
             "external_causes": [environment["description"], contingency["description"]],
@@ -767,15 +901,11 @@ class InteractiveEvolutionService:
                 if "，" in direction["tradeoff_hint"]
                 else "新的结构需要持续投入能量维护"
             ],
-            "evidence_tag": "SCENARIO_EXTRAPOLATION" if selection["expected_round"] == 3 else "MECHANISM_HYPOTHESIS",
-            "uncertainty_note": (
-                "这是浏览器验收用的离线样例。未来形态只是受约束的假说。"
-                if selection["expected_round"] == 3
-                else "这是浏览器验收用的离线样例；真实运行会由 Step 严格结构化生成。"
-            ),
+            "evidence_tag": direction.get("evidence_tag", "MECHANISM_HYPOTHESIS"),
+            "uncertainty_note": uncertainty_note,
             "image_prompt": (
-                "A cinematic scientific illustration of one evolving translucent marine lineage, "
-                "teal membranes and amber organelles, clearly adapted to a changing shallow-sea environment"
+                "A cinematic natural-history scientific illustration of one evolving lineage or chemical system. "
+                + str(scenario.get("visual_anchor", ""))
             ),
         }
         return result, {
@@ -797,18 +927,28 @@ class InteractiveEvolutionService:
             selection["expected_round"],
             result["organism_name"],
             selection["direction"]["id"],
+            previous.get("scenario_id", self.default_scenario_id),
         )
         return {"render_source": "fixture", "generator": "browser fixture", "seed": None}
 
-    def _write_stage_svg(self, path: Path, round_no: int, title: str, variant: str) -> None:
+    def _write_stage_svg(
+        self,
+        path: Path,
+        round_no: int,
+        title: str,
+        variant: str,
+        scenario_id: str | None = None,
+    ) -> None:
         """Write an image-only biomorphic placeholder for fixture mode."""
         safe_title = html.escape(title)
-        colors = [
+        palette = [
             ("#2ec4b6", "#ffbf69", "#0b2430"),
             ("#55d6be", "#ff9f68", "#102c3b"),
             ("#7adfbb", "#f7c55a", "#153343"),
             ("#91d9e8", "#ff735f", "#162a40"),
         ][round_no]
+        scenario_color = self._scenario(scenario_id).get("accent")
+        colors = (str(scenario_color or palette[0]), palette[1], palette[2])
         satellites = "".join(
             f'<circle cx="{190 + index * 120}" cy="{260 + (index % 2) * 145}" r="{32 + round_no * 8}" fill="{colors[index % 2]}" opacity=".72"/>'
             for index in range(5 + round_no)
