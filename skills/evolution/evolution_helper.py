@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import copy
+import importlib.util
 import json
 import os
 import re
@@ -23,7 +24,20 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 SCHEMA_FILE = SCRIPT_DIR / "evolution_schema.json"
 RULES_FILE = SCRIPT_DIR / "evolution_rules.json"
 KNOWLEDGE_FILE = SCRIPT_DIR / "knowledge_cards.json"
-WORKFLOW_FILE = SCRIPT_DIR / "creature_workflow.json"
+
+
+def _load_rendering() -> Any:
+    module_name = "evolution_storyboard_rendering"
+    spec = importlib.util.spec_from_file_location(module_name, SCRIPT_DIR / "rendering.py")
+    if not spec or not spec.loader:
+        raise RuntimeError("cannot load evolution renderer profiles")
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[module_name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+rendering = _load_rendering()
 
 STEP_ENDPOINT = "https://api.stepfun.com/step_plan/v1/chat/completions"
 STEP_MODEL = "step-3.7-flash"
@@ -832,22 +846,29 @@ def comfy_output_path(outputs: dict[str, Any], comfy_output: Path) -> Path:
 def render_stage(
     stage: dict[str, Any],
     stage_index: int,
-    workflow_template: dict[str, Any],
+    renderer_ids: list[str],
     run_dir: Path,
     output_root: Path,
     comfy_url: str,
     comfy_output: Path,
     timeout: int,
     use_cache: bool,
-) -> tuple[Path, str]:
+) -> tuple[Path, dict[str, Any]]:
     filename = STAGE_FILENAMES[stage["stage_id"]]
     destination = run_dir / filename
-    cache_file = output_root / "_cache" / filename
+    cache_file = output_root / "_cache" / renderer_ids[0] / filename
     if use_cache and stage["stage_id"] in FIXED_CACHE_STAGES and cache_file.is_file():
         shutil.copy2(cache_file, destination)
-        return destination, "cached"
+        _, profile = rendering.resolve_renderer(renderer_ids[0])
+        return destination, {
+            "render_source": "cached",
+            "renderer": renderer_ids[0],
+            "generator": profile["generator"],
+            "seed": None,
+            "duration_seconds": 0.0,
+            "fallback_from": None,
+        }
 
-    workflow = copy.deepcopy(workflow_template)
     continuity = (
         " consistent lineage anchor: "
         + stage["lineage_anchor"]
@@ -855,28 +876,43 @@ def render_stage(
         "realistic translucent biological materials, cinematic shallow-sea lighting, "
         "one clear focal composition, no text, no letters, no labels, no watermark."
     )
-    workflow["2"]["inputs"]["text"] = stage["visual_prompt"] + continuity
+    negative_prompt = ""
+    remove_negative_terms: tuple[str, ...] = ()
     if stage.get("route_reference_id") == "group_cooperation":
-        workflow["3"]["inputs"]["text"] = workflow["3"]["inputs"]["text"].replace(
-            "duplicated organism, ",
-            "",
-        )
+        remove_negative_terms = ("duplicated organism, ",)
     seed = int((stage_index + 1) * 1000003 + int(time.time() * 1000)) % (2**32 - 1)
-    workflow["6"]["inputs"]["seed"] = seed
-    workflow["8"]["inputs"]["filename_prefix"] = (
-        f"evolution_{run_dir.name}_stage_{stage_index + 1:02d}_{stage['stage_id']}"
-    )
-    prompt_id = submit_comfy_prompt(workflow, comfy_url)
-    log(f"Stage {stage_index + 1} submitted: {prompt_id}")
-    outputs = wait_for_comfy(prompt_id, comfy_url, timeout)
-    source = comfy_output_path(outputs, comfy_output)
-    if not source.is_file():
-        raise EvolutionError("ComfyUI output file is missing")
-    shutil.copy2(source, destination)
-    if stage["stage_id"] in FIXED_CACHE_STAGES:
+    try:
+        rendered = rendering.render_image_with_fallback(
+            renderer_ids,
+            prompt=stage["visual_prompt"] + continuity,
+            negative_prompt=negative_prompt,
+            seed=seed,
+            filename_prefix=(
+                f"evolution_{run_dir.name}_stage_{stage_index + 1:02d}_{stage['stage_id']}"
+            ),
+            destination=destination,
+            comfy_url=comfy_url,
+            comfy_output=comfy_output,
+            timeout=timeout,
+            submit_prompt=submit_comfy_prompt,
+            wait_for_prompt=wait_for_comfy,
+            locate_output=comfy_output_path,
+            remove_negative_terms=remove_negative_terms,
+            log=log,
+        )
+    except (rendering.RendererConfigurationError, rendering.RendererExhaustedError) as exc:
+        raise EvolutionError("all configured image renderers failed") from exc
+    if stage["stage_id"] in FIXED_CACHE_STAGES and rendered.fallback_from is None:
         cache_file.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(destination, cache_file)
-    return destination, "generated"
+    return destination, {
+        "render_source": "generated",
+        "renderer": rendered.renderer,
+        "generator": rendered.generator,
+        "seed": rendered.seed,
+        "duration_seconds": rendered.duration_seconds,
+        "fallback_from": rendered.fallback_from,
+    }
 
 
 def find_font(size: int, bold: bool = False) -> Any:
@@ -1093,6 +1129,16 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--step-timeout", type=int, default=240)
     parser.add_argument("--ollama-timeout", type=int, default=300)
     parser.add_argument("--comfy-timeout", type=int, default=600)
+    parser.add_argument(
+        "--image-renderer",
+        default=os.environ.get("EVOLAB_IMAGE_RENDERER", "flux1"),
+        help="Image renderer profile. FLUX.1 remains the default until A/B passes.",
+    )
+    parser.add_argument(
+        "--image-fallback",
+        default=os.environ.get("EVOLAB_IMAGE_FALLBACK", "flux1"),
+        help="Fallback image renderer profile, or 'none' to disable fallback.",
+    )
     parser.add_argument("--no-ollama-fallback", action="store_true")
     return parser.parse_args()
 
@@ -1153,7 +1199,11 @@ def main() -> int:
             print(f"MANIFEST:{manifest_path}")
             return 0
 
-        workflow_template = read_json(WORKFLOW_FILE)
+        renderer_ids = rendering.renderer_chain(args.image_renderer, args.image_fallback)
+        _, requested_renderer = rendering.resolve_renderer(renderer_ids[0])
+        manifest["image_renderer_requested"] = renderer_ids[0]
+        manifest["image_renderer_chain"] = renderer_ids
+        manifest["model"]["image_generator"] = requested_renderer["generator"]
         comfy_url = os.environ.get("COMFYUI_URL", "http://127.0.0.1:7000")
         workshop_dir = Path(
             os.environ.get(
@@ -1170,10 +1220,10 @@ def main() -> int:
             manifest["current_stage"] = index + 1
             stage["status"] = "rendering"
             atomic_write_json(manifest_path, manifest)
-            image_path, render_source = render_stage(
+            image_path, render_metadata = render_stage(
                 stage,
                 index,
-                workflow_template,
+                renderer_ids,
                 run_dir,
                 output_root,
                 comfy_url,
@@ -1182,8 +1232,18 @@ def main() -> int:
                 not args.no_cache,
             )
             stage["image_path"] = str(image_path)
-            stage["render_source"] = render_source
-            stage["status"] = "generated" if render_source == "generated" else "cached"
+            stage["render_source"] = render_metadata["render_source"]
+            stage["render_metadata"] = render_metadata
+            stage["status"] = (
+                "generated" if render_metadata["render_source"] == "generated" else "cached"
+            )
+            if render_metadata.get("fallback_from"):
+                fallback_marker = (
+                    f"{render_metadata['fallback_from'].upper()}_TO_"
+                    f"{render_metadata['renderer'].upper()}"
+                )
+                if fallback_marker not in manifest["fallbacks_used"]:
+                    manifest["fallbacks_used"].append(fallback_marker)
             manifest["image_paths"].append(str(image_path))
             atomic_write_json(manifest_path, manifest)
 

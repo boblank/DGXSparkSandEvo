@@ -1,0 +1,63 @@
+{
+  "contract_version": "1.0.0",
+  "width": 1024,
+  "height": 1024,
+  "cases": [
+    {
+      "case_id": "hydrothermal_01",
+      "scenario_id": "hydrothermal_origin",
+      "seed": 41001,
+      "prompt": "Scientific natural-history illustration of an alkaline hydrothermal vent field on the early ocean floor, dark basalt chimneys, porous iron-sulfur mineral walls, amber mineral precipitates and turquoise chemical gradients inside microscopic pores, no organisms, the same scene shown at a coherent mesoscopic scale, realistic underwater light, cinematic but evidence-bounded",
+      "negative_prompt": "cells, animals, plants, modern coral, laboratory equipment, text, labels, watermark, fantasy monster, impossible scale"
+    },
+    {
+      "case_id": "hydrothermal_02",
+      "scenario_id": "hydrothermal_origin",
+      "seed": 41002,
+      "prompt": "Scientific natural-history illustration of an alkaline hydrothermal vent field on the early ocean floor, dark basalt chimneys, porous iron-sulfur mineral walls, amber mineral precipitates and turquoise chemical gradients inside microscopic pores, no organisms, the same scene shown at a coherent mesoscopic scale, realistic underwater light, cinematic but evidence-bounded",
+      "negative_prompt": "cells, animals, plants, modern coral, laboratory equipment, text, labels, watermark, fantasy monster, impossible scale"
+    },
+    {
+      "case_id": "tidal_symbiosis_01",
+      "scenario_id": "tidal_symbiosis",
+      "seed": 42001,
+      "prompt": "Scientific evolutionary illustration of a connected colony of translucent early microbial cells attached to mineral surfaces in an ancient shallow tidal pool, teal membranes and small amber metabolic partners, visible cell-to-cell adhesion and gradual internal symbiosis, same lineage and scale, realistic biological materials, soft underwater caustics, one clear focal composition",
+      "negative_prompt": "modern coral, flowers, leaves, fish, unrelated organisms, extra appendages, human hands, laboratory equipment, text, labels, watermark"
+    },
+    {
+      "case_id": "tidal_symbiosis_02",
+      "scenario_id": "tidal_symbiosis",
+      "seed": 42002,
+      "prompt": "Scientific evolutionary illustration of a connected colony of translucent early microbial cells attached to mineral surfaces in an ancient shallow tidal pool, teal membranes and small amber metabolic partners, visible cell-to-cell adhesion and gradual internal symbiosis, same lineage and scale, realistic biological materials, soft underwater caustics, one clear focal composition",
+      "negative_prompt": "modern coral, flowers, leaves, fish, unrelated organisms, extra appendages, human hands, laboratory equipment, text, labels, watermark"
+    },
+    {
+      "case_id": "ediacaran_01",
+      "scenario_id": "ediacaran_seafloor",
+      "seed": 43001,
+      "prompt": "Scientific natural-history illustration of an Ediacaran seafloor before modern reefs, soft quilted benthic organisms anchored to microbial mats, one lineage beginning gentle directed movement and simple light sensing, low grazing pressure, muted slate blue water and ochre sediment, anatomically plausible soft bodies, same ecological scale, museum-quality paleoart",
+      "negative_prompt": "modern fish, modern coral reef, dinosaur, shell armor, giant eyes, fantasy monster, text, labels, watermark, laboratory equipment"
+    },
+    {
+      "case_id": "ediacaran_02",
+      "scenario_id": "ediacaran_seafloor",
+      "seed": 43002,
+      "prompt": "Scientific natural-history illustration of an Ediacaran seafloor before modern reefs, soft quilted benthic organisms anchored to microbial mats, one lineage beginning gentle directed movement and simple light sensing, low grazing pressure, muted slate blue water and ochre sediment, anatomically plausible soft bodies, same ecological scale, museum-quality paleoart",
+      "negative_prompt": "modern fish, modern coral reef, dinosaur, shell armor, giant eyes, fantasy monster, text, labels, watermark, laboratory equipment"
+    },
+    {
+      "case_id": "devonian_01",
+      "scenario_id": "devonian_estuary",
+      "seed": 44001,
+      "prompt": "Scientific paleoart of a late Devonian estuary at low tide, a lobe-finned fish lineage in ankle-deep oxygen-poor water using strengthened paired fins to brace briefly on a muddy shoal, body remains unmistakably aquatic with fins and scales, no instant tetrapod transformation, reed-free early shoreline vegetation in the distance, warm silt light, coherent anatomy and scale",
+      "negative_prompt": "modern amphibian, four fully formed legs, mammal, dinosaur, modern grass, human object, extra limbs, fantasy creature, text, labels, watermark"
+    },
+    {
+      "case_id": "devonian_02",
+      "scenario_id": "devonian_estuary",
+      "seed": 44002,
+      "prompt": "Scientific paleoart of a late Devonian estuary at low tide, a lobe-finned fish lineage in ankle-deep oxygen-poor water using strengthened paired fins to brace briefly on a muddy shoal, body remains unmistakably aquatic with fins and scales, no instant tetrapod transformation, reed-free early shoreline vegetation in the distance, warm silt light, coherent anatomy and scale",
+      "negative_prompt": "modern amphibian, four fully formed legs, mammal, dinosaur, modern grass, human object, extra limbs, fantasy creature, text, labels, watermark"
+    }
+  ]
+}

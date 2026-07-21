@@ -1,0 +1,44 @@
+{
+  "contract_version": "1.0.0",
+  "default_renderer": "flux1",
+  "profiles": {
+    "flux1": {
+      "label": "FLUX.1 dev FP8",
+      "generator": "FLUX.1 dev FP8 via ComfyUI",
+      "workflow_file": "creature_workflow.json",
+      "negative_mode": "negative_node",
+      "nodes": {
+        "prompt": {"id": "2", "field": "text"},
+        "negative": {"id": "3", "field": "text"},
+        "seed": {"id": "6", "field": "seed"},
+        "output": {"id": "8", "field": "filename_prefix"},
+        "dimensions": [
+          {"id": "5", "width_field": "width", "height_field": "height"}
+        ]
+      },
+      "required_models": [
+        {"directory": "diffusion_models", "filename": "flux1-dev-fp8.safetensors"}
+      ]
+    },
+    "flux2-klein-4b": {
+      "label": "FLUX.2 Klein 4B Distilled FP8",
+      "generator": "FLUX.2 Klein 4B Distilled FP8 via ComfyUI",
+      "workflow_file": "creature_workflow_flux2_klein.json",
+      "negative_mode": "prompt_suffix",
+      "nodes": {
+        "prompt": {"id": "4", "field": "text"},
+        "seed": {"id": "7", "field": "noise_seed"},
+        "output": {"id": "13", "field": "filename_prefix"},
+        "dimensions": [
+          {"id": "9", "width_field": "width", "height_field": "height"},
+          {"id": "10", "width_field": "width", "height_field": "height"}
+        ]
+      },
+      "required_models": [
+        {"directory": "diffusion_models", "filename": "flux-2-klein-4b-fp8.safetensors"},
+        {"directory": "text_encoders", "filename": "qwen_3_4b.safetensors"},
+        {"directory": "vae", "filename": "flux2-vae.safetensors"}
+      ]
+    }
+  }
+}

@@ -14,6 +14,7 @@ import json
 import os
 import re
 import shutil
+import sys
 import threading
 import time
 import uuid
@@ -26,7 +27,6 @@ REPO_ROOT = SCRIPT_DIR.parents[1]
 CATALOG_FILE = SCRIPT_DIR / "interactive_catalog.json"
 SCENARIO_REGISTRY_FILE = SCRIPT_DIR / "scenario_registry.json"
 SCHEMA_FILE = SCRIPT_DIR / "interactive_schema.json"
-WORKFLOW_FILE = SCRIPT_DIR / "creature_workflow.json"
 KNOWLEDGE_CARDS_FILE = SCRIPT_DIR / "knowledge_cards.json"
 CURATED_SOURCES_FILE = REPO_ROOT / "knowledge" / "sources.json"
 
@@ -49,6 +49,20 @@ def _load_helper() -> Any:
 
 
 helper = _load_helper()
+
+
+def _load_rendering() -> Any:
+    module_name = "evolution_interactive_rendering"
+    spec = importlib.util.spec_from_file_location(module_name, SCRIPT_DIR / "rendering.py")
+    if not spec or not spec.loader:
+        raise RuntimeError("cannot load evolution renderer profiles")
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[module_name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+rendering = _load_rendering()
 
 
 class InteractiveError(RuntimeError):
@@ -533,8 +547,15 @@ class InteractiveEvolutionService:
                 stage["image_url"] = f"/api/assets/{session_id}/{destination.name}"
                 stage["render_source"] = render_metadata["render_source"]
                 stage["render_metadata"] = {
-                    "generator": render_metadata["generator"],
-                    "seed": render_metadata.get("seed"),
+                    key: render_metadata.get(key)
+                    for key in (
+                        "generator",
+                        "renderer",
+                        "seed",
+                        "duration_seconds",
+                        "fallback_from",
+                    )
+                    if render_metadata.get(key) is not None
                 }
             except InteractiveError as exc:
                 session["status"] = "error"
@@ -787,7 +808,6 @@ class InteractiveEvolutionService:
         selection: dict[str, Any],
         destination: Path,
     ) -> dict[str, Any]:
-        workflow = copy.deepcopy(_read_json(WORKFLOW_FILE))
         previous_traits = ", ".join(str(item) for item in previous.get("traits", [])[:4])
         environment = selection["environment"]
         direction = selection["direction"]
@@ -815,26 +835,20 @@ class InteractiveEvolutionService:
                 " Keep the previous attached multicellular or colonial body plan visibly intact under warmer water;"
                 " express heat tolerance through membrane texture, protective translucent layers, and behavior, not petals or leaves."
             )
-        workflow["2"]["inputs"]["text"] = result["image_prompt"] + continuity
-        workflow["3"]["inputs"]["text"] = (
+        image_prompt = result["image_prompt"] + continuity
+        negative_prompt = (
             str(scenario.get("negative_prompt", ""))
-            + ", text, labels, comparison grid, unrelated species, "
-            + workflow["3"]["inputs"]["text"]
+            + ", text, labels, comparison grid, unrelated species"
         )
-        if selection["direction"]["id"] in {"multicellular_body", "cooperative_colony"}:
-            workflow["3"]["inputs"]["text"] = workflow["3"]["inputs"]["text"].replace(
-                "duplicated organism, ", ""
-            )
+        remove_negative_terms = (
+            ("duplicated organism, ",)
+            if selection["direction"]["id"] in {"multicellular_body", "cooperative_colony"}
+            else ()
+        )
         seed = int(uuid.uuid4().hex[:8], 16)
-        workflow["6"]["inputs"]["seed"] = seed
-        workflow["8"]["inputs"]["filename_prefix"] = (
-            f"interactive_{destination.parent.name}_{destination.stem}"
-        )
         if os.environ.get("EVOLAB_UNLOAD_OLLAMA", "1") != "0":
             helper.unload_ollama()
         comfy_url = os.environ.get("COMFYUI_URL", "http://127.0.0.1:7000")
-        prompt_id = helper.submit_comfy_prompt(workflow, comfy_url)
-        outputs = helper.wait_for_comfy(prompt_id, comfy_url, self.comfy_timeout)
         default_output = (
             Path(os.environ.get("WORKSHOP_DIR", "/home/Developer/build_a_claw_workshop-bundle"))
             / "comfyui-app"
@@ -842,17 +856,40 @@ class InteractiveEvolutionService:
             / "output"
         )
         comfy_output = Path(os.environ.get("COMFY_OUTPUT_DIR", str(default_output)))
-        source = helper.comfy_output_path(outputs, comfy_output)
-        if not source.is_file():
+        primary = os.environ.get("EVOLAB_IMAGE_RENDERER", "flux1")
+        fallback = os.environ.get("EVOLAB_IMAGE_FALLBACK", "flux1")
+        try:
+            rendered = rendering.render_image_with_fallback(
+                rendering.renderer_chain(primary, fallback),
+                prompt=image_prompt,
+                negative_prompt=negative_prompt,
+                seed=seed,
+                filename_prefix=f"interactive_{destination.parent.name}_{destination.stem}",
+                destination=destination,
+                comfy_url=comfy_url,
+                comfy_output=comfy_output,
+                timeout=self.comfy_timeout,
+                submit_prompt=helper.submit_comfy_prompt,
+                wait_for_prompt=helper.wait_for_comfy,
+                locate_output=helper.comfy_output_path,
+                remove_negative_terms=remove_negative_terms,
+                log=helper.log,
+            )
+        except (rendering.RendererConfigurationError, rendering.RendererExhaustedError) as exc:
             raise InteractiveError(
                 "renderer_unavailable",
-                "图片生成完成了，但产物没有成功保存。可以直接重试这一轮。",
+                "图片没有生成成功。原来的记录还在，可以直接重试这一轮。",
                 http_status=502,
                 retryable=True,
-            )
-        destination.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(source, destination)
-        return {"render_source": "generated", "generator": "FLUX via ComfyUI", "seed": seed}
+            ) from exc
+        return {
+            "render_source": "generated",
+            "generator": rendered.generator,
+            "renderer": rendered.renderer,
+            "seed": rendered.seed,
+            "duration_seconds": rendered.duration_seconds,
+            "fallback_from": rendered.fallback_from,
+        }
 
     def _dry_run_plan(
         self,
