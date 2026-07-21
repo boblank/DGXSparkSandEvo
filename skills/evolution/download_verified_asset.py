@@ -94,6 +94,11 @@ def main() -> int:
     parser.add_argument("--size", type=int, required=True)
     parser.add_argument("--sha256", required=True)
     parser.add_argument("--workers", type=int, default=8)
+    parser.add_argument(
+        "--parts",
+        type=int,
+        help="Number of resumable ranges. Defaults to the worker count.",
+    )
     parser.add_argument("--min-bytes-per-second", type=int, default=65536)
     args = parser.parse_args()
 
@@ -103,7 +108,7 @@ def main() -> int:
         print(f"VERIFIED:{output}")
         return 0
 
-    ranges = plan_ranges(args.size, args.workers)
+    ranges = plan_ranges(args.size, args.parts or args.workers)
     parts_dir = output.parent / ".download-parts" / output.name
     jobs = [
         (

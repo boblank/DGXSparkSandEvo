@@ -190,6 +190,15 @@ def evaluate_gate(
         preferred = str(item.get("preferred", "")).upper()
         if preferred == "TIE" or labels.get(preferred) == "flux2-klein-4b":
             klein_not_worse += 1
+        klein_label = next(
+            (label for label, profile in labels.items() if profile == "flux2-klein-4b"),
+            None,
+        )
+        for blocker in item.get("blocking_issues", {}).get(klein_label, []):
+            blockers.append(
+                {"case_id": case_id, "label": klein_label, "blocker": str(blocker)}
+            )
+        # Backward-compatible global blockers remain gate-blocking.
         for blocker in item.get("blockers", []):
             blockers.append({"case_id": case_id, "blocker": str(blocker)})
     three_round_pass = review.get("three_round", {}).get("passed") is True

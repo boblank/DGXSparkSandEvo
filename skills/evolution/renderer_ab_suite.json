@@ -35,15 +35,15 @@
       "case_id": "ediacaran_01",
       "scenario_id": "ediacaran_seafloor",
       "seed": 43001,
-      "prompt": "Scientific natural-history illustration of an Ediacaran seafloor before modern reefs, soft quilted benthic organisms anchored to microbial mats, one lineage beginning gentle directed movement and simple light sensing, low grazing pressure, muted slate blue water and ochre sediment, anatomically plausible soft bodies, same ecological scale, museum-quality paleoart",
-      "negative_prompt": "modern fish, modern coral reef, dinosaur, shell armor, giant eyes, fantasy monster, text, labels, watermark, laboratory equipment"
+      "prompt": "Scientific natural-history illustration of an Ediacaran seafloor before modern reefs, soft quilted discs and frond-like benthic organisms anchored to microbial mats, one lineage leaves a subtle movement trail in the mat and orients its whole soft body toward diffuse light, light sensing has no visible eye, all bodies remain limbless, mouthless and pre-vertebrate, low grazing pressure, muted slate blue water and ochre sediment, coherent ecological scale, museum-quality paleoart",
+      "negative_prompt": "mammal, tetrapod, paws, limbs, face, visible eyes, modern fish, modern coral reef, dinosaur, shell armor, fantasy monster, text, labels, watermark, laboratory equipment"
     },
     {
       "case_id": "ediacaran_02",
       "scenario_id": "ediacaran_seafloor",
       "seed": 43002,
-      "prompt": "Scientific natural-history illustration of an Ediacaran seafloor before modern reefs, soft quilted benthic organisms anchored to microbial mats, one lineage beginning gentle directed movement and simple light sensing, low grazing pressure, muted slate blue water and ochre sediment, anatomically plausible soft bodies, same ecological scale, museum-quality paleoart",
-      "negative_prompt": "modern fish, modern coral reef, dinosaur, shell armor, giant eyes, fantasy monster, text, labels, watermark, laboratory equipment"
+      "prompt": "Scientific natural-history illustration of an Ediacaran seafloor before modern reefs, soft quilted discs and frond-like benthic organisms anchored to microbial mats, one lineage leaves a subtle movement trail in the mat and orients its whole soft body toward diffuse light, light sensing has no visible eye, all bodies remain limbless, mouthless and pre-vertebrate, low grazing pressure, muted slate blue water and ochre sediment, coherent ecological scale, museum-quality paleoart",
+      "negative_prompt": "mammal, tetrapod, paws, limbs, face, visible eyes, modern fish, modern coral reef, dinosaur, shell armor, fantasy monster, text, labels, watermark, laboratory equipment"
     },
     {
       "case_id": "devonian_01",
