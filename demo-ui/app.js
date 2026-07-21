@@ -60,11 +60,12 @@
       "enter-world-button", "active-world-era", "active-world-title", "restart-button",
       "round-label", "round-rail", "organism-image", "image-placeholder", "time-scope",
       "habitat-label", "stage-kicker", "organism-name", "organism-summary", "trait-list",
-      "generation-overlay", "generation-title", "generation-message", "choice-content", "ending-content",
+      "generation-overlay", "generation-title", "generation-message", "choice-deck", "choice-content", "ending-content",
       "round-number", "chapter-label", "choice-title", "choice-lead", "direction-legend",
       "evolve-button-label", "ending-kicker", "ending-title", "evolution-form", "environment-choices",
       "contingency-choices", "direction-choices", "selection-recap", "evolve-button",
-      "ending-restart", "ending-worlds", "ending-summary", "knowledge-note",
+      "ending-restart", "ending-worlds", "ending-summary", "ending-video-card", "ending-video",
+      "ending-video-error", "knowledge-note",
       "knowledge-kicker", "knowledge-title", "knowledge-body", "evidence-button",
       "lineage-history", "film-kicker", "film-title", "trace-world", "trace-knowledge", "trace-plan", "trace-render",
       "error-toast", "error-message", "dismiss-error", "evidence-dialog", "evidence-tag",
@@ -100,6 +101,12 @@
     el["organism-image"].addEventListener("error", function () {
       el["organism-image"].classList.remove("is-visible");
       el["image-placeholder"].classList.remove("is-hidden");
+    });
+    el["ending-video"].addEventListener("loadeddata", function () {
+      el["ending-video-error"].hidden = true;
+    });
+    el["ending-video"].addEventListener("error", function () {
+      el["ending-video-error"].hidden = false;
     });
   }
 
@@ -227,6 +234,7 @@
     el["world-atlas"].hidden = !atlas;
     el["simulation-view"].hidden = atlas;
     el["world-button"].hidden = atlas;
+    if (atlas) el["ending-video"].pause();
     document.body.dataset.view = view;
     window.scrollTo({ top: 0, behavior: "auto" });
   }
@@ -291,6 +299,9 @@
     const chemistry = isChemistryWorld();
     el["choice-content"].hidden = false;
     el["ending-content"].hidden = true;
+    hideEndingVideo();
+    window.scrollTo({ top: 0, behavior: "auto" });
+    el["choice-deck"].scrollTo({ top: 0, behavior: "auto" });
     el["round-number"].textContent = String(choices.round || "—");
     el["chapter-label"].textContent = safeText(choices.chapter, "新的难题");
     el["choice-title"].textContent = chemistry ? "这一阶段会发生什么？" : "这一代要面对什么？";
@@ -486,6 +497,9 @@
   function renderEnding(stage) {
     el["choice-content"].hidden = true;
     el["ending-content"].hidden = false;
+    window.scrollTo({ top: 0, behavior: "auto" });
+    el["choice-deck"].scrollTo({ top: 0, behavior: "auto" });
+    renderEndingVideo();
     el["ending-kicker"].textContent = isChemistryWorld() ? "这套反应走完了三次改变" : "这条谱系走完了三次改变";
     const benefits = Array.isArray(stage.benefits) ? stage.benefits[0] : "适应了新的环境";
     const costs = Array.isArray(stage.costs) ? stage.costs[0] : "也承担了新的代价";
@@ -493,6 +507,32 @@
       ? "反应继续了下去，生命仍没有被轻易宣布。"
       : "它暂时活了下来，世界没有因此停住。";
     el["ending-summary"].textContent = "最后一次改变带来“" + benefits + "”，代价是“" + costs + "”。换一个起点或选择，留下来的会是另一套答案。";
+  }
+
+  function renderEndingVideo() {
+    if (!isTidalWorld()) {
+      hideEndingVideo();
+      return;
+    }
+    el["ending-video-card"].hidden = false;
+    el["ending-video-error"].hidden = true;
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reducedMotion) {
+      el["ending-video"].pause();
+      return;
+    }
+    const attempt = el["ending-video"].play();
+    if (attempt && typeof attempt.catch === "function") {
+      attempt.catch(function () {
+        // Native controls remain available when the browser blocks autoplay.
+      });
+    }
+  }
+
+  function hideEndingVideo() {
+    el["ending-video-card"].hidden = true;
+    el["ending-video"].pause();
+    el["ending-video-error"].hidden = true;
   }
 
   function renderTrace(stage, round, scenario) {
@@ -579,6 +619,12 @@
     const session = state.envelope && state.envelope.session;
     const scenarioId = (session && session.scenario_id) || state.currentScenarioId || state.selectedScenarioId;
     return scenarioId === "hydrothermal_origin";
+  }
+
+  function isTidalWorld() {
+    const session = state.envelope && state.envelope.session;
+    const scenarioId = (session && session.scenario_id) || state.currentScenarioId;
+    return scenarioId === "tidal_symbiosis";
   }
 
   function safeText(value, fallback) {

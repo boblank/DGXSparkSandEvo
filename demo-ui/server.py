@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import email.utils
 import functools
 import importlib.util
 import json
@@ -150,6 +151,9 @@ class EvoLabHandler(SimpleHTTPRequestHandler):
             if not self._public_static_path(path):
                 self.send_error(404)
                 return
+            if path.endswith(".mp4"):
+                self._send_public_video(path, head_only=False)
+                return
             super().do_GET()
         except Exception as exc:
             self._send_api_error(exc)
@@ -159,7 +163,84 @@ class EvoLabHandler(SimpleHTTPRequestHandler):
         if not self._public_static_path(path):
             self.send_error(404)
             return
+        if path.endswith(".mp4"):
+            self._send_public_video(path, head_only=True)
+            return
         super().do_HEAD()
+
+    def _send_public_video(self, request_path: str, *, head_only: bool) -> None:
+        target = (REPO_ROOT / request_path.lstrip("/")).resolve()
+        try:
+            target.relative_to(REPO_ROOT.resolve())
+        except ValueError:
+            self.send_error(404)
+            return
+        if not target.is_file():
+            self.send_error(404)
+            return
+
+        size = target.stat().st_size
+        start = 0
+        end = size - 1
+        status = 200
+        range_header = self.headers.get("Range", "").strip()
+        if range_header:
+            match = re.fullmatch(r"bytes=(\d*)-(\d*)", range_header)
+            if not match or (not match.group(1) and not match.group(2)):
+                self._send_range_error(size)
+                return
+            if match.group(1):
+                start = int(match.group(1))
+                end = int(match.group(2)) if match.group(2) else size - 1
+            else:
+                suffix_length = int(match.group(2))
+                if suffix_length <= 0:
+                    self._send_range_error(size)
+                    return
+                start = max(0, size - suffix_length)
+                end = size - 1
+            if start >= size or start > end:
+                self._send_range_error(size)
+                return
+            end = min(end, size - 1)
+            status = 206
+
+        content_length = end - start + 1
+        self.send_response(status)
+        self.send_header("Content-Type", "video/mp4")
+        self.send_header("Content-Length", str(content_length))
+        self.send_header("Accept-Ranges", "bytes")
+        if status == 206:
+            self.send_header("Content-Range", f"bytes {start}-{end}/{size}")
+        self.send_header(
+            "Last-Modified",
+            email.utils.formatdate(target.stat().st_mtime, usegmt=True),
+        )
+        self.send_header("Cache-Control", "public, max-age=31536000, immutable")
+        self.send_header("X-Content-Type-Options", "nosniff")
+        self.end_headers()
+        if head_only:
+            return
+        try:
+            with target.open("rb") as handle:
+                handle.seek(start)
+                remaining = content_length
+                while remaining:
+                    block = handle.read(min(64 * 1024, remaining))
+                    if not block:
+                        break
+                    self.wfile.write(block)
+                    remaining -= len(block)
+        except (BrokenPipeError, ConnectionResetError):
+            # Seeking away or closing a video is normal browser behaviour.
+            return
+
+    def _send_range_error(self, size: int) -> None:
+        self.send_response(416)
+        self.send_header("Content-Range", f"bytes */{size}")
+        self.send_header("Content-Length", "0")
+        self.send_header("Accept-Ranges", "bytes")
+        self.end_headers()
 
     def _send_asset(self, path: Path) -> None:
         content = path.read_bytes()

@@ -12,6 +12,7 @@ import concurrent.futures
 import hashlib
 import shutil
 import subprocess
+import time
 from pathlib import Path
 
 
@@ -47,23 +48,38 @@ def download_range(
         temporary.unlink()
         existing = 0
     resume = destination.with_suffix(destination.suffix + ".resume")
-    if resume.is_file():
+
+    def absorb_resume() -> int:
+        if not resume.is_file():
+            return 0
         remaining = expected - existing
-        if 0 < resume.stat().st_size <= remaining:
+        received = resume.stat().st_size
+        if received > remaining:
+            resume.unlink()
+            raise RuntimeError(f"range {start}-{end} ignored the remaining-byte contract")
+        if received:
             with temporary.open("ab") as target, resume.open("rb") as source:
                 shutil.copyfileobj(source, target)
-            existing = temporary.stat().st_size
         resume.unlink()
+        return received
+
+    existing += absorb_resume()
     if existing == expected:
         temporary.replace(destination)
         return destination
-    command = [
+
+    attempts = 0
+    empty_attempts = 0
+    while existing < expected:
+        attempts += 1
+        command = [
             "curl",
             "-fL",
+            "--http1.1",
             "--silent",
             "--show-error",
             "--retry",
-            "20",
+            "2",
             "--retry-all-errors",
             "--connect-timeout",
             "20",
@@ -77,10 +93,21 @@ def download_range(
             str(resume),
             url,
         ]
-    subprocess.run(command, check=True)
-    with temporary.open("ab") as target, resume.open("rb") as source:
-        shutil.copyfileobj(source, target)
-    resume.unlink()
+        result = subprocess.run(command, check=False)
+        received = absorb_resume()
+        existing += received
+        if received:
+            empty_attempts = 0
+        else:
+            empty_attempts += 1
+        if result.returncode == 0 and existing == expected:
+            break
+        if attempts >= 200 or empty_attempts >= 5:
+            raise RuntimeError(
+                f"range {start}-{end} could not make progress after {attempts} attempts"
+            )
+        if not received:
+            time.sleep(min(empty_attempts, 5))
     if temporary.stat().st_size != expected:
         raise RuntimeError(f"range {start}-{end} has the wrong byte count")
     temporary.replace(destination)
@@ -136,6 +163,7 @@ def main() -> int:
     actual_hash = digest.hexdigest()
     if written != args.size or actual_hash != expected_hash:
         assembling.unlink(missing_ok=True)
+        shutil.rmtree(parts_dir, ignore_errors=True)
         raise RuntimeError(
             f"assembled asset failed validation: bytes={written}, sha256={actual_hash}"
         )

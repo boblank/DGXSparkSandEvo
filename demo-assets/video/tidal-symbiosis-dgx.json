@@ -1,0 +1,52 @@
+{
+  "contract_version": "1.0.0",
+  "asset": "tidal-symbiosis-dgx.mp4",
+  "poster": "tidal-symbiosis-dgx-poster.png",
+  "scenario_id": "tidal_symbiosis",
+  "generator": "HunyuanVideo-1.5 480p I2V Step Distilled FP8 via ComfyUI",
+  "generated_at": "2026-07-21T19:50:52Z",
+  "input": {
+    "stage": "stage_03.png",
+    "renderer": "flux2-klein-4b",
+    "width": 1024,
+    "height": 1024,
+    "sha256": "cc04c9a88c870bfaddee4da68d7c32b758a6f4fc64051b1d796b679cc1501ec7"
+  },
+  "motion_prompt": "A slow cinematic push-in through an ancient shallow tidal pool. The translucent microbial colony remains attached to the mineral surface; its existing outer membranes gently undulate, amber symbiotic partners shift slowly within the existing cell bodies, and suspended particles move with a mild current. Preserve the exact organisms, anatomy, scale, composition, lighting, and colors from the source frame. Subtle physically plausible motion only; no new organisms, no new organs, no transformation, no predation, no text, no watermark.",
+  "parameters": {
+    "seed": 20260722,
+    "width": 848,
+    "height": 480,
+    "frames": 81,
+    "fps": 24,
+    "steps": 8,
+    "cfg": 1,
+    "flow_shift": 7
+  },
+  "dgx_measurements": {
+    "generation_seconds": 242.453,
+    "peak_process_rss_bytes": 33440780288,
+    "process_hwm_bytes": 44792082432,
+    "peak_system_used_bytes": 83387592704
+  },
+  "output": {
+    "container": "mp4",
+    "codec": "h264",
+    "duration_seconds": 3.375,
+    "bytes": 310470,
+    "sha256": "a2635717716a33353a2b22ac6412382f1e3047d61813ebc406b3c9c32938f708"
+  },
+  "validation": {
+    "decoded_frames": 81,
+    "first_input_correlation": 0.9989,
+    "first_last_correlation": 0.3535,
+    "average_consecutive_mae": 2.0273,
+    "max_consecutive_mae": 2.6449,
+    "technical_pass": true,
+    "first_frame_pass": true,
+    "motion_pass": true,
+    "continuity_pass": true,
+    "manual_contact_sheet_pass": true
+  },
+  "boundary_zh": "这段运动是艺术表达，不是新的科学证据。"
+}

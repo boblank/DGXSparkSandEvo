@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import functools
+import hashlib
 import importlib.util
 import json
 import tempfile
@@ -103,6 +104,46 @@ class InteractiveServerTests(unittest.TestCase):
             with self.assertRaises(urllib.error.HTTPError) as context:
                 urllib.request.urlopen(self.base_url + path, timeout=5)
             self.assertEqual(context.exception.code, 404)
+
+    def test_retained_hunyuan_video_matches_public_manifest(self) -> None:
+        asset_root = ROOT / "demo-assets" / "video"
+        manifest = json.loads(
+            (asset_root / "tidal-symbiosis-dgx.json").read_text(encoding="utf-8")
+        )
+        video = asset_root / manifest["asset"]
+        digest = hashlib.sha256(video.read_bytes()).hexdigest()
+        self.assertEqual(digest, manifest["output"]["sha256"])
+        request = urllib.request.Request(
+            self.base_url + "/demo-assets/video/" + manifest["asset"],
+            method="HEAD",
+        )
+        with urllib.request.urlopen(request, timeout=5) as response:
+            self.assertEqual(response.status, 200)
+            self.assertEqual(response.headers.get_content_type(), "video/mp4")
+            self.assertEqual(int(response.headers["Content-Length"]), video.stat().st_size)
+            self.assertEqual(response.headers["Accept-Ranges"], "bytes")
+
+        range_request = urllib.request.Request(
+            self.base_url + "/demo-assets/video/" + manifest["asset"],
+            headers={"Range": "bytes=0-1023"},
+        )
+        with urllib.request.urlopen(range_request, timeout=5) as response:
+            self.assertEqual(response.status, 206)
+            self.assertEqual(response.headers["Content-Range"], f"bytes 0-1023/{video.stat().st_size}")
+            self.assertEqual(response.headers["Accept-Ranges"], "bytes")
+            self.assertEqual(response.read(), video.read_bytes()[:1024])
+
+        invalid_request = urllib.request.Request(
+            self.base_url + "/demo-assets/video/" + manifest["asset"],
+            headers={"Range": f"bytes={video.stat().st_size}-"},
+        )
+        with self.assertRaises(urllib.error.HTTPError) as context:
+            urllib.request.urlopen(invalid_request, timeout=5)
+        self.assertEqual(context.exception.code, 416)
+        self.assertEqual(
+            context.exception.headers["Content-Range"],
+            f"bytes */{video.stat().st_size}",
+        )
 
 
 if __name__ == "__main__":

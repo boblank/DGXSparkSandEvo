@@ -117,7 +117,7 @@
             </div>
           </div>
 
-          <aside class="choice-deck" aria-labelledby="choice-title">
+          <aside id="choice-deck" class="choice-deck" aria-labelledby="choice-title">
             <div id="choice-content">
               <p class="deck-step">第 <span id="round-number">1</span> / 3 轮 · <span id="chapter-label">新的难题</span></p>
               <h2 id="choice-title">这一代要面对什么？</h2>
@@ -147,6 +147,32 @@
             </div>
 
             <div id="ending-content" class="ending-content" hidden>
+              <figure id="ending-video-card" class="ending-video-card" hidden>
+                <div class="ending-video-heading">
+                  <span>同一浅海世界 · DGX 留档</span>
+                  <strong>03.375 S</strong>
+                </div>
+                <div class="ending-video-window">
+                  <video
+                    id="ending-video"
+                    controls
+                    muted
+                    loop
+                    playsinline
+                    preload="metadata"
+                    poster="/demo-assets/video/tidal-symbiosis-dgx-poster.png"
+                    aria-label="同一浅海场景在 DGX Spark 上生成的三点三七五秒视频"
+                    aria-describedby="ending-video-boundary"
+                  >
+                    <source src="/demo-assets/video/tidal-symbiosis-dgx.mp4" type="video/mp4" />
+                  </video>
+                </div>
+                <figcaption>
+                  <strong>同一浅海世界的一段真实生成</strong>
+                  <span id="ending-video-boundary">这段运动是艺术表达，不是新的科学证据。</span>
+                </figcaption>
+                <p id="ending-video-error" class="ending-video-error" hidden>这段视频没能播放，最终阶段图还在。</p>
+              </figure>
               <p id="ending-kicker" class="deck-step">这条谱系走完了三次改变</p>
               <h2 id="ending-title">它暂时活了下来，世界没有因此停住。</h2>
               <p id="ending-summary">回看每一次获得和代价，再决定要不要回到图谱，从别的时代开始。</p>

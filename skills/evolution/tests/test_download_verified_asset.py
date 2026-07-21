@@ -5,6 +5,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
 
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -56,6 +57,34 @@ class VerifiedDownloadTests(unittest.TestCase):
                 69,
                 1,
             )
+            self.assertEqual(result.read_bytes(), payload[20:70])
+
+    def test_failed_transfer_absorbs_progress_before_retrying(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            payload = bytes(range(100))
+            destination = Path(temporary) / "part-000"
+            requested: list[tuple[int, int]] = []
+            original_run = downloader.subprocess.run
+
+            def fake_run(command: list[str], check: bool) -> SimpleNamespace:
+                del check
+                start, end = map(int, command[command.index("--range") + 1].split("-"))
+                requested.append((start, end))
+                output = Path(command[command.index("--output") + 1])
+                if len(requested) == 1:
+                    end = start + 24
+                    return_code = 28
+                else:
+                    return_code = 0
+                output.write_bytes(payload[start : end + 1])
+                return SimpleNamespace(returncode=return_code)
+
+            downloader.subprocess.run = fake_run
+            try:
+                result = downloader.download_range("https://example.invalid/model", destination, 20, 69, 1)
+            finally:
+                downloader.subprocess.run = original_run
+            self.assertEqual(requested, [(20, 69), (45, 69)])
             self.assertEqual(result.read_bytes(), payload[20:70])
 
 
