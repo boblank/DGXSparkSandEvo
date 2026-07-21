@@ -1,0 +1,65 @@
+# Secrets and local configuration
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+*.p12
+*credentials*.json
+*secrets*.json
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.venv/
+venv/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# JavaScript
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Agent and workshop runtime state
+openclaw-home/
+.openclaw/
+.hermes/
+.nemoclaw/
+build_a_claw_workshop*/
+
+# Generated media and large model assets
+output/
+outputs/
+artifacts/
+ComfyUI/output/
+ComfyUI/input/
+models/
+checkpoints/
+*.ckpt
+*.gguf
+*.safetensors
+*.onnx
+*.pt
+*.pth
+
+# Logs and temporary files
+*.log
+*.pid
+*.tmp
+*.bak
+tmp/
+temp/
+
+# Editors and operating systems
+.DS_Store
+.idea/
+.vscode/
+Thumbs.db
