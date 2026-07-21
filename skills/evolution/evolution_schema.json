@@ -1,0 +1,345 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "scenario": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "user_prompt": {
+          "type": "string",
+          "minLength": 1
+        },
+        "starting_lineage": {
+          "type": "string",
+          "minLength": 1
+        },
+        "habitat": {
+          "type": "string",
+          "enum": [
+            "SHALLOW_SEA"
+          ]
+        },
+        "environment_pressures": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {
+            "type": "string",
+            "enum": [
+              "DECLINING_OXYGEN",
+              "INCREASED_PREDATION"
+            ]
+          }
+        },
+        "time_horizon": {
+          "type": "string",
+          "enum": [
+            "DEEP_TIME_TO_FUTURE"
+          ]
+        },
+        "contingency_seed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "contingency_event": {
+          "type": "string",
+          "enum": [
+            "SYMBIOSIS_ESTABLISHED",
+            "POPULATION_BOTTLENECK",
+            "PREDATOR_SENSORY_SHIFT",
+            "PERIODIC_HYPOXIA",
+            "COMPETITOR_RESOURCE_CAPTURE"
+          ]
+        }
+      },
+      "required": [
+        "user_prompt",
+        "starting_lineage",
+        "habitat",
+        "environment_pressures",
+        "time_horizon",
+        "contingency_seed",
+        "contingency_event"
+      ]
+    },
+    "story_stages": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "stage_id": {
+            "type": "string",
+            "enum": [
+              "eukaryogenesis",
+              "multicellularity",
+              "future_route"
+            ]
+          },
+          "transition_id": {
+            "type": "string",
+            "enum": [
+              "M02",
+              "M05",
+              "M12"
+            ]
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1
+          },
+          "time_scope": {
+            "type": "string",
+            "enum": [
+              "DEEP_TIME_HISTORY",
+              "MULTIGENERATIONAL_TRANSITION",
+              "FUTURE_SCENARIO"
+            ]
+          },
+          "before_state": {
+            "type": "string",
+            "minLength": 1
+          },
+          "after_state": {
+            "type": "string",
+            "minLength": 1
+          },
+          "route_reference_id": {
+            "type": "string",
+            "enum": [
+              "NONE",
+              "energy_saver",
+              "defense_ambush",
+              "group_cooperation"
+            ]
+          },
+          "lineage_anchor": {
+            "type": "string",
+            "minLength": 1
+          },
+          "internal_drivers": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "external_drivers": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "contingency_event": {
+            "type": "string",
+            "enum": [
+              "NONE",
+              "SYMBIOSIS_ESTABLISHED",
+              "POPULATION_BOTTLENECK",
+              "PREDATOR_SENSORY_SHIFT",
+              "PERIODIC_HYPOXIA",
+              "COMPETITOR_RESOURCE_CAPTURE"
+            ]
+          },
+          "benefits": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "costs": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "evidence_tag": {
+            "type": "string",
+            "enum": [
+              "KNOWN_MECHANISM",
+              "MECHANISM_HYPOTHESIS",
+              "SCENARIO_EXTRAPOLATION"
+            ]
+          },
+          "knowledge_card_id": {
+            "type": "string",
+            "enum": [
+              "ENDOSYMBIOSIS",
+              "MULTICELLULARITY",
+              "NONE"
+            ]
+          },
+          "visual_prompt": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "stage_id",
+          "transition_id",
+          "title",
+          "time_scope",
+          "before_state",
+          "after_state",
+          "route_reference_id",
+          "lineage_anchor",
+          "internal_drivers",
+          "external_drivers",
+          "contingency_event",
+          "benefits",
+          "costs",
+          "evidence_tag",
+          "knowledge_card_id",
+          "visual_prompt"
+        ]
+      }
+    },
+    "routes": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "route_id": {
+            "type": "string",
+            "enum": [
+              "energy_saver",
+              "defense_ambush",
+              "group_cooperation"
+            ]
+          },
+          "strategy_slot": {
+            "type": "string",
+            "enum": [
+              "ENERGY_SAVER",
+              "DEFENSE_AMBUSH",
+              "GROUP_COOPERATION"
+            ]
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1
+          },
+          "trait_ids": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 8,
+            "items": {
+              "type": "string",
+              "enum": [
+                "LOW_METABOLISM",
+                "EFFICIENT_OXYGEN_USE",
+                "REDUCED_SUSTAINED_SPEED",
+                "CAMOUFLAGE",
+                "LOCAL_ARMOR",
+                "HEAVY_ARMOR",
+                "BURST_ACCELERATION",
+                "AMBUSH_BEHAVIOR",
+                "EXTREMELY_HIGH_SWIM_SPEED",
+                "EXTREMELY_LOW_ENERGY_USE",
+                "SUSTAINED_HIGH_POWER_MOVEMENT",
+                "GROUPING",
+                "EARLY_WARNING",
+                "ROLE_SPECIALIZATION",
+                "HIGH_SOCIAL_COOPERATION",
+                "NO_COOPERATION_COST",
+                "LARGE_COMPLEX_TISSUES",
+                "NO_RESOURCE_OR_OXYGEN_COST",
+                "HIGH_REPRODUCTION_RATE",
+                "HIGH_OFFSPRING_INVESTMENT",
+                "NO_RESOURCE_COST"
+              ]
+            }
+          },
+          "internal_drivers": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "external_drivers": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "benefits": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "costs": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "explainability": {
+            "type": "string",
+            "enum": [
+              "HIGH",
+              "MEDIUM",
+              "LOW"
+            ]
+          }
+        },
+        "required": [
+          "route_id",
+          "strategy_slot",
+          "title",
+          "description",
+          "trait_ids",
+          "internal_drivers",
+          "external_drivers",
+          "benefits",
+          "costs",
+          "explainability"
+        ]
+      }
+    },
+    "selected_route_id": {
+      "type": "string",
+      "enum": [
+        "energy_saver",
+        "defense_ambush",
+        "group_cooperation"
+      ]
+    },
+    "decision_summary": {
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "required": [
+    "scenario",
+    "story_stages",
+    "routes",
+    "selected_route_id",
+    "decision_summary"
+  ]
+}

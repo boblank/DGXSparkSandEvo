@@ -1,0 +1,260 @@
+{
+  "contract_version": "0.6.0",
+  "initial_stage": {
+    "stage_id": "origin",
+    "organism_name": "潮池原核共生群",
+    "lineage_summary": "古老浅海里，一群彼此交换代谢产物的微小原核生物依附在矿物表面。它们还不是一个个体，却已经形成松散的互利关系。",
+    "change_summary": "故事从一个尚未固定命运的原核生态群落开始。",
+    "traits": [
+      "青绿色半透明膜结构",
+      "琥珀色代谢颗粒",
+      "结构简单的原核细胞",
+      "可与邻近微生物交换代谢产物"
+    ],
+    "internal_causes": [
+      "个体之间存在可遗传的代谢差异"
+    ],
+    "external_causes": [
+      "浅海潮池的光照、盐度与资源不断波动"
+    ],
+    "benefits": [
+      "群落中的代谢互补能缓冲短时资源匮乏"
+    ],
+    "costs": [
+      "关系松散，环境剧变时很容易瓦解"
+    ],
+    "evidence_tag": "KNOWN_MECHANISM",
+    "uncertainty_note": "这是教学用的起始生态，不对应某一个被完整复原的远古物种。",
+    "knowledge_card_id": "NONE",
+    "transition_id": "M01"
+  },
+  "rounds": {
+    "1": {
+      "chapter": "细胞开始变复杂",
+      "time_scope": "DEEP_TIME_HISTORY",
+      "environments": [
+        {
+          "id": "oxygen_pulses",
+          "title": "氧气时多时少",
+          "description": "白天光合作用抬高氧气，夜晚和腐败过程又快速消耗它。"
+        },
+        {
+          "id": "sulfur_shore",
+          "title": "硫化物海岸",
+          "description": "海水富含还原性物质，能量来源多样，却对细胞有毒性压力。"
+        },
+        {
+          "id": "resource_pulses",
+          "title": "资源脉冲",
+          "description": "营养随潮汐成批出现，丰盛期和饥饿期交替。"
+        }
+      ],
+      "contingencies": [
+        {
+          "id": "stable_engulfment",
+          "title": "一次吞噬没有消化",
+          "description": "被吞入的细菌留下来，并持续为宿主提供代谢能力。"
+        },
+        {
+          "id": "viral_gene_transfer",
+          "title": "病毒带来一段新基因",
+          "description": "一次水平基因转移改变了膜结构或代谢调控。"
+        },
+        {
+          "id": "population_bottleneck",
+          "title": "群落突然缩小",
+          "description": "少数幸存者成为下一批种群的祖先，原有差异被重新洗牌。"
+        }
+      ],
+      "directions": [
+        {
+          "id": "endosymbiotic_cell",
+          "transition_id": "M02",
+          "knowledge_card_id": "ENDOSYMBIOSIS",
+          "title": "把共生者留在体内",
+          "description": "让宿主与细菌伙伴逐步绑定，走向更复杂的真核样细胞。",
+          "mechanism_hint": "稳定内共生、基因转移与细胞内协调",
+          "tradeoff_hint": "能量系统更强，但双方从此互相依赖"
+        },
+        {
+          "id": "photosynthetic_symbiosis",
+          "transition_id": "M03",
+          "knowledge_card_id": "PLASTID_ENDOSYMBIOSIS",
+          "title": "把光能装进细胞",
+          "description": "保留能利用光的共生伙伴，逐步形成新的能量来源。",
+          "mechanism_hint": "光合共生、膜系统整合与代谢分工",
+          "tradeoff_hint": "获得光能，也更依赖光照和细胞内协调"
+        },
+        {
+          "id": "metabolic_consortium",
+          "transition_id": "M11",
+          "knowledge_card_id": "MICROBIAL_CONSORTIUM",
+          "title": "继续做一支共生群落",
+          "description": "不形成单一复杂细胞，而是让多个原核成员固定协作。",
+          "mechanism_hint": "代谢互补、空间聚集与伙伴识别",
+          "tradeoff_hint": "适应面更宽，但群落容易被搭便车者破坏"
+        }
+      ]
+    },
+    "2": {
+      "chapter": "个体的边界被重写",
+      "time_scope": "MULTIGENERATIONAL_TRANSITION",
+      "environments": [
+        {
+          "id": "predator_rise",
+          "title": "微型捕食者增多",
+          "description": "体型较小、孤立生活的细胞更容易被吞食。"
+        },
+        {
+          "id": "nutrient_gradient",
+          "title": "营养形成分层",
+          "description": "光、氧气和有机物分布在不同水层，单个细胞很难同时占据。"
+        },
+        {
+          "id": "turbulent_water",
+          "title": "水体频繁扰动",
+          "description": "持续的水流让松散群体难以停留，也带来新的扩散机会。"
+        }
+      ],
+      "contingencies": [
+        {
+          "id": "adhesion_mutation",
+          "title": "分裂后没有完全分开",
+          "description": "一个黏附变化让子细胞继续连在一起，亲缘关系因此更紧密。"
+        },
+        {
+          "id": "recombination_cycle",
+          "title": "两套遗传信息相遇",
+          "description": "偶发的细胞融合与重组，为后代带来新的性状组合。"
+        },
+        {
+          "id": "colony_bottleneck",
+          "title": "每一代只从少数细胞重建",
+          "description": "狭窄的繁殖瓶颈让群体内部更容易保持合作。"
+        }
+      ],
+      "directions": [
+        {
+          "id": "multicellular_body",
+          "transition_id": "M05",
+          "knowledge_card_id": "MULTICELLULARITY",
+          "title": "长成一个多细胞身体",
+          "description": "让黏附、通讯、分工和共同繁殖逐步稳定下来。",
+          "mechanism_hint": "克隆黏附、细胞通讯、分工与冲突抑制",
+          "tradeoff_hint": "群体更能抵御风险，细胞却失去一部分自主性"
+        },
+        {
+          "id": "sexual_cycle",
+          "transition_id": "M04",
+          "knowledge_card_id": "SEXUAL_REPRODUCTION",
+          "allowed_parent_direction_ids": [
+            "endosymbiotic_cell",
+            "photosynthetic_symbiosis"
+          ],
+          "title": "用重组换取更多可能",
+          "description": "形成稳定的遗传重组周期，让后代组合不再只是复制亲本。",
+          "mechanism_hint": "细胞融合、减数样过程与遗传重组",
+          "tradeoff_hint": "增加多样性，也付出寻找伙伴和重组的成本"
+        },
+        {
+          "id": "cooperative_colony",
+          "transition_id": "M10",
+          "knowledge_card_id": "SOCIAL_COOPERATION",
+          "title": "保持群体，但开始分工",
+          "description": "个体仍能独立生活，却会在群落中承担不同任务。",
+          "mechanism_hint": "伙伴识别、信号传递与可逆分工",
+          "tradeoff_hint": "组合灵活，但合作随时可能崩解"
+        }
+      ]
+    },
+    "3": {
+      "chapter": "把谱系推向未来",
+      "time_scope": "FUTURE_SCENARIO",
+      "environments": [
+        {
+          "id": "global_warming",
+          "pressure_id": "GLOBAL_WARMING",
+          "knowledge_card_id": "FUTURE_GLOBAL_WARMING",
+          "title": "海水持续变暖",
+          "description": "平均温度上升，热浪更频繁，稳定的冷水栖息地缩小。"
+        },
+        {
+          "id": "sea_level_rise",
+          "pressure_id": "SEA_LEVEL_RISE",
+          "knowledge_card_id": "FUTURE_SEA_LEVEL_RISE",
+          "title": "海平面上升",
+          "description": "海岸线后退，新的浅海出现，原有潮间带被重塑。"
+        },
+        {
+          "id": "ocean_deoxygenation",
+          "pressure_id": "OCEAN_DEOXYGENATION",
+          "knowledge_card_id": "FUTURE_OCEAN_DEOXYGENATION",
+          "title": "海水缺氧加重",
+          "description": "温暖水体更难保存氧气，局部低氧区扩张。"
+        },
+        {
+          "id": "ocean_acidification",
+          "pressure_id": "OCEAN_ACIDIFICATION",
+          "knowledge_card_id": "FUTURE_OCEAN_ACIDIFICATION",
+          "title": "海水酸化",
+          "description": "碳化学改变，形成和维护矿化结构变得更困难。"
+        }
+      ],
+      "contingencies": [
+        {
+          "id": "extreme_heatwave",
+          "title": "一次极端海洋热浪",
+          "description": "短期灾变淘汰了大批不耐热个体，幸存者构成新的种群。"
+        },
+        {
+          "id": "new_predator",
+          "title": "陌生捕食者进入栖息地",
+          "description": "新的捕食方式打破原有防御与行为节奏。"
+        },
+        {
+          "id": "current_shift",
+          "title": "洋流改道",
+          "description": "种群被带到新的海区，与不同伙伴和竞争者相遇。"
+        }
+      ],
+      "directions": [
+        {
+          "id": "thermal_refuge",
+          "transition_id": "M12",
+          "knowledge_card_id": "NONE",
+          "title": "把身体改成耐热型",
+          "description": "强化热应激修复、散热结构和对温度波动的耐受。",
+          "mechanism_hint": "蛋白稳态、膜组成变化与行为避热",
+          "tradeoff_hint": "高温下更稳定，平常维护成本也会上升"
+        },
+        {
+          "id": "oxygen_saver",
+          "transition_id": "M12",
+          "knowledge_card_id": "NONE",
+          "title": "少用一点氧",
+          "description": "降低持续活动消耗，并改善身体内部的氧气交换。",
+          "mechanism_hint": "代谢调节、交换表面积与间歇活动",
+          "tradeoff_hint": "更耐低氧，却牺牲持续速度和高功率活动"
+        },
+        {
+          "id": "mobile_shallows",
+          "transition_id": "M12",
+          "knowledge_card_id": "NONE",
+          "title": "追着合适的水层迁移",
+          "description": "增强感知和移动能力，在潮汐、温度与氧气梯度之间切换。",
+          "mechanism_hint": "环境感知、定向移动与可逆休眠",
+          "tradeoff_hint": "能躲开局部危机，也需要更多能量和更复杂的协调"
+        },
+        {
+          "id": "symbiotic_buffer",
+          "transition_id": "M12",
+          "knowledge_card_id": "NONE",
+          "title": "让共生伙伴分担压力",
+          "description": "把解毒、供能或修复任务交给稳定的微生物伙伴。",
+          "mechanism_hint": "宿主—微生物互利、伙伴筛选与垂直传播",
+          "tradeoff_hint": "获得新的缓冲能力，也更怕共生关系被环境打断"
+        }
+      ]
+    }
+  }
+}

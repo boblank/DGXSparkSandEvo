@@ -1,0 +1,285 @@
+{
+  "contract_version": "0.5.0",
+  "run_id": "fixture-normal-001",
+  "status": "completed",
+  "current_stage": 3,
+  "model": {
+    "planner": "step-3.7-flash",
+    "reasoning_effort": "high",
+    "image_generator": "FLUX via ComfyUI"
+  },
+  "scenario": {
+    "user_prompt": "让一种生活在浅海的微型祖先，经历真核化和简单多细胞化后，在氧气持续下降、捕食压力上升的未来环境中继续演化。生成三条不同路线，并选出最合理的一条。",
+    "starting_lineage": "浅海微型祖先",
+    "habitat": "SHALLOW_SEA",
+    "environment_pressures": [
+      "DECLINING_OXYGEN",
+      "INCREASED_PREDATION"
+    ],
+    "time_horizon": "DEEP_TIME_TO_FUTURE",
+    "contingency_seed": 37,
+    "contingency_event": "SYMBIOSIS_ESTABLISHED"
+  },
+  "story_stages": [
+    {
+      "stage_id": "eukaryogenesis",
+      "transition_id": "M02",
+      "title": "从共生生态到原始真核细胞",
+      "time_scope": "DEEP_TIME_HISTORY",
+      "before_state": "浅海微生物生态中的古菌样宿主与细菌伙伴保持代谢互利。",
+      "after_state": "细菌伙伴经长期整合成为线粒体样能量系统，形成原始真核细胞状态。",
+      "route_reference_id": "NONE",
+      "lineage_anchor": "半透明蓝绿色细胞膜、橙色线粒体样结构、微米尺度科学插画",
+      "internal_drivers": [
+        "宿主与细菌伙伴之间的长期内共生",
+        "共生伙伴基因向宿主的逐步转移"
+      ],
+      "external_drivers": [
+        "浅海微生物群落中的代谢互补"
+      ],
+      "contingency_event": "SYMBIOSIS_ESTABLISHED",
+      "benefits": [
+        "获得更稳定的细胞内能量转换能力"
+      ],
+      "costs": [
+        "宿主与共生伙伴相互依赖，整合失败可能使谱系终止"
+      ],
+      "evidence_tag": "KNOWN_MECHANISM",
+      "knowledge_card_id": "ENDOSYMBIOSIS",
+      "visual_prompt": "scientific illustration, split-view ancient shallow-sea microbial ecology and an early eukaryotic cell, archaeal-like host integrating bacterial partners over deep time, orange mitochondrion-like structures, translucent blue-green membrane, no labels, no typography",
+      "status": "generated",
+      "render_source": "generated",
+      "image_path": "runs/fixture-normal-001/stage_01_eukaryogenesis.png",
+      "visual_review_status": "passed"
+    },
+    {
+      "stage_id": "multicellularity",
+      "transition_id": "M05",
+      "title": "从单细胞真核到简单多细胞群体",
+      "time_scope": "MULTIGENERATIONAL_TRANSITION",
+      "before_state": "具有蓝绿色细胞膜和橙色线粒体样结构的单细胞真核谱系。",
+      "after_state": "细胞通过黏附与通讯形成简单群体，并出现外层防护与内层资源处理的初步分工。",
+      "route_reference_id": "NONE",
+      "lineage_anchor": "继承半透明蓝绿色细胞膜和橙色线粒体样结构，形成小型球状细胞群",
+      "internal_drivers": [
+        "克隆后细胞黏附",
+        "细胞间信号通讯",
+        "可遗传的初步分工"
+      ],
+      "external_drivers": [
+        "捕食压力使较大的细胞群体更难被吞食"
+      ],
+      "contingency_event": "NONE",
+      "benefits": [
+        "群体体型增加并能进行有限分工"
+      ],
+      "costs": [
+        "单个细胞自由度下降且群体内部出现资源竞争"
+      ],
+      "evidence_tag": "KNOWN_MECHANISM",
+      "knowledge_card_id": "MULTICELLULARITY",
+      "visual_prompt": "scientific illustration of a simple spherical multicellular colony in shallow water, adhered translucent blue-green eukaryotic cells with orange mitochondrion-like structures, visible cell communication and modest outer-inner division of labor, no complex organs, no labels, no typography",
+      "status": "generated",
+      "render_source": "generated",
+      "image_path": "runs/fixture-normal-001/stage_02_multicellularity.png",
+      "visual_review_status": "passed"
+    },
+    {
+      "stage_id": "future_route",
+      "transition_id": "M12",
+      "title": "低氧与高捕食下的群体协作支线",
+      "time_scope": "FUTURE_SCENARIO",
+      "before_state": "具有细胞黏附、通讯和初步分工的浅海简单多细胞谱系。",
+      "after_state": "selected_route_id=group_cooperation：群体形成分层预警与功能分工，以协作降低捕食风险。",
+      "route_reference_id": "group_cooperation",
+      "lineage_anchor": "继承蓝绿色半透明群体、橙色细胞内结构和小型球状基本体形",
+      "internal_drivers": [
+        "群体信号灵敏度与成员分工的可遗传差异"
+      ],
+      "external_drivers": [
+        "氧气持续下降",
+        "捕食压力上升"
+      ],
+      "contingency_event": "NONE",
+      "benefits": [
+        "预警与分工使群体更早发现捕食者并协调规避"
+      ],
+      "costs": [
+        "个体自由度下降，资源竞争和欺骗风险增加"
+      ],
+      "evidence_tag": "SCENARIO_EXTRAPOLATION",
+      "knowledge_card_id": "NONE",
+      "visual_prompt": "speculative but biologically constrained scientific illustration, shallow-sea colony descended from translucent blue-green spherical multicellular ancestors, orange internal organelle anchors, coordinated outer sentinels and inner resource-sharing cells, low-oxygen dim water, predator silhouette, no labels, no typography",
+      "status": "generated",
+      "render_source": "generated",
+      "image_path": "runs/fixture-normal-001/stage_03_future_route.png",
+      "visual_review_status": "passed"
+    }
+  ],
+  "routes": [
+    {
+      "route_id": "energy_saver",
+      "strategy_slot": "ENERGY_SAVER",
+      "title": "节能型",
+      "description": "降低基础代谢并提高氧利用效率，以较低活动强度度过持续低氧期。",
+      "trait_ids": [
+        "LOW_METABOLISM",
+        "EFFICIENT_OXYGEN_USE",
+        "REDUCED_SUSTAINED_SPEED"
+      ],
+      "internal_drivers": [
+        "代谢调控和氧利用相关变异"
+      ],
+      "external_drivers": [
+        "氧气持续下降"
+      ],
+      "benefits": [
+        "单位时间能量与氧需求下降"
+      ],
+      "costs": [
+        "持续高速运动和主动逃逸能力下降"
+      ],
+      "explainability": "HIGH"
+    },
+    {
+      "route_id": "defense_ambush",
+      "strategy_slot": "DEFENSE_AMBUSH",
+      "title": "防御与伏击型",
+      "description": "经规则修订后，以伪装、局部防护和短时爆发替代重甲与持续极高速。",
+      "trait_ids": [
+        "CAMOUFLAGE",
+        "LOCAL_ARMOR",
+        "BURST_ACCELERATION",
+        "AMBUSH_BEHAVIOR",
+        "REDUCED_SUSTAINED_SPEED"
+      ],
+      "internal_drivers": [
+        "表面结构、色素调控和短时肌肉输出相关变异"
+      ],
+      "external_drivers": [
+        "捕食压力上升",
+        "低氧限制持续运动"
+      ],
+      "benefits": [
+        "提高隐蔽性并保留短时逃逸或伏击能力"
+      ],
+      "costs": [
+        "局部防护增加材料投入，持续机动性仍然较低"
+      ],
+      "explainability": "HIGH"
+    },
+    {
+      "route_id": "group_cooperation",
+      "strategy_slot": "GROUP_COOPERATION",
+      "title": "群体协作型",
+      "description": "通过群聚、预警和功能分工降低个体遭遇捕食的风险。",
+      "trait_ids": [
+        "GROUPING",
+        "EARLY_WARNING",
+        "ROLE_SPECIALIZATION",
+        "HIGH_SOCIAL_COOPERATION"
+      ],
+      "internal_drivers": [
+        "通讯、识别和分工相关的可遗传差异"
+      ],
+      "external_drivers": [
+        "捕食压力上升",
+        "低氧造成资源斑块化"
+      ],
+      "benefits": [
+        "集体预警与分工提高群体存续能力"
+      ],
+      "costs": [
+        "资源竞争、欺骗风险和个体自由度下降"
+      ],
+      "explainability": "MEDIUM"
+    }
+  ],
+  "selected_route_id": "group_cooperation",
+  "decision_summary": "三条路线都能回应低氧与捕食压力；群体协作型最能继承前一阶段已经形成的黏附和通讯基础，但必须承担资源竞争、欺骗风险和个体自由度下降。未来形态属于受约束的情景推演，不是确定预测。",
+  "rejections": [
+    {
+      "rule_id": "TRAIT_CONFLICT_HEAVY_FAST_CHEAP",
+      "route_id": "defense_ambush",
+      "rejected_combination": [
+        "HEAVY_ARMOR",
+        "EXTREMELY_HIGH_SWIM_SPEED",
+        "EXTREMELY_LOW_ENERGY_USE"
+      ],
+      "reason": "厚重装甲、极高游速与极低能耗不能在当前资源和氧供约束下同时成立。",
+      "revision": {
+        "removed_trait_ids": [
+          "HEAVY_ARMOR",
+          "EXTREMELY_HIGH_SWIM_SPEED",
+          "EXTREMELY_LOW_ENERGY_USE"
+        ],
+        "added_trait_ids": [
+          "LOCAL_ARMOR",
+          "CAMOUFLAGE",
+          "BURST_ACCELERATION",
+          "AMBUSH_BEHAVIOR",
+          "REDUCED_SUSTAINED_SPEED"
+        ],
+        "summary": "改为局部防护与伪装，降低持续游速，只保留短时爆发的伏击能力。"
+      }
+    }
+  ],
+  "knowledge_cards": [
+    {
+      "knowledge_card_id": "ENDOSYMBIOSIS",
+      "title": "内共生学说",
+      "body": "真核细胞的线粒体来自被宿主长期整合的细菌祖先。双层膜、独立遗传物质、分裂方式和系统发育关系等证据支持这一来源；宿主类型和真核化具体事件顺序仍在研究中。",
+      "content_labels": [
+        "KNOWN_MECHANISM",
+        "MECHANISM_HYPOTHESIS"
+      ],
+      "source_ids": [
+        "EUKARYOGENESIS_REVIEW_2024"
+      ]
+    },
+    {
+      "knowledge_card_id": "MULTICELLULARITY",
+      "title": "多细胞化",
+      "body": "细胞通过克隆黏附或聚集形成群体；当黏附、通讯、分工、共同繁殖和冲突抑制逐步稳定，选择单位才可能从单细胞转向更高层级。多细胞化在不同谱系中独立发生过多次。",
+      "content_labels": [
+        "KNOWN_MECHANISM"
+      ],
+      "source_ids": [
+        "INDIVIDUALITY_TRANSITIONS_2015",
+        "UNICELLULAR_PERSPECTIVE_2017"
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "source_id": "EUKARYOGENESIS_REVIEW_2024",
+      "title": "The emerging view on the origin and early evolution of eukaryotic cells",
+      "url": "https://www.nature.com/articles/s41586-024-07677-6",
+      "supports": "真核发生、线粒体内共生及其尚未解决的事件顺序问题。",
+      "boundary": "不代表 EvoLab 对具体事件顺序做出科研级判定。"
+    },
+    {
+      "source_id": "INDIVIDUALITY_TRANSITIONS_2015",
+      "title": "Major evolutionary transitions in individuality",
+      "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC4547252/",
+      "supports": "多细胞个体性形成中的合作、分工和冲突抑制。",
+      "boundary": "不为特定生成物种提供实证。"
+    },
+    {
+      "source_id": "UNICELLULAR_PERSPECTIVE_2017",
+      "title": "The origin of Metazoa: a unicellular perspective",
+      "url": "https://www.nature.com/articles/nrg.2017.21",
+      "supports": "动物多细胞化之前已有的细胞黏附、通讯和调控基础。",
+      "boundary": "动物谱系案例不能代表所有多细胞谱系的唯一路径。"
+    }
+  ],
+  "image_paths": [
+    "runs/fixture-normal-001/stage_01_eukaryogenesis.png",
+    "runs/fixture-normal-001/stage_02_multicellularity.png",
+    "runs/fixture-normal-001/stage_03_future_route.png"
+  ],
+  "storyboard_path": "runs/fixture-normal-001/evolution_storyboard.png",
+  "fallbacks_used": [],
+  "visual_review_status": "passed",
+  "failure": null
+}

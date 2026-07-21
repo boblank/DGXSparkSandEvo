@@ -1,0 +1,229 @@
+{
+  "contract_version": "0.5.0",
+  "cards": [
+    {
+      "knowledge_card_id": "ENDOSYMBIOSIS",
+      "transition_id": "M02",
+      "title": "内共生学说",
+      "body": "真核细胞的线粒体来自被宿主长期整合的细菌祖先。双层膜、独立遗传物质、分裂方式和系统发育关系等证据支持这一来源；宿主类型和真核化具体事件顺序仍在研究中。",
+      "content_labels": [
+        "KNOWN_MECHANISM",
+        "MECHANISM_HYPOTHESIS"
+      ],
+      "supports": "线粒体具有细菌祖先来源，长期内共生是早期真核演化的关键转变。",
+      "boundary": "不把现代细菌进入现代真核细胞画成瞬时升级，也不宣称宿主类型和真核化事件顺序已经完全确定。",
+      "source_ids": [
+        "EUKARYOGENESIS_REVIEW_2024"
+      ]
+    },
+    {
+      "knowledge_card_id": "MULTICELLULARITY",
+      "transition_id": "M05",
+      "title": "多细胞化",
+      "body": "细胞通过克隆黏附或聚集形成群体；当黏附、通讯、分工、共同繁殖和冲突抑制逐步稳定，选择单位才可能从单细胞转向更高层级。多细胞化在不同谱系中独立发生过多次。",
+      "content_labels": [
+        "KNOWN_MECHANISM"
+      ],
+      "supports": "细胞黏附、通讯、分工和群体内部冲突抑制共同参与多细胞个体性的形成。",
+      "boundary": "这是用于 Demo 的简化教学模型，不把多细胞化说成一次事件，也不从简单群体直接跳到复杂器官。",
+      "source_ids": [
+        "INDIVIDUALITY_TRANSITIONS_2015",
+        "UNICELLULAR_PERSPECTIVE_2017"
+      ]
+    }
+  ],
+  "interactive_cards": [
+    {
+      "knowledge_card_id": "ENDOSYMBIOSIS",
+      "transition_ids": ["M02"],
+      "pressure_ids": [],
+      "title": "这一步叫作内共生",
+      "body": "线粒体的祖先原本是细菌。它没有被宿主消化，而是在许多代里逐步交出部分基因、接入宿主的运输和分裂系统，最后成为细胞里不能随意分开的能量伙伴。",
+      "evidence_class": "known_mechanism",
+      "prerequisites": ["宿主与细菌祖先能够长期共存", "双方繁殖和代谢逐步协调"],
+      "mechanisms": ["稳定内共生", "基因转移", "代谢耦合"],
+      "tradeoffs": ["能量转换能力增强，但双方形成深度依赖"],
+      "source_ids": ["SRC-EUK-001", "SRC-EUK-003", "SRC-EUK-004"],
+      "boundary": "真核发生的宿主身份和事件顺序仍有争议；不是一次吞噬带来的瞬时升级。"
+    },
+    {
+      "knowledge_card_id": "PLASTID_ENDOSYMBIOSIS",
+      "transition_ids": ["M03"],
+      "pressure_ids": [],
+      "title": "光合作用也曾经是一次长期合伙",
+      "body": "质体的祖先与蓝细菌有关。早期真核宿主保留了能进行光合作用的伙伴，随后通过基因转移和蛋白运输，把它整合成细胞内部的能量系统。",
+      "evidence_class": "known_mechanism",
+      "prerequisites": ["已有真核宿主", "光合伙伴能在细胞内存活并繁殖"],
+      "mechanisms": ["初级内共生", "内共生基因转移", "蛋白靶向"],
+      "tradeoffs": ["能直接利用光能，也承受光照依赖、氧化压力和内部协调成本"],
+      "source_ids": ["SRC-PLA-001", "SRC-PLA-002"],
+      "boundary": "质体演化有多轮内共生和分支历史，不能压成一条通往现代植物的直线。"
+    },
+    {
+      "knowledge_card_id": "SEXUAL_REPRODUCTION",
+      "transition_ids": ["M04"],
+      "pressure_ids": [],
+      "title": "遗传重组把旧牌重新洗了一次",
+      "body": "有性生殖的关键不只是两个个体参与，而是遗传物质发生配对、交换和重新组合。它可能帮助有利突变汇合，也可能加快清除部分有害突变。",
+      "evidence_class": "known_mechanism",
+      "prerequisites": ["同源遗传信息可配对和交换", "融合后能够重新分离并形成后代"],
+      "mechanisms": ["细胞或配子融合", "减数分裂样过程", "同源重组"],
+      "tradeoffs": ["后代组合更多，同时产生寻找伙伴、时间和遗传传递成本"],
+      "source_ids": ["SRC-SEX-001", "SRC-SEX-002"],
+      "boundary": "性的起源和长期维持仍有多种解释；无性与有性不是高低等级，也常在同一谱系共存。"
+    },
+    {
+      "knowledge_card_id": "MULTICELLULARITY",
+      "transition_ids": ["M05"],
+      "pressure_ids": [],
+      "title": "一群细胞，什么时候才算一个身体？",
+      "body": "黏在一起只是开头。细胞还要学会通信、分工、共同繁殖，并限制内部的搭便车者，选择才可能从单个细胞转向整个多细胞个体。",
+      "evidence_class": "known_mechanism",
+      "prerequisites": ["细胞稳定成群", "合作收益可以跨代保留", "内部冲突受到控制"],
+      "mechanisms": ["克隆黏附或聚集", "细胞通讯", "分工", "繁殖瓶颈"],
+      "tradeoffs": ["身体更大且能分工，但单个细胞失去部分自主性并承担协调成本"],
+      "source_ids": ["SRC-MUL-001", "SRC-MUL-002", "SRC-MUL-004"],
+      "boundary": "多细胞化在不同谱系中独立出现；实验细胞团不等于复原了某个远古祖先。"
+    },
+    {
+      "knowledge_card_id": "WATER_TO_LAND",
+      "transition_ids": ["M07"],
+      "pressure_ids": [],
+      "title": "登陆不是把鳍换成脚那么简单",
+      "body": "脊椎动物进入陆地时，附肢承重、头颈活动、空气呼吸、感觉系统和水分平衡都要一起改变。Tiktaalik 一类化石保留了鱼类和早期四足动物特征的组合。",
+      "evidence_class": "known_mechanism",
+      "prerequisites": ["浅水活动", "附肢可支撑和推进", "空气呼吸与陆地感觉逐步可用"],
+      "mechanisms": ["鳍骨和关节重组", "躯干支撑", "呼吸与感觉系统重配"],
+      "tradeoffs": ["得到陆地资源，也面对重力、干燥和剧烈温差"],
+      "source_ids": ["SRC-LAND-001", "SRC-LAND-002"],
+      "boundary": "这里讲的是四足动物路径；植物、节肢动物等曾各自完成完全不同的登陆。"
+    },
+    {
+      "knowledge_card_id": "FLIGHT",
+      "transition_ids": ["M08"],
+      "pressure_ids": [],
+      "title": "翅膀不是为了飞才从零出现",
+      "body": "羽毛等结构可能先用于保温、展示或控制下落，后来才被征用于产生升力。滑翔、姿态控制和拍动飞行也不必在同一步完成。",
+      "evidence_class": "known_mechanism",
+      "prerequisites": ["已有可形成升力的表面", "身体重量、功率和感觉控制允许空中运动"],
+      "mechanisms": ["结构征用", "滑翔", "气动控制", "拍动"],
+      "tradeoffs": ["移动空间扩大，但气动结构、肌肉功率和精细控制都很昂贵"],
+      "source_ids": ["SRC-FLY-001", "SRC-FLY-002"],
+      "boundary": "鸟类材料只展示一种路线；昆虫、翼龙、鸟和蝙蝠的动力飞行彼此独立起源。"
+    },
+    {
+      "knowledge_card_id": "NERVOUS_SYSTEM_AND_BRAIN",
+      "transition_ids": ["M09"],
+      "pressure_ids": [],
+      "title": "脑不是神经系统的必然终点",
+      "body": "神经回路可以通过连接方式、神经调质、神经元类型和数量变化来重组。集中式神经系统有利于整合感觉和行动，但复杂脑在不同动物谱系里曾平行出现。",
+      "evidence_class": "known_mechanism",
+      "prerequisites": ["神经细胞可形成回路", "整合多种感觉能改善行为结果"],
+      "mechanisms": ["回路连接变化", "神经元分化", "神经调质", "中枢化"],
+      "tradeoffs": ["信息整合和学习增强，同时付出高能耗、长发育和损伤风险"],
+      "source_ids": ["SRC-NEU-001", "SRC-NEU-002"],
+      "boundary": "不存在从简单生命必然走向人脑的阶梯，神经元和复杂脑的起源次数也仍有争议。"
+    },
+    {
+      "knowledge_card_id": "SOCIAL_COOPERATION",
+      "transition_ids": ["M10"],
+      "pressure_ids": [],
+      "title": "合作要先回答：谁来承担成本？",
+      "body": "合作能靠直接互利、亲缘结构、重复互动或伙伴选择维持，但群体还得限制搭便车者。只有聚在一起，并不等于已经形成稳定协作。",
+      "evidence_class": "known_mechanism",
+      "prerequisites": ["合作收益能够回到合作个体或其亲缘", "作弊行为受到限制"],
+      "mechanisms": ["亲缘选择", "直接互利", "伙伴选择", "重复互动", "冲突控制"],
+      "tradeoffs": ["共享防御和任务，同时承担识别、协调和受骗风险"],
+      "source_ids": ["SRC-SOC-001", "SRC-SOC-002"],
+      "boundary": "群居不等于合作，亲缘关系也不是所有互利行为的唯一解释。"
+    },
+    {
+      "knowledge_card_id": "MICROBIAL_CONSORTIUM",
+      "transition_ids": ["M11"],
+      "pressure_ids": [],
+      "title": "不变成一个细胞，也能长期合伙",
+      "body": "不同微生物可以交换代谢产物、共享公共物品，并借助空间聚集让收益留在伙伴附近。群落越依赖彼此，也越需要防止搭便车和成员流失。",
+      "evidence_class": "known_mechanism",
+      "prerequisites": ["成员具有互补代谢", "空间结构或伙伴识别能稳定互动"],
+      "mechanisms": ["代谢互补", "公共物品", "空间聚集", "作弊控制"],
+      "tradeoffs": ["资源利用范围扩大，同时依赖群落组成与环境稳定"],
+      "source_ids": ["SRC-SOC-001", "SRC-SOC-002"],
+      "boundary": "微生物群落不是单一超级个体，合作关系也可能随环境变化而瓦解。"
+    },
+    {
+      "knowledge_card_id": "FUTURE_GLOBAL_WARMING",
+      "transition_ids": ["M12"],
+      "pressure_ids": ["GLOBAL_WARMING"],
+      "title": "把海水变暖当作压力，不当作剧本",
+      "body": "持续增暖和更频繁的海洋热浪会改变热耐受、活动时间、分布范围和生态关系。谱系可能靠生理耐受、行为避热或迁移应对，但没有唯一答案。",
+      "evidence_class": "scenario_extrapolation",
+      "prerequisites": ["先读取谱系原有的热耐受、活动方式和栖息范围"],
+      "mechanisms": ["热耐受变异受到选择", "行为避热", "迁移", "生理可塑性"],
+      "tradeoffs": ["耐热和修复能力增加维护成本，也可能削弱冷环境性能或繁殖投入"],
+      "source_ids": ["SRC-CLI-001", "SRC-CLI-003"],
+      "boundary": "图像是情景外推，不是对未来物种的确定预测。"
+    },
+    {
+      "knowledge_card_id": "FUTURE_SEA_LEVEL_RISE",
+      "transition_ids": ["M12"],
+      "pressure_ids": ["SEA_LEVEL_RISE"],
+      "title": "海平面上升先改变的是家园的位置",
+      "body": "海岸线、潮间带和河口会被重新安排。对依赖这些环境的谱系，迁移、扩散、盐度耐受和底质利用都可能变得重要。",
+      "evidence_class": "scenario_extrapolation",
+      "prerequisites": ["谱系依赖浅海、潮间带或河口", "地点级海岸变化可被合理描述"],
+      "mechanisms": ["栖息地追踪", "扩散", "盐度耐受", "广适化"],
+      "tradeoffs": ["更强移动和广适能力耗能，也可能损失原栖息地中的专化优势"],
+      "source_ids": ["SRC-CLI-001", "SRC-CLI-003"],
+      "boundary": "全球平均海平面不能替代具体海岸情景，外形变化也不能由水位单独决定。"
+    },
+    {
+      "knowledge_card_id": "FUTURE_OCEAN_DEOXYGENATION",
+      "transition_ids": ["M12"],
+      "pressure_ids": ["OCEAN_DEOXYGENATION"],
+      "title": "氧越来越少，速度和耐受很难两全",
+      "body": "海洋脱氧会限制高耗氧活动。谱系可能提高氧获取与运输、降低持续代谢，或迁移到氧气更充足的水层；每条路都会牺牲别的性能。",
+      "evidence_class": "scenario_extrapolation",
+      "prerequisites": ["先读取谱系的呼吸结构、代谢需求和活动强度"],
+      "mechanisms": ["提高氧交换或运输", "代谢调节", "迁移", "间歇活动"],
+      "tradeoffs": ["耐低氧往往以持续速度、生长或高功率活动为代价"],
+      "source_ids": ["SRC-CLI-002", "SRC-CLI-003", "SRC-FUT-001"],
+      "boundary": "低氧实验的类群差异很大，不能把所有未来生物都画成变小或静止。"
+    },
+    {
+      "knowledge_card_id": "FUTURE_OCEAN_ACIDIFICATION",
+      "transition_ids": ["M12"],
+      "pressure_ids": ["OCEAN_ACIDIFICATION"],
+      "title": "酸化改变的不只是外壳",
+      "body": "海水碳酸盐化学改变会影响部分矿化结构，也会增加酸碱调节成本。谱系的材料、生命周期和所处水层，会共同决定它承受什么压力。",
+      "evidence_class": "scenario_extrapolation",
+      "prerequisites": ["明确谱系是否矿化、如何调节酸碱平衡及其敏感生命阶段"],
+      "mechanisms": ["酸碱调节", "矿化材料变化", "生命周期或栖息地转换"],
+      "tradeoffs": ["维持内环境和结构需要额外能量，可能挤压生长或繁殖"],
+      "source_ids": ["SRC-CLI-002", "SRC-CLI-003"],
+      "boundary": "不能把酸化直接画成所有物种失去外壳；结果受谱系和伴随压力共同约束。"
+    }
+  ],
+  "sources": [
+    {
+      "source_id": "EUKARYOGENESIS_REVIEW_2024",
+      "title": "The emerging view on the origin and early evolution of eukaryotic cells",
+      "url": "https://www.nature.com/articles/s41586-024-07677-6",
+      "supports": "真核发生、线粒体内共生及其尚未解决的事件顺序问题。",
+      "boundary": "综述约束机制表述，不代表 EvoLab 对具体事件顺序做出科研级判定。"
+    },
+    {
+      "source_id": "INDIVIDUALITY_TRANSITIONS_2015",
+      "title": "Major evolutionary transitions in individuality",
+      "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC4547252/",
+      "supports": "多细胞个体性形成中的合作、分工和冲突抑制。",
+      "boundary": "用于解释一般机制，不为特定生成物种提供实证。"
+    },
+    {
+      "source_id": "UNICELLULAR_PERSPECTIVE_2017",
+      "title": "The origin of Metazoa: a unicellular perspective",
+      "url": "https://www.nature.com/articles/nrg.2017.21",
+      "supports": "动物多细胞化之前已有的细胞黏附、通讯和调控基础。",
+      "boundary": "动物谱系案例不能代表所有多细胞谱系的唯一路径。"
+    }
+  ]
+}

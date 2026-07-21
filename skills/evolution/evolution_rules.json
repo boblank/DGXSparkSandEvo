@@ -1,0 +1,296 @@
+{
+  "contract_version": "0.5.0",
+  "validation_order": [
+    "ROOT_SHAPE",
+    "STAGE_SEQUENCE",
+    "ROUTE_SLOTS",
+    "STAGE_DEPENDENCIES",
+    "TRAIT_CONFLICTS",
+    "NARRATIVE_BOUNDARIES"
+  ],
+  "controlled_vocabulary": {
+    "stage_ids": [
+      "eukaryogenesis",
+      "multicellularity",
+      "future_route"
+    ],
+    "transition_ids": [
+      "M02",
+      "M05",
+      "M12"
+    ],
+    "route_ids": [
+      "energy_saver",
+      "defense_ambush",
+      "group_cooperation"
+    ],
+    "strategy_slots": [
+      "ENERGY_SAVER",
+      "DEFENSE_AMBUSH",
+      "GROUP_COOPERATION"
+    ],
+    "knowledge_card_ids": [
+      "ENDOSYMBIOSIS",
+      "MULTICELLULARITY",
+      "NONE"
+    ],
+    "contingency_events": [
+      "SYMBIOSIS_ESTABLISHED",
+      "POPULATION_BOTTLENECK",
+      "PREDATOR_SENSORY_SHIFT",
+      "PERIODIC_HYPOXIA",
+      "COMPETITOR_RESOURCE_CAPTURE"
+    ]
+  },
+  "exact_sets": {
+    "stage_ids": [
+      "eukaryogenesis",
+      "multicellularity",
+      "future_route"
+    ],
+    "route_ids": [
+      "energy_saver",
+      "defense_ambush",
+      "group_cooperation"
+    ],
+    "strategy_slots": [
+      "ENERGY_SAVER",
+      "DEFENSE_AMBUSH",
+      "GROUP_COOPERATION"
+    ]
+  },
+  "contingency_rule": {
+    "scenario_event_required": true,
+    "non_none_stage_event_count": 1,
+    "non_none_stage_event_must_equal_scenario_event": true,
+    "purpose": "每次体验只显示一个由固定种子从白名单选择的历史偶然变量；它不能绕过阶段前置条件。"
+  },
+  "lineage_continuity_rule": {
+    "stage_order_is_fixed": true,
+    "before_state_must_follow_previous_after_state": true,
+    "lineage_anchor_must_be_inherited": true,
+    "future_route_must_inherit_multicellularity": true
+  },
+  "stage_sequence": [
+    {
+      "index": 0,
+      "stage_id": "eukaryogenesis",
+      "transition_id": "M02",
+      "time_scope": "DEEP_TIME_HISTORY",
+      "knowledge_card_id": "ENDOSYMBIOSIS",
+      "route_reference_id": "NONE",
+      "required_concepts": [
+        "HOST_PARTNER_INTEGRATION",
+        "BACTERIAL_ANCESTOR",
+        "MITOCHONDRION_LIKE_ENERGY_SYSTEM"
+      ],
+      "forbidden_claims": [
+        "MODERN_BACTERIUM_INSTANTLY_UPGRADES",
+        "EUKARYOGENESIS_EVENT_ORDER_IS_SETTLED"
+      ]
+    },
+    {
+      "index": 1,
+      "stage_id": "multicellularity",
+      "transition_id": "M05",
+      "time_scope": "MULTIGENERATIONAL_TRANSITION",
+      "knowledge_card_id": "MULTICELLULARITY",
+      "route_reference_id": "NONE",
+      "inherits_stage_id": "eukaryogenesis",
+      "minimum_required_mechanisms": 2,
+      "mechanism_choices": [
+        "ADHESION_OR_AGGREGATION",
+        "CELL_COMMUNICATION",
+        "INITIAL_DIVISION_OF_LABOR"
+      ],
+      "required_cost_concepts": [
+        "REDUCED_CELL_AUTONOMY",
+        "RESOURCE_COMPETITION",
+        "INTERNAL_CONFLICT"
+      ],
+      "forbidden_claims": [
+        "DIRECT_JUMP_TO_COMPLEX_ORGANS",
+        "MULTICELLULARITY_EVOLVED_ONLY_ONCE"
+      ]
+    },
+    {
+      "index": 2,
+      "stage_id": "future_route",
+      "transition_id": "M12",
+      "time_scope": "FUTURE_SCENARIO",
+      "knowledge_card_id": "NONE",
+      "inherits_stage_id": "multicellularity",
+      "route_reference_must_equal_selected_route_id": true,
+      "required_environment_pressures": [
+        "DECLINING_OXYGEN",
+        "INCREASED_PREDATION"
+      ],
+      "required_evidence_tag": "SCENARIO_EXTRAPOLATION"
+    }
+  ],
+  "route_slot_requirements": [
+    {
+      "route_id": "energy_saver",
+      "strategy_slot": "ENERGY_SAVER",
+      "required_any_trait_ids": [
+        "LOW_METABOLISM",
+        "EFFICIENT_OXYGEN_USE"
+      ],
+      "required_cost_concepts": [
+        "REDUCED_SUSTAINED_SPEED"
+      ]
+    },
+    {
+      "route_id": "defense_ambush",
+      "strategy_slot": "DEFENSE_AMBUSH",
+      "required_any_trait_ids": [
+        "CAMOUFLAGE",
+        "LOCAL_ARMOR",
+        "BURST_ACCELERATION",
+        "AMBUSH_BEHAVIOR"
+      ],
+      "required_cost_concepts": [
+        "MOBILITY_OR_ENERGY_COST"
+      ]
+    },
+    {
+      "route_id": "group_cooperation",
+      "strategy_slot": "GROUP_COOPERATION",
+      "required_any_trait_ids": [
+        "GROUPING",
+        "EARLY_WARNING",
+        "ROLE_SPECIALIZATION",
+        "HIGH_SOCIAL_COOPERATION"
+      ],
+      "required_cost_concepts": [
+        "RESOURCE_COMPETITION_OR_REDUCED_AUTONOMY"
+      ]
+    }
+  ],
+  "forbidden_trait_sets": [
+    {
+      "rule_id": "TRAIT_CONFLICT_HEAVY_FAST_CHEAP",
+      "match": "ALL",
+      "trait_ids": [
+        "HEAVY_ARMOR",
+        "EXTREMELY_HIGH_SWIM_SPEED",
+        "EXTREMELY_LOW_ENERGY_USE"
+      ],
+      "reason": "厚重装甲、极高游速与极低能耗不能在当前资源和氧供约束下同时成立。",
+      "deterministic_revision": {
+        "remove_trait_ids": [
+          "HEAVY_ARMOR",
+          "EXTREMELY_HIGH_SWIM_SPEED",
+          "EXTREMELY_LOW_ENERGY_USE"
+        ],
+        "add_trait_ids": [
+          "LOCAL_ARMOR",
+          "CAMOUFLAGE",
+          "BURST_ACCELERATION",
+          "AMBUSH_BEHAVIOR",
+          "REDUCED_SUSTAINED_SPEED"
+        ],
+        "summary": "改为局部防护与伪装，降低持续游速，只保留短时爆发的伏击能力。"
+      }
+    },
+    {
+      "rule_id": "TRAIT_CONFLICT_LOW_METABOLISM_HIGH_POWER",
+      "match": "ALL",
+      "trait_ids": [
+        "LOW_METABOLISM",
+        "SUSTAINED_HIGH_POWER_MOVEMENT"
+      ],
+      "reason": "极低代谢无法长期支持持续高功率运动。",
+      "deterministic_revision": {
+        "remove_trait_ids": [
+          "SUSTAINED_HIGH_POWER_MOVEMENT"
+        ],
+        "add_trait_ids": [
+          "REDUCED_SUSTAINED_SPEED"
+        ],
+        "summary": "保留低代谢，但将运动策略改为低持续速度。"
+      }
+    },
+    {
+      "rule_id": "TRAIT_CONFLICT_COMPLEX_TISSUE_NO_SUPPLY_COST",
+      "match": "ALL",
+      "trait_ids": [
+        "LARGE_COMPLEX_TISSUES",
+        "NO_RESOURCE_OR_OXYGEN_COST"
+      ],
+      "reason": "大型复杂组织必须承担资源输送和氧供成本。",
+      "deterministic_revision": {
+        "remove_trait_ids": [
+          "NO_RESOURCE_OR_OXYGEN_COST"
+        ],
+        "add_trait_ids": [],
+        "summary": "保留复杂组织，并在代价中明确资源与氧供压力。"
+      }
+    },
+    {
+      "rule_id": "TRAIT_CONFLICT_COOPERATION_NO_COST",
+      "match": "ALL",
+      "trait_ids": [
+        "HIGH_SOCIAL_COOPERATION",
+        "NO_COOPERATION_COST"
+      ],
+      "reason": "高度协作不能被描述为完全没有资源竞争、欺骗或个体自由度成本。",
+      "deterministic_revision": {
+        "remove_trait_ids": [
+          "NO_COOPERATION_COST"
+        ],
+        "add_trait_ids": [],
+        "summary": "保留协作策略，并补充资源竞争、欺骗风险或自主性下降的代价。"
+      }
+    },
+    {
+      "rule_id": "TRAIT_CONFLICT_REPRODUCTION_INVESTMENT_FREE",
+      "match": "ALL",
+      "trait_ids": [
+        "HIGH_REPRODUCTION_RATE",
+        "HIGH_OFFSPRING_INVESTMENT",
+        "NO_RESOURCE_COST"
+      ],
+      "reason": "高繁殖率与极高单个后代投入不能在无资源代价条件下同时成立。",
+      "deterministic_revision": {
+        "remove_trait_ids": [
+          "NO_RESOURCE_COST"
+        ],
+        "add_trait_ids": [],
+        "summary": "保留繁殖组合，但明确更高的资源消耗与亲代负担。"
+      }
+    }
+  ],
+  "narrative_rules": [
+    {
+      "rule_id": "NARRATIVE_BENEFIT_REQUIRES_COST",
+      "check": "EVERY_ROUTE_AND_STAGE_HAS_NONEMPTY_BENEFITS_AND_COSTS",
+      "message": "每条路线和每个阶段都必须同时说明收益与代价。"
+    },
+    {
+      "rule_id": "NARRATIVE_DRIVER_SEPARATION",
+      "check": "INTERNAL_EXTERNAL_AND_CONTINGENCY_ARE_DISTINCT",
+      "message": "内因、外因和历史偶然变量不能互相替代。"
+    },
+    {
+      "rule_id": "NARRATIVE_NO_TELEOLOGY",
+      "check": "NO_PURPOSE_DRIVEN_MUTATION_CLAIMS",
+      "message": "不得声称生物为了适应而产生所需突变。"
+    },
+    {
+      "rule_id": "NARRATIVE_MULTIGENERATIONAL",
+      "check": "NO_LIFETIME_CHANGE_AS_EVOLUTION",
+      "message": "不得把个体一生中的变化写成跨世代演化。"
+    },
+    {
+      "rule_id": "NARRATIVE_FUTURE_IS_SCENARIO",
+      "check": "FUTURE_ROUTE_IS_NOT_CERTAIN_PREDICTION",
+      "message": "未来路线必须标记为情景推演，不能写成确定预测。"
+    },
+    {
+      "rule_id": "NARRATIVE_IMAGE_IS_NOT_EVIDENCE",
+      "check": "VISUAL_APPEARANCE_IS_NOT_MECHANISM_EVIDENCE",
+      "message": "图像仅为艺术表达，不能作为机制正确性的证据。"
+    }
+  ]
+}

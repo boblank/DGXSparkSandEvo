@@ -1,0 +1,527 @@
+{
+  "schema_version": "1.0",
+  "curation_policy": "Only manually reviewed sources are returned. The catalog supports teaching explanations and scenario boundaries; it does not validate generated organisms or make deterministic forecasts.",
+  "knowledge_cards": [
+    {
+      "knowledge_card_id": "ENDOSYMBIOSIS",
+      "transition_ids": [
+        "M02"
+      ]
+    },
+    {
+      "knowledge_card_id": "MULTICELLULARITY",
+      "transition_ids": [
+        "M05"
+      ]
+    },
+    {
+      "knowledge_card_id": "FUTURE_SCENARIO",
+      "transition_ids": [
+        "M12"
+      ]
+    },
+    {
+      "knowledge_card_id": "PLASTID_ENDOSYMBIOSIS",
+      "transition_ids": [
+        "M03"
+      ]
+    },
+    {
+      "knowledge_card_id": "SEXUAL_REPRODUCTION",
+      "transition_ids": [
+        "M04"
+      ]
+    },
+    {
+      "knowledge_card_id": "WATER_TO_LAND",
+      "transition_ids": [
+        "M07"
+      ]
+    },
+    {
+      "knowledge_card_id": "FLIGHT",
+      "transition_ids": [
+        "M08"
+      ]
+    },
+    {
+      "knowledge_card_id": "NERVOUS_SYSTEM_AND_BRAIN",
+      "transition_ids": [
+        "M09"
+      ]
+    },
+    {
+      "knowledge_card_id": "SOCIAL_COOPERATION",
+      "transition_ids": [
+        "M10"
+      ]
+    },
+    {
+      "knowledge_card_id": "MICROBIAL_CONSORTIUM",
+      "transition_ids": [
+        "M11"
+      ]
+    },
+    {
+      "knowledge_card_id": "FUTURE_GLOBAL_WARMING",
+      "transition_ids": [
+        "M12"
+      ],
+      "pressure_ids": [
+        "GLOBAL_WARMING"
+      ]
+    },
+    {
+      "knowledge_card_id": "FUTURE_SEA_LEVEL_RISE",
+      "transition_ids": [
+        "M12"
+      ],
+      "pressure_ids": [
+        "SEA_LEVEL_RISE"
+      ]
+    },
+    {
+      "knowledge_card_id": "FUTURE_OCEAN_DEOXYGENATION",
+      "transition_ids": [
+        "M12"
+      ],
+      "pressure_ids": [
+        "OCEAN_DEOXYGENATION"
+      ]
+    },
+    {
+      "knowledge_card_id": "FUTURE_OCEAN_ACIDIFICATION",
+      "transition_ids": [
+        "M12"
+      ],
+      "pressure_ids": [
+        "OCEAN_ACIDIFICATION"
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "source_id": "SRC-EUK-001",
+      "title": "The emerging view on the origin and early evolution of eukaryotic cells",
+      "url": "https://doi.org/10.1038/s41586-024-07677-6",
+      "supports": "综述当前证据：真核发生涉及古菌宿主谱系、线粒体的细菌祖先、内共生整合以及一系列细胞创新。",
+      "boundary": "这些事件的顺序、时间和宿主细胞状态仍有争议；不能据此把现代细菌直接变成现代真核细胞。",
+      "transition_ids": [
+        "M02"
+      ],
+      "pressure_ids": [],
+      "knowledge_card_ids": [
+        "ENDOSYMBIOSIS"
+      ]
+    },
+    {
+      "source_id": "SRC-EUK-002",
+      "title": "Eukaryogenesis and oxygen in Earth history",
+      "url": "https://doi.org/10.1038/s41559-022-01733-y",
+      "supports": "把线粒体获得和早期真核演化假说，与地球历史中的氧气地球化学约束联系起来。",
+      "boundary": "氧气只是多种约束之一；地质记录不能证明真核发生存在单一氧气阈值或单一因果顺序。",
+      "transition_ids": [
+        "M02"
+      ],
+      "pressure_ids": [],
+      "knowledge_card_ids": [
+        "ENDOSYMBIOSIS"
+      ]
+    },
+    {
+      "source_id": "SRC-EUK-003",
+      "title": "On the origin of mitosing cells",
+      "url": "https://doi.org/10.1016/0022-5193(67)90079-3",
+      "supports": "提出经典的连续内共生理论，用于解释真核细胞关键组分的来源。",
+      "boundary": "这是有历史意义的理论起点，不足以单独支撑真核发生的全部现代细节；需与当前系统基因组学综述合用。",
+      "transition_ids": [
+        "M02"
+      ],
+      "pressure_ids": [],
+      "knowledge_card_ids": [
+        "ENDOSYMBIOSIS"
+      ]
+    },
+    {
+      "source_id": "SRC-EUK-004",
+      "title": "Mitochondrial evolution",
+      "url": "https://doi.org/10.1101/cshperspect.a011403",
+      "supports": "总结比较基因组和细胞生物学证据，说明线粒体的细菌祖先及其后续分化。",
+      "boundary": "线粒体祖先证据不能唯一确定宿主身份、具体生态环境或真核细胞创新的完整顺序。",
+      "transition_ids": [
+        "M02"
+      ],
+      "pressure_ids": [],
+      "knowledge_card_ids": [
+        "ENDOSYMBIOSIS"
+      ]
+    },
+    {
+      "source_id": "SRC-MUL-001",
+      "title": "Major evolutionary transitions in individuality",
+      "url": "https://doi.org/10.1073/pnas.1421402112",
+      "supports": "把多细胞个体性描述为涉及合作、通讯、分工、相互依赖和群体内部冲突控制的转变。",
+      "boundary": "合作细胞群不等于完整的多细胞个体；这些条件也不代表所有谱系都有同一条演化路线。",
+      "transition_ids": [
+        "M05"
+      ],
+      "pressure_ids": [],
+      "knowledge_card_ids": [
+        "MULTICELLULARITY"
+      ]
+    },
+    {
+      "source_id": "SRC-MUL-002",
+      "title": "The origin of Metazoa: a unicellular perspective",
+      "url": "https://doi.org/10.1038/nrg.2017.21",
+      "supports": "综述证据：动物用于黏附、信号和细胞分化的许多基因，在动物多细胞化之前已在单细胞近缘类群中发挥功能。",
+      "boundary": "这些证据针对动物谱系，不能外推为植物、真菌、藻类或每次独立多细胞化的精确路径。",
+      "transition_ids": [
+        "M05"
+      ],
+      "pressure_ids": [],
+      "knowledge_card_ids": [
+        "MULTICELLULARITY"
+      ]
+    },
+    {
+      "source_id": "SRC-MUL-003",
+      "title": "Experimental evolution of multicellularity",
+      "url": "https://doi.org/10.1073/pnas.1115323109",
+      "supports": "在酵母实验系统中显示，更快沉降的选择可产生克隆细胞团、多细胞繁殖体和早期分工性状。",
+      "boundary": "单一酵母物种的短期实验只用于展示可能机制，不是任何特定远古多细胞谱系的重建。",
+      "transition_ids": [
+        "M05"
+      ],
+      "pressure_ids": [],
+      "knowledge_card_ids": [
+        "MULTICELLULARITY"
+      ]
+    },
+    {
+      "source_id": "SRC-MUL-004",
+      "title": "De novo origins of multicellularity in response to predation",
+      "url": "https://doi.org/10.1038/s41598-019-39558-8",
+      "supports": "部分受捕食者选择的绿藻种群演化出可遗传的多细胞结构，且实验中的多细胞性状降低了被捕食率。",
+      "boundary": "五个选择种群中只有两个出现该结构，因此捕食只是该系统中的可行路径，不是普遍或必然结果。",
+      "transition_ids": [
+        "M05",
+        "M12"
+      ],
+      "pressure_ids": [],
+      "knowledge_card_ids": [
+        "MULTICELLULARITY",
+        "FUTURE_SCENARIO"
+      ]
+    },
+    {
+      "source_id": "SRC-MUL-005",
+      "title": "Single-cell adaptations shape evolutionary transitions to multicellularity in green algae",
+      "url": "https://doi.org/10.1038/s41559-023-02044-6",
+      "supports": "在多种绿藻中测试捕食、氮和水体扰动，显示环境诱导的细胞群可源自谱系特异的单细胞适应。",
+      "boundary": "细胞成群与更高种群增长率并无稳定关联，因此可见聚团不能被当作适应性多细胞个体的证明。",
+      "transition_ids": [
+        "M05",
+        "M12"
+      ],
+      "pressure_ids": [],
+      "knowledge_card_ids": [
+        "MULTICELLULARITY",
+        "FUTURE_SCENARIO"
+      ]
+    },
+    {
+      "source_id": "SRC-MUL-006",
+      "title": "The evolution of convex trade-offs enables the transition towards multicellularity",
+      "url": "https://doi.org/10.1038/s41467-021-24503-z",
+      "supports": "在绿藻实验中把捕食者选择与可遗传细胞群，以及生存和繁殖之间权衡的变化联系起来。",
+      "boundary": "测得的权衡只适用于该实验谱系和环境；它支持展示收益与代价，但不能预测唯一的未来形态。",
+      "transition_ids": [
+        "M05",
+        "M12"
+      ],
+      "pressure_ids": [],
+      "knowledge_card_ids": [
+        "MULTICELLULARITY",
+        "FUTURE_SCENARIO"
+      ]
+    },
+    {
+      "source_id": "SRC-FUT-001",
+      "title": "Experimental Evolution Shows Body Size Decrease in Response to Hypoxia, with a Complex Effect on Plastic Size Response to Temperature",
+      "url": "https://doi.org/10.1086/722028",
+      "supports": "提供实验性证据：在所测试的温度制度下，长期低氧可改变一种轮虫的体型演化。",
+      "boundary": "该反应具有类群和实验条件特异性，不能据此假定所有未来低氧生物都会变小或采用相同生理策略。",
+      "transition_ids": [
+        "M12"
+      ],
+      "pressure_ids": [
+        "OCEAN_DEOXYGENATION"
+      ],
+      "knowledge_card_ids": [
+        "FUTURE_SCENARIO"
+      ]
+    },
+    {
+      "source_id": "SRC-FUT-002",
+      "title": "Rapid evolution drives ecological dynamics in a predator-prey system",
+      "url": "https://doi.org/10.1038/nature01767",
+      "supports": "在实验室微生态系统中显示，可遗传的猎物差异和快速演化能够显著改变捕食者—猎物种群动态。",
+      "boundary": "该实验只在一个系统中建立生态—演化反馈，不能给出普遍可预测的身体结构或长期终点。",
+      "transition_ids": [
+        "M12"
+      ],
+      "pressure_ids": [],
+      "knowledge_card_ids": [
+        "FUTURE_SCENARIO"
+      ]
+    },
+    {
+      "source_id": "SRC-FUT-003",
+      "title": "Predator traits determine food-web architecture across ecosystems",
+      "url": "https://doi.org/10.1038/s41559-019-0899-x",
+      "supports": "使用全球食物网数据库显示，体型、代谢类型和运动性状共同影响捕食者与猎物的体重关系。",
+      "boundary": "跨生态系统统计模式只能约束宽泛情景逻辑，不能确定某一具体谱系将演化出的表型。",
+      "transition_ids": [
+        "M12"
+      ],
+      "pressure_ids": [],
+      "knowledge_card_ids": [
+        "FUTURE_SCENARIO"
+      ]
+    },
+    {
+      "source_id": "SRC-PLA-001",
+      "title": "The endosymbiotic origin, diversification and fate of plastids",
+      "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC2817223/",
+      "supports": "综述质体来自蓝细菌祖先的内共生起源，以及基因转移、蛋白重新定位和后续多次内共生造成的复杂历史。",
+      "boundary": "质体整合是跨越许多世代的过程；不能把一次吞噬画成即时形成现代叶绿体，也不能假定所有含质体谱系只有完全相同的后续历史。",
+      "transition_ids": [
+        "M03"
+      ],
+      "pressure_ids": [],
+      "knowledge_card_ids": [
+        "PLASTID_ENDOSYMBIOSIS"
+      ]
+    },
+    {
+      "source_id": "SRC-PLA-002",
+      "title": "The Number, Speed, and Impact of Plastid Endosymbioses in Eukaryotic Evolution",
+      "url": "https://doi.org/10.1146/annurev-arplant-050312-120144",
+      "supports": "说明初级、次级和三级内共生共同塑造质体多样性，质体从蓝细菌祖先开始但并非一条简单直线。",
+      "boundary": "该综述支持质体内共生的一般机制，不为 Demo 中某个生成谱系指定唯一宿主、时间或形态。",
+      "transition_ids": [
+        "M03"
+      ],
+      "pressure_ids": [],
+      "knowledge_card_ids": [
+        "PLASTID_ENDOSYMBIOSIS"
+      ]
+    },
+    {
+      "source_id": "SRC-SEX-001",
+      "title": "Experimental tests of the adaptive significance of sexual recombination",
+      "url": "https://www.nature.com/articles/nrg760",
+      "supports": "汇总实验研究：遗传重组可能帮助组合有利突变、清除有害突变，并减轻遗传背景之间的选择干扰。",
+      "boundary": "性的起源和维持仍有多种假说；重组不保证每一代都更适应，也不能简单等同于雌雄或复杂交配行为。",
+      "transition_ids": [
+        "M04"
+      ],
+      "pressure_ids": [],
+      "knowledge_card_ids": [
+        "SEXUAL_REPRODUCTION"
+      ]
+    },
+    {
+      "source_id": "SRC-SEX-002",
+      "title": "The evolution of sex and recombination",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/21227363/",
+      "supports": "综述有性生殖与遗传重组的理论收益、直接成本，以及不同生态条件下维持性的解释。",
+      "boundary": "研究领域仍有争论；不能把环境变化直接写成有性生殖必然出现的单因果故事。",
+      "transition_ids": [
+        "M04"
+      ],
+      "pressure_ids": [],
+      "knowledge_card_ids": [
+        "SEXUAL_REPRODUCTION"
+      ]
+    },
+    {
+      "source_id": "SRC-LAND-001",
+      "title": "A Devonian tetrapod-like fish and the evolution of the tetrapod body plan",
+      "url": "https://www.nature.com/articles/nature04639",
+      "supports": "Tiktaalik 化石同时保留鱼类特征，并具有活动颈部、承重样鳍骨和腕样关节，记录鱼到四足动物之间的形态组合。",
+      "boundary": "化石展示过渡形态而非单一祖先；脊椎动物登陆不是一条鱼在一代内长出四肢，也不能代表植物、节肢动物等其他登陆事件。",
+      "transition_ids": [
+        "M07"
+      ],
+      "pressure_ids": [],
+      "knowledge_card_ids": [
+        "WATER_TO_LAND"
+      ]
+    },
+    {
+      "source_id": "SRC-LAND-002",
+      "title": "The pectoral fin of Tiktaalik roseae and the origin of the tetrapod limb",
+      "url": "https://doi.org/10.1038/nature04637",
+      "supports": "通过胸鳍骨骼说明远端关节、肌肉附着和支撑能力在完全四足肢出现之前已逐步形成。",
+      "boundary": "前肢变化只是登陆相关整套转变的一部分；呼吸、感觉、繁殖和水分平衡同样构成限制。",
+      "transition_ids": [
+        "M07"
+      ],
+      "pressure_ids": [],
+      "knowledge_card_ids": [
+        "WATER_TO_LAND"
+      ]
+    },
+    {
+      "source_id": "SRC-FLY-001",
+      "title": "Aerodynamic performance of the feathered dinosaur Microraptor and the evolution of feathered flight",
+      "url": "https://www.nature.com/articles/ncomms3489",
+      "supports": "风洞实验与飞行模拟表明，带多组羽毛翼面的 Microraptor 即使没有现代鸟翼，也可能进行有效滑翔。",
+      "boundary": "这项研究约束一类恐龙的滑翔性能，不证明所有鸟类飞行都必经四翼阶段，也不覆盖昆虫、翼龙或蝙蝠的独立飞行起源。",
+      "transition_ids": [
+        "M08"
+      ],
+      "pressure_ids": [],
+      "knowledge_card_ids": [
+        "FLIGHT"
+      ]
+    },
+    {
+      "source_id": "SRC-FLY-002",
+      "title": "New specimen of Archaeopteryx provides insights into the evolution of pennaceous feathers",
+      "url": "https://www.nature.com/articles/nature13467",
+      "supports": "羽毛分布的系统发育分析支持正羽最初可能承担展示等非飞行功能，后来才被征用于形成气动表面。",
+      "boundary": "羽毛的存在不等于动力飞行；起飞方式和飞行能力在早期鸟类演化中仍有争议。",
+      "transition_ids": [
+        "M08"
+      ],
+      "pressure_ids": [],
+      "knowledge_card_ids": [
+        "FLIGHT"
+      ]
+    },
+    {
+      "source_id": "SRC-NEU-001",
+      "title": "On the independent origins of complex brains and neurons",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/20029182/",
+      "supports": "综述神经元、集中式神经系统和复杂脑可能存在多次独立或平行起源，并强调不同动物门的神经结构多样性。",
+      "boundary": "神经系统不是沿单一阶梯朝人脑前进；复杂脑的独立起源与神经元起源次数仍存在争议。",
+      "transition_ids": [
+        "M09"
+      ],
+      "pressure_ids": [],
+      "knowledge_card_ids": [
+        "NERVOUS_SYSTEM_AND_BRAIN"
+      ]
+    },
+    {
+      "source_id": "SRC-NEU-002",
+      "title": "Evolution of central neural circuits: state of the art and perspectives",
+      "url": "https://www.nature.com/articles/s41583-022-00644-y",
+      "supports": "比较不同动物谱系，概括突触连接、神经调质、神经元性质和数量如何在演化中改变神经回路。",
+      "boundary": "比较研究揭示可行机制，不构成从简单感觉到特定复杂脑结构的固定阶段表。",
+      "transition_ids": [
+        "M09"
+      ],
+      "pressure_ids": [],
+      "knowledge_card_ids": [
+        "NERVOUS_SYSTEM_AND_BRAIN"
+      ]
+    },
+    {
+      "source_id": "SRC-SOC-001",
+      "title": "Ten Recent Insights for Our Understanding of Cooperation",
+      "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC7612052/",
+      "supports": "综述直接收益、亲缘选择、伙伴选择、群体结构和生态反馈如何让有成本的合作在不同生物系统中维持。",
+      "boundary": "合作没有单一通用基因或路径；亲缘关系也不是所有互利和协作行为的唯一解释。",
+      "transition_ids": [
+        "M10",
+        "M11"
+      ],
+      "pressure_ids": [],
+      "knowledge_card_ids": [
+        "SOCIAL_COOPERATION",
+        "MICROBIAL_CONSORTIUM"
+      ]
+    },
+    {
+      "source_id": "SRC-SOC-002",
+      "title": "Evolution of cooperation and control of cheating in a social microbe",
+      "url": "https://www.pnas.org/doi/10.1073/pnas.1102451108",
+      "supports": "以社会性微生物为例，说明合作会受到搭便车者威胁，并可由亲缘结构、伙伴选择和冲突控制机制稳定。",
+      "boundary": "单一微生物系统不能直接外推到所有动物社会，也不能把群居本身当作合作的充分证据。",
+      "transition_ids": [
+        "M10",
+        "M11"
+      ],
+      "pressure_ids": [],
+      "knowledge_card_ids": [
+        "SOCIAL_COOPERATION",
+        "MICROBIAL_CONSORTIUM"
+      ]
+    },
+    {
+      "source_id": "SRC-CLI-001",
+      "title": "IPCC AR6 Working Group I: Summary for Policymakers",
+      "url": "https://www.ipcc.ch/report/ar6/wg1/chapter/summary-for-policymakers/",
+      "supports": "评估人类活动导致的全球变暖、海洋增暖和全球平均海平面上升，并给出不同排放情景下的风险范围。",
+      "boundary": "IPCC 评估能约束环境压力，不能预测某个物种会形成哪一种身体结构；区域结果取决于排放和地方过程。",
+      "transition_ids": [
+        "M12"
+      ],
+      "pressure_ids": [
+        "GLOBAL_WARMING",
+        "SEA_LEVEL_RISE"
+      ],
+      "knowledge_card_ids": [
+        "FUTURE_SCENARIO",
+        "FUTURE_GLOBAL_WARMING",
+        "FUTURE_SEA_LEVEL_RISE"
+      ]
+    },
+    {
+      "source_id": "SRC-CLI-002",
+      "title": "IPCC AR6 Working Group I Chapter 5: Global Carbon and other Biogeochemical Cycles and Feedbacks",
+      "url": "https://www.ipcc.ch/report/ar6/wg1/chapter/chapter-5/",
+      "supports": "评估海洋吸收人为二氧化碳造成的酸化，以及海洋增暖、分层和通风变化推动的持续脱氧风险。",
+      "boundary": "酸化和脱氧可形成选择压力，但不同类群、生命阶段和局地生态的响应不同，不能推出唯一适应方向。",
+      "transition_ids": [
+        "M12"
+      ],
+      "pressure_ids": [
+        "OCEAN_DEOXYGENATION",
+        "OCEAN_ACIDIFICATION"
+      ],
+      "knowledge_card_ids": [
+        "FUTURE_SCENARIO",
+        "FUTURE_OCEAN_DEOXYGENATION",
+        "FUTURE_OCEAN_ACIDIFICATION"
+      ]
+    },
+    {
+      "source_id": "SRC-CLI-003",
+      "title": "IPCC AR6 Working Group II Chapter 3: Oceans and Coastal Ecosystems and their Services",
+      "url": "https://www.ipcc.ch/report/ar6/wg2/chapter/chapter-3/",
+      "supports": "综合评估增暖、海平面上升、酸化与脱氧对海洋和海岸生态系统、分布范围、生命周期与食物网的影响。",
+      "boundary": "这是风险评估而不是形态生成器；未来物种图只能标为情景外推，并显式保留不确定性。",
+      "transition_ids": [
+        "M12"
+      ],
+      "pressure_ids": [
+        "GLOBAL_WARMING",
+        "SEA_LEVEL_RISE",
+        "OCEAN_DEOXYGENATION",
+        "OCEAN_ACIDIFICATION"
+      ],
+      "knowledge_card_ids": [
+        "FUTURE_SCENARIO",
+        "FUTURE_GLOBAL_WARMING",
+        "FUTURE_SEA_LEVEL_RISE",
+        "FUTURE_OCEAN_DEOXYGENATION",
+        "FUTURE_OCEAN_ACIDIFICATION"
+      ]
+    }
+  ]
+}

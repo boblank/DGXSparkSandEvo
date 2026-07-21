@@ -1,0 +1,92 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "organism_name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "lineage_summary": {
+      "type": "string",
+      "minLength": 1
+    },
+    "change_summary": {
+      "type": "string",
+      "minLength": 1
+    },
+    "traits": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 6,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "internal_causes": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 3,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "external_causes": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 3,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "benefits": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 3,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "costs": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 3,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "evidence_tag": {
+      "type": "string",
+      "enum": [
+        "KNOWN_MECHANISM",
+        "MECHANISM_HYPOTHESIS",
+        "SCENARIO_EXTRAPOLATION"
+      ]
+    },
+    "uncertainty_note": {
+      "type": "string",
+      "minLength": 1
+    },
+    "image_prompt": {
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "required": [
+    "organism_name",
+    "lineage_summary",
+    "change_summary",
+    "traits",
+    "internal_causes",
+    "external_causes",
+    "benefits",
+    "costs",
+    "evidence_tag",
+    "uncertainty_note",
+    "image_prompt"
+  ]
+}

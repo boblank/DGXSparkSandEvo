@@ -39,6 +39,8 @@ build_a_claw_workshop*/
 output/
 outputs/
 artifacts/
+runs/
+.playwright-cli/
 ComfyUI/output/
 ComfyUI/input/
 models/
@@ -49,6 +51,9 @@ checkpoints/
 *.onnx
 *.pt
 *.pth
+
+# Rejected local visual experiments
+demo-assets/interactive/origin_v2.png
 
 # Logs and temporary files
 *.log

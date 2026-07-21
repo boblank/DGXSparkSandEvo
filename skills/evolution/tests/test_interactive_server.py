@@ -1,0 +1,92 @@
+from __future__ import annotations
+
+import functools
+import importlib.util
+import json
+import tempfile
+import threading
+import unittest
+import urllib.error
+import urllib.request
+from http.server import ThreadingHTTPServer
+from pathlib import Path
+
+
+ROOT = Path(__file__).resolve().parents[3]
+SERVER_PATH = ROOT / "demo-ui" / "server.py"
+SPEC = importlib.util.spec_from_file_location("interactive_server", SERVER_PATH)
+assert SPEC and SPEC.loader
+server_module = importlib.util.module_from_spec(SPEC)
+SPEC.loader.exec_module(server_module)
+
+
+class InteractiveServerTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.temporary = tempfile.TemporaryDirectory()
+        service = server_module.engine.InteractiveEvolutionService(
+            Path(self.temporary.name),
+            dry_run=True,
+        )
+
+        class QuietHandler(server_module.EvoLabHandler):
+            def log_message(self, format_string: str, *args) -> None:
+                return
+
+        QuietHandler.service = service
+        handler = functools.partial(QuietHandler, directory=str(ROOT))
+        self.server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
+        self.thread = threading.Thread(target=self.server.serve_forever, daemon=True)
+        self.thread.start()
+        self.base_url = f"http://127.0.0.1:{self.server.server_port}"
+
+    def tearDown(self) -> None:
+        self.server.shutdown()
+        self.server.server_close()
+        self.thread.join(timeout=2)
+        self.temporary.cleanup()
+
+    def _json_request(self, path: str, payload: dict | None = None) -> tuple[int, dict]:
+        data = None if payload is None else json.dumps(payload).encode("utf-8")
+        request = urllib.request.Request(
+            self.base_url + path,
+            data=data,
+            method="POST" if payload is not None else "GET",
+            headers={"Content-Type": "application/json"} if payload is not None else {},
+        )
+        with urllib.request.urlopen(request, timeout=5) as response:
+            return response.status, json.loads(response.read())
+
+    def test_health_session_evolve_and_asset_contract(self) -> None:
+        status, health = self._json_request("/api/health")
+        self.assertEqual(status, 200)
+        self.assertEqual(health["mode"], "fixture")
+        self.assertTrue(health["strict_schema"])
+
+        status, envelope = self._json_request("/api/sessions", {})
+        self.assertEqual(status, 201)
+        session_id = envelope["session"]["session_id"]
+        choices = envelope["choices"]
+        payload = {
+            "environment_id": choices["environments"][0]["id"],
+            "contingency_id": choices["contingencies"][0]["id"],
+            "direction_id": choices["directions"][0]["id"],
+            "expected_round": 1,
+        }
+        status, evolved = self._json_request(f"/api/sessions/{session_id}/evolve", payload)
+        self.assertEqual(status, 200)
+        self.assertEqual(evolved["session"]["round_index"], 1)
+        asset_url = evolved["session"]["current_stage"]["image_url"]
+        with urllib.request.urlopen(self.base_url + asset_url, timeout=5) as response:
+            self.assertEqual(response.status, 200)
+            self.assertEqual(response.headers.get_content_type(), "image/svg+xml")
+            self.assertTrue(response.read().startswith(b"<svg"))
+
+    def test_static_server_does_not_expose_environment_or_source_files(self) -> None:
+        for path in ("/.env", "/skills/evolution/interactive_engine.py", "/demo-ui/../.env"):
+            with self.assertRaises(urllib.error.HTTPError) as context:
+                urllib.request.urlopen(self.base_url + path, timeout=5)
+            self.assertEqual(context.exception.code, 404)
+
+
+if __name__ == "__main__":
+    unittest.main()
