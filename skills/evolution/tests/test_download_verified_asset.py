@@ -40,6 +40,24 @@ class VerifiedDownloadTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             downloader.plan_ranges(100, 0)
 
+    def test_partial_range_resumes_without_discarding_bytes(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            payload = bytes(range(100))
+            source = root / "source.bin"
+            source.write_bytes(payload)
+            destination = root / "part-000"
+            partial = destination.with_suffix(".tmp")
+            partial.write_bytes(payload[20:35])
+            result = downloader.download_range(
+                source.as_uri(),
+                destination,
+                20,
+                69,
+                1,
+            )
+            self.assertEqual(result.read_bytes(), payload[20:70])
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -30,15 +30,34 @@ def sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
-def download_range(url: str, destination: Path, start: int, end: int) -> Path:
+def download_range(
+    url: str,
+    destination: Path,
+    start: int,
+    end: int,
+    min_bytes_per_second: int,
+) -> Path:
     expected = end - start + 1
     if destination.is_file() and destination.stat().st_size == expected:
         return destination
     destination.parent.mkdir(parents=True, exist_ok=True)
     temporary = destination.with_suffix(destination.suffix + ".tmp")
-    temporary.unlink(missing_ok=True)
-    subprocess.run(
-        [
+    existing = temporary.stat().st_size if temporary.is_file() else 0
+    if existing > expected:
+        temporary.unlink()
+        existing = 0
+    resume = destination.with_suffix(destination.suffix + ".resume")
+    if resume.is_file():
+        remaining = expected - existing
+        if 0 < resume.stat().st_size <= remaining:
+            with temporary.open("ab") as target, resume.open("rb") as source:
+                shutil.copyfileobj(source, target)
+            existing = temporary.stat().st_size
+        resume.unlink()
+    if existing == expected:
+        temporary.replace(destination)
+        return destination
+    command = [
             "curl",
             "-fL",
             "--silent",
@@ -49,17 +68,19 @@ def download_range(url: str, destination: Path, start: int, end: int) -> Path:
             "--connect-timeout",
             "20",
             "--speed-limit",
-            "262144",
+            str(min_bytes_per_second),
             "--speed-time",
             "60",
             "--range",
-            f"{start}-{end}",
+            f"{start + existing}-{end}",
             "--output",
-            str(temporary),
+            str(resume),
             url,
-        ],
-        check=True,
-    )
+        ]
+    subprocess.run(command, check=True)
+    with temporary.open("ab") as target, resume.open("rb") as source:
+        shutil.copyfileobj(source, target)
+    resume.unlink()
     if temporary.stat().st_size != expected:
         raise RuntimeError(f"range {start}-{end} has the wrong byte count")
     temporary.replace(destination)
@@ -73,6 +94,7 @@ def main() -> int:
     parser.add_argument("--size", type=int, required=True)
     parser.add_argument("--sha256", required=True)
     parser.add_argument("--workers", type=int, default=8)
+    parser.add_argument("--min-bytes-per-second", type=int, default=65536)
     args = parser.parse_args()
 
     output = args.output.expanduser().resolve()
@@ -84,7 +106,13 @@ def main() -> int:
     ranges = plan_ranges(args.size, args.workers)
     parts_dir = output.parent / ".download-parts" / output.name
     jobs = [
-        (args.url, parts_dir / f"part-{index:03d}", start, end)
+        (
+            args.url,
+            parts_dir / f"part-{index:03d}",
+            start,
+            end,
+            args.min_bytes_per_second,
+        )
         for index, (start, end) in enumerate(ranges)
     ]
     with concurrent.futures.ThreadPoolExecutor(max_workers=args.workers) as pool:
