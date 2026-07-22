@@ -32,6 +32,7 @@ SCENARIO_REGISTRY_FILE = SCRIPT_DIR / "scenario_registry.json"
 SCHEMA_FILE = SCRIPT_DIR / "interactive_schema.json"
 KNOWLEDGE_CARDS_FILE = SCRIPT_DIR / "knowledge_cards.json"
 CURATED_SOURCES_FILE = REPO_ROOT / "knowledge" / "sources.json"
+KNOWLEDGE_ADAPTER_FILE = REPO_ROOT / "knowledge" / "knowledge_adapter.py"
 
 STEP_ENDPOINT = "https://api.stepfun.com/step_plan/v1/chat/completions"
 STEP_MODEL = "step-3.7-flash"
@@ -100,6 +101,20 @@ def _load_scientific_review() -> Any:
 
 
 scientific_review = _load_scientific_review()
+
+
+def _load_knowledge_adapter() -> Any:
+    module_name = "evolution_interactive_knowledge_adapter"
+    spec = importlib.util.spec_from_file_location(module_name, KNOWLEDGE_ADAPTER_FILE)
+    if not spec or not spec.loader:
+        raise RuntimeError("cannot load historical taxon knowledge adapter")
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[module_name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+knowledge_adapter = _load_knowledge_adapter()
 
 
 def _load_visual_continuity() -> Any:
@@ -570,6 +585,78 @@ class InteractiveEvolutionService:
             "context_sources": [_public_source(source) for source in transition_sources],
             "generated_outcome_status": "no_match",
             "generated_outcome_reason": "知识库没有与这次形态变化一一对应的已知节点。",
+        }
+
+    def _historical_reference(
+        self,
+        selection: dict[str, Any],
+        spec: dict[str, Any],
+    ) -> dict[str, Any]:
+        constraint_mode = str(
+            (spec.get("world") or {}).get(
+                "constraint_mode", "historical_reconstruction"
+            )
+        )
+        if constraint_mode != "historical_reconstruction":
+            return {
+                "status": "not_applicable",
+                "query": {},
+                "candidates": [],
+                "required_external_traits": [],
+                "required_internal_traits": [],
+                "source_ids": [],
+                "message": "这一轮不是历史形态重建，不套用古生物类群模板。",
+            }
+        return knowledge_adapter.match_historical_taxa(
+            scenario_id=str((spec.get("world") or {}).get("id", "")),
+            transition_id=str(selection["direction"].get("transition_id", "")),
+            direction_id=str(selection["direction"].get("id", "")),
+            environment_id=str(selection["environment"].get("id", "")),
+        )
+
+    @staticmethod
+    def _public_historical_reference(reference: dict[str, Any]) -> dict[str, Any]:
+        candidates: list[dict[str, Any]] = []
+        for candidate in reference.get("candidates", [])[:3]:
+            if not isinstance(candidate, dict):
+                continue
+            candidates.append(
+                {
+                    key: copy.deepcopy(candidate[key])
+                    for key in (
+                        "taxon_id",
+                        "scientific_name",
+                        "display_name",
+                        "age_ma",
+                        "external_traits",
+                        "internal_traits",
+                        "boundary",
+                        "source_ids",
+                        "score",
+                    )
+                    if key in candidate
+                }
+            )
+        return {
+            "status": str(reference.get("status", "bounded_inference")),
+            "query": copy.deepcopy(reference.get("query", {})),
+            "candidates": candidates,
+            "required_external_traits": [
+                str(item)
+                for item in reference.get("required_external_traits", [])
+                if str(item).strip()
+            ],
+            "required_internal_traits": [
+                str(item)
+                for item in reference.get("required_internal_traits", [])
+                if str(item).strip()
+            ],
+            "source_ids": [
+                str(item)
+                for item in reference.get("source_ids", [])
+                if str(item).strip()
+            ],
+            "message": str(reference.get("message", "")),
         }
 
     def _round_spec(
@@ -1171,6 +1258,13 @@ class InteractiveEvolutionService:
                     choice_context.get("model", {})
                 )
 
+            # Resolve the evidence-backed body-plan reference before planning.
+            # The planner and the independent review gate receive the same snapshot.
+            spec["historical_reference"] = self._historical_reference(selection, spec)
+            selection["historical_reference"] = copy.deepcopy(
+                spec["historical_reference"]
+            )
+
             session["status"] = "generating"
             session["last_error"] = None
             session["updated_at"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
@@ -1294,7 +1388,22 @@ class InteractiveEvolutionService:
             str(direction["transition_id"]),
             match_scope=match_scope,
         )
+        historical_reference = (
+            spec.get("historical_reference")
+            if isinstance(spec.get("historical_reference"), dict)
+            else {}
+        )
+        historical_source_ids = {
+            str(item)
+            for item in historical_reference.get("source_ids", [])
+            if str(item).strip()
+        }
         sources = list(match.get("sources", [])) + list(match.get("context_sources", []))
+        sources.extend(
+            source
+            for source in self._sources
+            if str(source.get("source_id", "")) in historical_source_ids
+        )
         card = self._cards.get(str(card_id), {})
         pressure_ids = [
             str(item)
@@ -1308,6 +1417,31 @@ class InteractiveEvolutionService:
             "status": str(match.get("status", "no_match")),
             "match_scope": str(match.get("match_scope", match_scope)),
             "knowledge_card_id": str(match.get("knowledge_card_id", "NONE")),
+            "historical_match_status": str(
+                historical_reference.get("status", "not_applicable")
+            ),
+            "historical_candidate_names": list(
+                dict.fromkeys(
+                    str(name)
+                    for candidate in historical_reference.get("candidates", [])
+                    if isinstance(candidate, dict)
+                    for name in (
+                        candidate.get("scientific_name"),
+                        candidate.get("display_name"),
+                    )
+                    if name
+                )
+            )[:12],
+            "historical_required_external_traits": [
+                str(item)
+                for item in historical_reference.get("required_external_traits", [])
+                if str(item).strip()
+            ][:8],
+            "historical_required_internal_traits": [
+                str(item)
+                for item in historical_reference.get("required_internal_traits", [])
+                if str(item).strip()
+            ][:8],
             "transition_ids": [str(direction["transition_id"])],
             "pressure_ids": list(dict.fromkeys(pressure_ids)),
             "source_ids": list(
@@ -1596,6 +1730,9 @@ class InteractiveEvolutionService:
                 direction["transition_id"],
                 match_scope=match_scope,
             ),
+            "historical_reference": self._public_historical_reference(
+                spec.get("historical_reference", {})
+            ),
             "model": {
                 "planner": metadata["planner"],
                 "reasoning_effort": metadata["reasoning_effort"],
@@ -1841,6 +1978,29 @@ class InteractiveEvolutionService:
         constraint_mode = spec.get("world", {}).get(
             "constraint_mode", "historical_reconstruction"
         )
+        historical_reference = (
+            spec.get("historical_reference")
+            if isinstance(spec.get("historical_reference"), dict)
+            else {}
+        )
+        historical_status = str(
+            historical_reference.get("status", "not_applicable")
+        )
+        historical_candidates = [
+            item
+            for item in historical_reference.get("candidates", [])
+            if isinstance(item, dict)
+        ]
+        historical_external = [
+            str(item)
+            for item in historical_reference.get("required_external_traits", [])
+            if str(item).strip()
+        ]
+        historical_internal = [
+            str(item)
+            for item in historical_reference.get("required_internal_traits", [])
+            if str(item).strip()
+        ]
         protected_traits = [
             str(item) for item in previous.get("protected_traits", []) if str(item).strip()
         ]
@@ -1874,6 +2034,16 @@ class InteractiveEvolutionService:
                     + "；".join(required_revision_traits)
                     + "。不要用近义词替换这些账本名称。"
                 )
+            if "HISTORICAL_ANALOG_DIVERGENCE" in issue_codes:
+                retry_note += (
+                    "\n真实类群参照没有落实。本次须逐字写入至少一项外部锚点和一项内部锚点："
+                    + "；".join(historical_external)
+                    + " / "
+                    + "；".join(historical_internal)
+                    + "。"
+                )
+            if "UNSUPPORTED_TAXON_CLAIM" in issue_codes:
+                retry_note += "\n不要把参照类群当作本轮生成物种，也不要声称它是直接祖先。"
         subject_rule = (
             "当前世界位于生命起源之前。主语只能是化学系统、反应网络或原始区室；"
             "使用结构、反应循环和延续，不得写身体、后代、物种或已确认生物。"
@@ -1896,8 +2066,42 @@ class InteractiveEvolutionService:
             constraint_rule = (
                 "起源假说模式：只能拼接实验已证明可行的局部步骤，不能宣布已经复原第一生命或唯一历史。"
             )
+        historical_rule = ""
+        historical_context = ""
+        if historical_status == "historical_reference" and historical_candidates:
+            top = historical_candidates[0]
+            scientific_name = str(top.get("scientific_name", "")).strip()
+            display_name = str(top.get("display_name", "")).strip()
+            boundary = str(top.get("boundary", "")).strip()
+            historical_rule = (
+                "本轮有高匹配度的真实历史类群。生成形态须沿用它已有证据支持的外部和内部性状组合；"
+                "名称仍属于当前谱系，不能写成参照物种，也不能写成直接祖先。"
+                "traits 与 lineage_summary 至少逐字包含一项外部锚点和一项内部锚点，"
+                "image_prompt 也要画出可见的外部锚点。"
+            )
+            historical_context = (
+                f"\n真实类群参照：{scientific_name}（{display_name}）"
+                f"\n必须保留的外部锚点：{'；'.join(historical_external)}"
+                f"\n必须保留的内部锚点：{'；'.join(historical_internal)}"
+                f"\n证据边界：{boundary}"
+                f"\n来源编号：{'；'.join(str(item) for item in top.get('source_ids', []))}"
+            )
+        elif historical_status in {"partial_reference", "bounded_inference"}:
+            candidate_names = "；".join(
+                str(item.get("scientific_name") or item.get("display_name") or "")
+                for item in historical_candidates
+                if item.get("scientific_name") or item.get("display_name")
+            )
+            historical_rule = (
+                "本轮没有足够完整的真实类群匹配。候选化石只能提供环境或形态背景；"
+                "结果须写成受约束推测，不能借用候选物种名称，也不能补写化石没有保存的器官。"
+            )
+            historical_context = (
+                f"\n有限参照：{candidate_names or '没有直接候选'}"
+                f"\n知识边界：{historical_reference.get('message', '')}"
+            )
         system = (
-            "你是 EvoLab 的受约束科学情景规划器。" + subject_rule + constraint_rule +
+            "你是 EvoLab 的受约束科学情景规划器。" + subject_rule + constraint_rule + historical_rule +
             "必须继承上一阶段至少一项可辨识特征，再叠加本轮环境、偶发事件和用户选择的方向。"
             "允许被本轮机制改变的旧性状发生转化，禁止把已经被替代的旧性状机械照搬。"
             "收益和代价必须同时出现，禁止目的论、必然论和没有来源的精确适合度数值。"
@@ -1934,7 +2138,8 @@ class InteractiveEvolutionService:
                 else "没有；关键性状只能继续保留"
             )
             + "\n"
-            "请生成下一阶段。lineage_summary 必须明确它继承了什么、改变了什么；"
+            + historical_context
+            + "\n请生成下一阶段。lineage_summary 必须明确它继承了什么、改变了什么；"
             "traits 至少保留一项上一阶段可辨认特征，再加入本轮新特征；"
             "历史关键性状账本中的项目必须逐项保留，除非本方向明确声明了有证据支持的转化。"
             f"{retry_note}"
@@ -2124,6 +2329,16 @@ class InteractiveEvolutionService:
         direction = selection["direction"]
         scenario = self._scenario(previous.get("scenario_id"))
         constraint_mode = scenario.get("constraint_mode", "historical_reconstruction")
+        historical_reference = (
+            selection.get("historical_reference")
+            if isinstance(selection.get("historical_reference"), dict)
+            else {}
+        )
+        historical_candidates = [
+            item
+            for item in historical_reference.get("candidates", [])
+            if isinstance(item, dict)
+        ]
         protected_visual_traits = list(
             dict.fromkeys(
                 [str(item) for item in previous.get("protected_traits", [])]
@@ -2244,6 +2459,19 @@ class InteractiveEvolutionService:
             f" World-specific visual anchor: {scenario.get('visual_anchor', '')}."
             f" Avoid: {scenario.get('negative_prompt', '')}."
         )
+        if (
+            historical_reference.get("status") == "historical_reference"
+            and historical_candidates
+        ):
+            historical_top = historical_candidates[0]
+            continuity += (
+                " Evidence-backed historical analog: "
+                + str(historical_top.get("scientific_name", "curated fossil taxon"))
+                + ". Use the following fossil-constrained body-plan combination as the anatomical reference,"
+                " while keeping the generated lineage distinct and not depicting a literal portrait or direct ancestor: "
+                + str(historical_top.get("visual_anchor_en", ""))
+                + ". Do not invent soft anatomy or behavior beyond the stated fossil boundary."
+            )
         if direction["id"] == "multicellular_body":
             continuity += (
                 " Show a physically connected clonal cluster: visible cell-to-cell adhesion bridges and early division of labor,"
@@ -2481,6 +2709,30 @@ class InteractiveEvolutionService:
                 if constraint_mode == "future_scenario"
                 else "这是浏览器验收用的离线样例；历史路线受场景证据和关键性状账本约束。"
             )
+        historical_reference = (
+            spec.get("historical_reference")
+            if isinstance(spec.get("historical_reference"), dict)
+            else {}
+        )
+        historical_external = [
+            str(item)
+            for item in historical_reference.get("required_external_traits", [])
+            if str(item).strip()
+        ]
+        historical_internal = [
+            str(item)
+            for item in historical_reference.get("required_internal_traits", [])
+            if str(item).strip()
+        ]
+        if (
+            historical_reference.get("status") == "historical_reference"
+            and historical_external
+            and historical_internal
+        ):
+            lineage_summary += (
+                f" 真实类群参照要求它保留{historical_external[0]}，"
+                f"内部仍有{historical_internal[0]}。"
+            )
         result = {
             "organism_name": spec.get(
                 "fixture_name",
@@ -2488,7 +2740,13 @@ class InteractiveEvolutionService:
             ),
             "lineage_summary": lineage_summary,
             "change_summary": change_summary,
-            "traits": [previous["traits"][0], direction["title"], environment["title"]],
+            "traits": list(
+                dict.fromkeys(
+                    [previous["traits"][0], direction["title"], environment["title"]]
+                    + historical_external[:1]
+                    + historical_internal[:1]
+                )
+            ),
             "internal_causes": [direction["mechanism_hint"]],
             "external_causes": [environment["description"], contingency["description"]],
             "benefits": [direction["tradeoff_hint"].split("，")[0]],

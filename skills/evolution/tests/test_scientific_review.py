@@ -64,6 +64,70 @@ class ScientificReviewTests(unittest.TestCase):
         self.assertEqual(decision["verdict"], "revise")
         self.assertIn("HISTORICAL_PREREQUISITE_SKIPPED", decision["issue_codes"])
 
+    def test_strong_historical_match_requires_external_and_internal_anchors(self) -> None:
+        decision = review.deterministic_review(
+            draft={
+                "organism_name": "浅水伏行谱系",
+                "traits": ["宽扁头部"],
+                "lineage_summary": "它保留宽扁头部，在浅水里伏行。",
+            },
+            previous={"protected_traits": []},
+            selection={"direction": {"trait_transformations": []}},
+            spec={"world": {"constraint_mode": "historical_reconstruction"}},
+            evidence_pack={
+                "status": "matched",
+                "historical_match_status": "historical_reference",
+                "historical_required_external_traits": ["宽扁头部"],
+                "historical_required_internal_traits": ["肋骨可支持躯干承重"],
+                "source_ids": ["SRC-LAND-001"],
+            },
+        )
+
+        self.assertEqual(decision["verdict"], "revise")
+        self.assertIn("HISTORICAL_ANALOG_DIVERGENCE", decision["issue_codes"])
+
+    def test_bounded_inference_cannot_claim_a_context_taxon_as_the_result(self) -> None:
+        decision = review.deterministic_review(
+            draft={
+                "organism_name": "狄更逊水母",
+                "traits": ["分节体表"],
+                "lineage_summary": "这就是已经确认的狄更逊水母。",
+            },
+            previous={"protected_traits": []},
+            selection={"direction": {"trait_transformations": []}},
+            spec={"world": {"constraint_mode": "historical_reconstruction"}},
+            evidence_pack={
+                "status": "matched",
+                "historical_match_status": "bounded_inference",
+                "historical_candidate_names": ["Dickinsonia", "狄更逊水母"],
+                "source_ids": ["SRC-EDI-001"],
+            },
+        )
+
+        self.assertEqual(decision["verdict"], "revise")
+        self.assertIn("UNSUPPORTED_TAXON_CLAIM", decision["issue_codes"])
+
+    def test_partial_reference_cannot_be_renamed_as_the_generated_taxon(self) -> None:
+        decision = review.deterministic_review(
+            draft={
+                "organism_name": "Archaeopteryx lithographica",
+                "traits": ["带羽前肢"],
+                "lineage_summary": "这里只保留了部分相似条件。",
+            },
+            previous={"protected_traits": []},
+            selection={"direction": {"trait_transformations": []}},
+            spec={"world": {"constraint_mode": "historical_reconstruction"}},
+            evidence_pack={
+                "status": "matched",
+                "historical_match_status": "partial_reference",
+                "historical_candidate_names": ["Archaeopteryx lithographica", "始祖鸟"],
+                "source_ids": ["SRC-FEA-003"],
+            },
+        )
+
+        self.assertEqual(decision["verdict"], "revise")
+        self.assertIn("UNSUPPORTED_TAXON_CLAIM", decision["issue_codes"])
+
     def test_unverified_source_is_blocked_and_trace_is_allowlisted(self) -> None:
         decision = review.normalize_decision(
             {
