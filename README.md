@@ -1,5 +1,34 @@
 # SandEvo（EvoLab｜演化岔路）
 
+> 在 DGX Spark 上，把“环境改变了什么、谱系继承了什么、获得能力又付出什么代价”变成一段可以亲手推进的三轮演化实验。
+
+[90 秒有声演示](https://github.com/boblank/DGXSparkSandEvo/raw/refs/heads/main/demo-assets/submission/evolab-90s-introduction.mp4) · [固定四阶段回放](demo-assets/submission/evolab-fixed-lineage-replay.mp4) · [最终提交说明](docs/submission.md) · [“十日谈”开发征文](docs/hackathon-ten-days.md)
+
+**最终提交版本：`v1.0.0-submission`**。免登录在线演示是上面的 90 秒成片；完整的三轮有状态交互在本地或 DGX Spark 上运行，两者展示的是同一套七世界、规则、模型路由与回退边界。
+
+![EvoLab 七世界入口](docs/assets/evolab-final-desktop.png)
+
+```mermaid
+flowchart LR
+    U["七世界与三轮选择"] --> S["场景包与谱系状态"]
+    S --> P["Step 3.7 Flash<br/>严格结构规划"]
+    P --> G["本地规则与证据门禁"]
+    G --> R["DGX Spark<br/>Klein → FLUX.1"]
+    R --> O["阶段图、知识卡与四阶段回放"]
+```
+
+最快运行方式：
+
+```bash
+git clone https://github.com/boblank/DGXSparkSandEvo.git
+cd DGXSparkSandEvo
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements.txt
+python demo-ui/server.py --host 127.0.0.1 --port 8088 --dry-run
+# 浏览器打开 http://127.0.0.1:8088/demo-ui/
+```
+
 SandEvo 是面向 DGX Spark 黑客松构建的交互式演化实验。用户会连续经历三轮选择：先看当前生物和环境，再选择环境变化、偶发事件与演化方向；系统继承上一代谱系，生成下一阶段图片，并在恰当的位置解释对应的生物学知识。
 
 > 这不是科研级演化预测。项目输出是以自然选择、环境压力和性状权衡为约束的模拟假说与艺术生成结果。
@@ -55,12 +84,13 @@ notebooks/              官方 Workshop 安全副本与说明
 ## 本地验证
 
 ```bash
-python3 -m unittest discover -s skills/evolution/tests -v
-python3 -m unittest discover -s knowledge/tests -v
-python3 -m py_compile demo-ui/server.py skills/evolution/interactive_engine.py knowledge/knowledge_adapter.py
-bash -n skills/evolution/run_helper.sh
-node --check demo-ui/app.js
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements.txt
+PYTHON_BIN=.venv/bin/python scripts/verify_release.sh
 ```
+
+`requirements.txt` 是网页、规则、图片和测试的必需依赖。需要直接走 PyAV 媒体路径时，再安装 `requirements-media.txt`；只生成四阶段回放也可以使用系统 `ffmpeg` 回退。
 
 ## 图像渲染与视频留档
 
@@ -98,6 +128,14 @@ python3 skills/evolution/lineage_video.py --help
 
 可复核的参数、输入哈希、运动提示、耗时、峰值内存和逐帧检查结果记录在 [视频清单](demo-assets/video/tidal-symbiosis-dgx.json)。
 
+## DGX Spark 不是一句运行环境
+
+- **本地图像主路径**：FLUX.2 Klein 4B 在真实三轮中生成 1024×1024 图片，热运行分别为 5.015、5.014、5.013 秒。
+- **失败回退**：注入 Klein 提交失败后，独立 FLUX.1 工作流在 30.023 秒完成合格图片，并留下 `fallback_from=flux2-klein-4b`。
+- **本地视频证据**：HunyuanVideo-1.5 在 DGX Spark 上生成 848×480、81 帧、24 fps 的 3.375 秒 I2V，耗时 242.453 秒。
+- **统一内存实测**：该 Hunyuan 任务记录的峰值进程 RSS 为 33,440,780,288 字节，进程 HWM 为 44,792,082,432 字节，系统已用峰值为 83,387,592,704 字节。数值来自公开清单，不拿其他显卡的参考值冒充 Spark 实测。
+- **现场可恢复**：图片与视频串行调度；Klein 失败回 FLUX.1；Hunyuan 只生成独立资产，不阻断三轮交互；断网时可使用同一 API 与页面的确定性预演模式。
+
 离线交互验收：
 
 ```bash
@@ -119,14 +157,16 @@ python3 demo-ui/server.py --host 127.0.0.1 --port 8088 --dry-run
 
 ## 技术栈
 
-- NVIDIA DGX Spark
-- 本地 Qwen3.6 35B
-- ComfyUI + FLUX.1 / FLUX.2 Klein 4B
-- HunyuanVideo-1.5 480p I2V Step Distilled FP8
-- Agent Skill
-- Step 3.7 Flash（结构化路线规划与多模态复核）
-- OpenClaw
-- Python + Pillow
+| 归属 | 实际使用 |
+|---|---|
+| NVIDIA | DGX Spark、CUDA 运行环境、统一内存；本地承载 ComfyUI、会话服务和媒体任务 |
+| Stepfun | Step 3.7 Flash：严格结构规划；StepAudio 2.5：90 秒提交视频旁白 |
+| 本地语言模型基线 | Ollama + Qwen3.6 35B，用于官方 Workshop 复现与 CLI 回退验证 |
+| 图像 | ComfyUI、FLUX.2 Klein 4B Distilled FP8、FLUX.1 dev FP8 |
+| 视频 | HunyuanVideo-1.5 480p I2V Step Distilled FP8；PyAV / ffmpeg；H.264 |
+| 应用 | Evolution Skill、Python、Pillow、原生 HTML / CSS / JavaScript |
+
+FLUX.1、FLUX.2 Klein 与 HunyuanVideo 都不是 NVIDIA 模型。本项目没有使用 NIM、TensorRT-LLM 或 NeMo，也不会把未使用的 SDK 写进技术栈。
 
 ## 开源协议
 

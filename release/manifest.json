@@ -1,0 +1,30 @@
+{
+  "release": "v1.0.0-submission",
+  "branch": "codex/evolab-final-submission",
+  "default_entry": "main",
+  "repository": "https://github.com/boblank/DGXSparkSandEvo",
+  "article": "https://github.com/boblank/DGXSparkSandEvo/blob/main/docs/hackathon-ten-days.md",
+  "submission_document": "https://github.com/boblank/DGXSparkSandEvo/blob/main/docs/submission.md",
+  "public_assets": [
+    {
+      "path": "demo-assets/submission/evolab-90s-introduction.mp4",
+      "sha256": "12cc48fd48144d2fcdb2fe0dc458b3770af5b7b2785a52f027043144565e6aae"
+    },
+    {
+      "path": "demo-assets/submission/evolab-fixed-lineage-replay.mp4",
+      "sha256": "3624732702bd90aadd74f87f32441c7ba51911807767d2c8afa9b33f8deb2c5d"
+    },
+    {
+      "path": "docs/assets/evolab-final-desktop.png",
+      "sha256": "e896bb083092dce061a7042ebed3fb1f98d6168b2d30c94b5a63771381d3bd65"
+    },
+    {
+      "path": "docs/assets/evolab-final-mobile.png",
+      "sha256": "f9b19d339dced9b8658a19964ef21ea4f7cc11e1d090158f0a4cd6ad05be7407"
+    }
+  ],
+  "external_submission_inputs": [
+    "team_photo",
+    "organizer_submission_success_screenshot"
+  ]
+}
