@@ -84,7 +84,11 @@ class KnowledgeAdapterTests(unittest.TestCase):
         graph = load_graph()
         transition_ids = {edge["transition_id"] for edge in graph["edges"]}
         self.assertTrue(
-            {"M02", "M03", "M04", "M05", "M07", "M08", "M09", "M10"}
+            {
+                "M02", "M03", "M04", "M05", "M07", "M08", "M09", "M10",
+                "M12", "H01", "H02", "H03", "B01", "B02", "B03",
+                "F01", "F02", "F03",
+            }
             <= transition_ids
         )
         pressure_ids = {
@@ -99,6 +103,10 @@ class KnowledgeAdapterTests(unittest.TestCase):
                 "SEA_LEVEL_RISE",
                 "OCEAN_DEOXYGENATION",
                 "OCEAN_ACIDIFICATION",
+                "MICROGRAVITY",
+                "SPACE_RADIATION",
+                "PARTIAL_GRAVITY",
+                "POPULATION_ISOLATION",
             },
         )
         for item in [*graph["nodes"], *graph["edges"]]:
@@ -108,6 +116,33 @@ class KnowledgeAdapterTests(unittest.TestCase):
             self.assertIn("tradeoffs", item)
             self.assertIn("source_ids", item)
             self.assertTrue(item["boundary"])
+
+    def test_new_world_edges_have_domain_specific_primary_source_links(self) -> None:
+        graph = load_graph()
+        catalog = load_catalog()
+        sources = {source["source_id"]: source for source in catalog["sources"]}
+        new_world_ids = {"H01", "H02", "H03", "B01", "B02", "B03", "F01", "F02", "F03"}
+
+        edges = [edge for edge in graph["edges"] if edge["transition_id"] in new_world_ids]
+        self.assertEqual({edge["transition_id"] for edge in edges}, new_world_ids)
+        for edge in edges:
+            transition_id = edge["transition_id"]
+            self.assertTrue(edge["source_ids"], transition_id)
+            for source_id in edge["source_ids"]:
+                self.assertIn(
+                    transition_id,
+                    sources[source_id]["transition_ids"],
+                    f"{source_id} does not explicitly support {transition_id}",
+                )
+
+        climate = lookup_knowledge(transition_id="M12")
+        self.assertTrue(climate["knowledge_cards"])
+        self.assertTrue(
+            all(
+                card["evidence_class"] == "scenario_extrapolation"
+                for card in climate["knowledge_cards"]
+            )
+        )
 
     def test_interactive_cards_cover_requested_concepts(self) -> None:
         cards = load_interactive_cards()
@@ -126,6 +161,13 @@ class KnowledgeAdapterTests(unittest.TestCase):
                 "FUTURE_SEA_LEVEL_RISE",
                 "FUTURE_OCEAN_DEOXYGENATION",
                 "FUTURE_OCEAN_ACIDIFICATION",
+                "HUMAN_BIPEDALISM",
+                "HUMAN_GENE_CULTURE",
+                "HOMO_SAPIENS_ORIGINS",
+                "FEATHER_EVOLUTION",
+                "SPACE_PHYSIOLOGY",
+                "SPACE_RADIATION",
+                "SPACE_MULTIGENERATIONAL",
             }
             <= set(by_id)
         )

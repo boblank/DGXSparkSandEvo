@@ -5,15 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       name="description"
-      content="从四段生命史中选择一个世界，改变环境、偶发事件和延续方向，看每一步怎样带着旧痕迹走向下一阶段。"
+      content="从七段生命史与未来情景中选择一个世界。历史重建服从证据与性状连续性，未来推演明确保留不确定性。"
     />
     <title>EvoLab · 从生命史的任意一处开始</title>
     <link
       rel="icon"
       href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='42' fill='%2306171d'/%3E%3Cpath d='M25 58c14-34 36-34 50 0' fill='none' stroke='%2369d3be' stroke-width='8'/%3E%3Ccircle cx='50' cy='42' r='8' fill='%23d8663f'/%3E%3C/svg%3E"
     />
-    <link rel="stylesheet" href="./styles.css?v=0.7.5-video-guide" />
-    <script src="./app.js?v=0.7.5-video-guide" defer></script>
+    <link rel="stylesheet" href="./styles.css?v=0.8.0-seven-worlds" />
+    <script src="./app.js?v=0.8.0-seven-worlds" defer></script>
   </head>
   <body>
     <header class="topbar">
@@ -33,21 +33,22 @@
           <p class="eyebrow">深时图谱 · 45.4 亿年仍在继续</p>
           <h1 id="atlas-title">你想从哪一段<br />生命史开始？</h1>
           <p>
-            四个世界，四套起点和规则。你可以从生命出现以前开始，也可以站到海床、潮池或水陆边缘。没有一条路默认通向人类。
+            七个世界，两套证据规则。回到过去，每一步都要经得起证据追问；走向未来，可以大胆想象，但不能把假说写成事实。
           </p>
           <div class="atlas-legend" aria-label="证据图例">
-            <span><i class="legend-fact"></i>已知机制</span>
-            <span><i class="legend-hypothesis"></i>竞争假说</span>
-            <span><i class="legend-simulation"></i>教学推演</span>
+            <span><i class="legend-fact"></i>历史重建</span>
+            <span><i class="legend-hypothesis"></i>起源假说</span>
+            <span><i class="legend-simulation"></i>未来推演</span>
           </div>
         </header>
 
         <section class="time-transect" aria-label="可进入的生命史世界">
           <div class="transect-scale" aria-hidden="true">
-            <span>44 亿年前</span><span>20 亿年前</span><span>5 亿年前</span><span>现在</span>
+            <span>44 亿年前</span><span>20 亿年前</span><span>5 亿年前</span><span>300 万年前</span><span>未来</span>
           </div>
           <div class="transect-line" aria-hidden="true"><i></i></div>
           <div id="scenario-list" class="scenario-list" aria-live="polite"></div>
+          <p class="scenario-scroll-hint">沿时间向右探索七个世界 <span aria-hidden="true">→</span></p>
         </section>
 
         <aside id="world-preview" class="world-preview" aria-live="polite">
@@ -61,7 +62,7 @@
           <div class="preview-copy">
             <p id="world-preview-habitat" class="preview-habitat">选择一个世界</p>
             <h2 id="world-preview-title">生命史还没有打开</h2>
-            <p id="world-preview-summary">实验室连接后，这里会出现四个可以进入的起点。</p>
+            <p id="world-preview-summary">实验室连接后，这里会出现七个可以进入的起点。</p>
             <blockquote id="world-preview-question">你会从哪里开始改变历史？</blockquote>
             <p id="world-preview-evidence" class="preview-evidence"></p>
             <button id="enter-world-button" class="primary-button" type="button" disabled>
@@ -126,17 +127,17 @@
               <form id="evolution-form">
                 <fieldset class="choice-group">
                   <legend><span>01</span> 周围的世界变了</legend>
-                  <div id="environment-choices" class="choice-list"></div>
+                  <div id="environment-choices" class="choice-list" aria-live="polite"></div>
                 </fieldset>
 
                 <fieldset class="choice-group">
-                  <legend><span>02</span> 偏偏又发生了这件事</legend>
-                  <div id="contingency-choices" class="choice-list"></div>
+                  <legend><span>02</span> <b id="contingency-legend">此时哪些偶然事件更有影响</b></legend>
+                  <div id="contingency-choices" class="choice-list" aria-live="polite"></div>
                 </fieldset>
 
                 <fieldset class="choice-group direction-group">
-                  <legend><span>03</span> <b id="direction-legend">哪些后代会留下更多</b></legend>
-                  <div id="direction-choices" class="direction-list"></div>
+                  <legend><span>03</span> <b id="direction-legend">这组条件更支持哪些方向</b></legend>
+                  <div id="direction-choices" class="direction-list" aria-live="polite"></div>
                 </fieldset>
 
                 <section id="final-video-hint" class="final-video-hint" aria-labelledby="final-video-hint-title" hidden>
@@ -147,7 +148,7 @@
                   <div class="recap-track" aria-hidden="true">
                     <span>00</span><i></i><span>01</span><i></i><span>02</span><i></i><span>03</span><b>▶</b>
                   </div>
-                  <p>生成最终阶段后，我们会把起点、三次改变和你的选择整理成约 7 秒视频。</p>
+                  <p>生成最终阶段后，我们会把起点、三次改变和你的选择整理成约 10 秒视频。</p>
                 </section>
 
                 <div id="selection-recap" class="selection-recap">先选出这一轮的环境、偶然事件和方向。</div>
@@ -168,7 +169,7 @@
               >
                 <span id="ending-video-guide-step">第 2 / 2 步 · 正在制作回放</span>
                 <strong id="ending-video-guide-title">先别离开，四阶段回放还在生成</strong>
-                <p id="ending-video-guide-body">我们正在把起点、三次改变和你的选择整理成约 7 秒视频。完成后会自动出现。</p>
+                <p id="ending-video-guide-body">我们正在把起点、三次改变和你的选择整理成约 10 秒视频。完成后会自动出现。</p>
                 <div class="recap-track" aria-hidden="true">
                   <span>00</span><i></i><span>01</span><i></i><span>02</span><i></i><span>03</span><b>▶</b>
                 </div>

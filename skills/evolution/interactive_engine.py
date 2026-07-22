@@ -21,7 +21,7 @@ import threading
 import time
 import uuid
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any, Callable, Optional
 
 
 SCRIPT_DIR = Path(__file__).resolve().parent
@@ -38,6 +38,8 @@ SESSION_ID_PATTERN = re.compile(r"^[0-9]{8}T[0-9]{6}-[a-f0-9]{8}$")
 SAFE_ID_PATTERN = re.compile(r"^[a-z0-9_]+$")
 CHINESE_PATTERN = re.compile(r"[\u3400-\u9fff]")
 LATIN_LETTER_PATTERN = re.compile(r"[A-Za-z]")
+MIN_REFERENCE_CHANGE = 0.07
+MAX_REFERENCE_CHANGE = 0.20
 
 
 def _load_helper() -> Any:
@@ -69,6 +71,22 @@ def _load_rendering() -> Any:
 rendering = _load_rendering()
 
 
+def _load_video_generation() -> Any:
+    module_name = "evolution_interactive_video_generation"
+    spec = importlib.util.spec_from_file_location(
+        module_name, SCRIPT_DIR / "video_generation.py"
+    )
+    if not spec or not spec.loader:
+        raise RuntimeError("cannot load ComfyUI image uploader")
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[module_name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+video_generation = _load_video_generation()
+
+
 class InteractiveError(RuntimeError):
     """A safe error that can cross the HTTP boundary."""
 
@@ -94,6 +112,10 @@ Planner = Callable[
 Renderer = Callable[
     [dict[str, Any], dict[str, Any], dict[str, Any], Path],
     dict[str, Any],
+]
+OptionPlanner = Callable[
+    [dict[str, Any], dict[str, Any], dict[str, Any], Optional[dict[str, Any]]],
+    tuple[dict[str, Any], dict[str, Any]],
 ]
 
 
@@ -138,6 +160,18 @@ def _public_source(source: dict[str, Any]) -> dict[str, str]:
     }
 
 
+def _visual_change_score(parent: Path, descendant: Path) -> float:
+    """Return normalized pixel RMS for a same-scene reference edit."""
+    from PIL import Image, ImageChops, ImageStat
+
+    with Image.open(parent) as parent_source, Image.open(descendant) as child_source:
+        parent_image = parent_source.convert("RGB").resize((256, 256))
+        child_image = child_source.convert("RGB").resize((256, 256))
+    difference = ImageChops.difference(parent_image, child_image)
+    channel_rms = ImageStat.Stat(difference).rms
+    return round((sum(value * value for value in channel_rms) / 3) ** 0.5 / 255, 4)
+
+
 class InteractiveEvolutionService:
     """Create, advance, and persist three-round evolution sessions."""
 
@@ -148,6 +182,7 @@ class InteractiveEvolutionService:
         dry_run: bool = False,
         planner: Planner | None = None,
         renderer: Renderer | None = None,
+        option_planner: OptionPlanner | None = None,
         step_timeout: int = 240,
         comfy_timeout: int = 900,
     ) -> None:
@@ -174,6 +209,9 @@ class InteractiveEvolutionService:
         self.comfy_timeout = comfy_timeout
         self._planner = planner or self._plan_with_step
         self._renderer = renderer or self._render_with_comfy
+        self._option_planner = option_planner or (
+            self._fixture_option_plan if dry_run else self._plan_options_with_step
+        )
         self._locks: dict[str, threading.Lock] = {}
         self._locks_guard = threading.Lock()
         self._cards, self._sources = self._load_knowledge()
@@ -195,6 +233,7 @@ class InteractiveEvolutionService:
                 "summary",
                 "entry_question",
                 "evidence_note",
+                "constraint_mode",
                 "accent",
                 "depth",
                 "origin_asset",
@@ -326,6 +365,7 @@ class InteractiveEvolutionService:
 
         localized_list("traits", [direction_title, environment_title])
         localized_list("inherited_traits", [])
+        localized_list("protected_traits", [])
         localized_list("internal_causes", [direction_detail or direction_title])
         localized_list("external_causes", [environment_title, contingency_title])
         localized_list("benefits", ["更容易应对当前环境的压力"])
@@ -360,6 +400,11 @@ class InteractiveEvolutionService:
             if transition_id in source.get("transition_ids", [])
         ]
         if card:
+            transition_card_sources = [
+                source
+                for source in card_sources
+                if transition_id in source.get("transition_ids", [])
+            ]
             return {
                 "status": "matched",
                 "match_scope": match_scope,
@@ -367,7 +412,10 @@ class InteractiveEvolutionService:
                 "title": card["title"],
                 "summary": card["body"],
                 "boundary": card.get("boundary", "这是机制解释，不是对生成结果的实证认定。"),
-                "sources": [_public_source(source) for source in card_sources],
+                "sources": [
+                    _public_source(source)
+                    for source in (transition_card_sources or card_sources)
+                ],
                 "context_sources": [],
                 "generated_outcome_status": (
                     "no_match" if match_scope == "external_pressure" else "mechanism_match"
@@ -402,14 +450,26 @@ class InteractiveEvolutionService:
         try:
             spec = copy.deepcopy(self._catalog_for(scenario_id)["rounds"][str(round_no)])
             scenario = self._scenario(scenario_id)
+            scenario_mode = scenario.get("constraint_mode", "historical_reconstruction")
+            effective_mode = spec.get("constraint_mode")
+            if not effective_mode:
+                effective_mode = (
+                    "future_scenario"
+                    if spec.get("time_scope") == "FUTURE_SCENARIO"
+                    else "historical_reconstruction"
+                    if scenario_mode == "mixed_evidence"
+                    else scenario_mode
+                )
             spec["world"] = {
                 "id": scenario["id"],
                 "title": scenario["title"],
                 "era": scenario["era"],
                 "habitat": scenario["habitat"],
                 "summary": scenario["summary"],
+                "constraint_mode": effective_mode,
                 "visual_anchor": scenario.get("visual_anchor", ""),
-                "visual_negative": scenario.get("visual_negative", ""),
+                "visual_negative": scenario.get("visual_negative")
+                or scenario.get("negative_prompt", ""),
             }
             return spec
         except KeyError as exc:
@@ -426,11 +486,34 @@ class InteractiveEvolutionService:
         parent_direction_id = (parent_selection.get("direction") or {}).get("id")
         if not parent_direction_id:
             return spec
+        protected_traits = {
+            str(item)
+            for item in (session.get("current_stage") or {}).get("protected_traits", [])
+            if str(item).strip()
+        }
+
+        def direction_is_compatible(direction: dict[str, Any]) -> bool:
+            allowed_parents = direction.get("allowed_parent_direction_ids", [])
+            if allowed_parents and parent_direction_id not in allowed_parents:
+                return False
+            required_all = {
+                str(item)
+                for item in direction.get("required_protected_traits", [])
+                if str(item).strip()
+            }
+            if not required_all.issubset(protected_traits):
+                return False
+            required_any = {
+                str(item)
+                for item in direction.get("required_any_protected_traits", [])
+                if str(item).strip()
+            }
+            return not required_any or bool(required_any & protected_traits)
+
         spec["directions"] = [
             direction
             for direction in spec["directions"]
-            if not direction.get("allowed_parent_direction_ids")
-            or parent_direction_id in direction["allowed_parent_direction_ids"]
+            if direction_is_compatible(direction)
         ]
         return spec
 
@@ -466,6 +549,189 @@ class InteractiveEvolutionService:
             ],
         }
 
+    @staticmethod
+    def _choice_with_reason(
+        item: dict[str, Any],
+        reason: str,
+        *,
+        direction: bool = False,
+    ) -> dict[str, Any]:
+        keys = (
+            ("id", "title", "description", "mechanism_hint", "tradeoff_hint")
+            if direction
+            else ("id", "title", "description")
+        )
+        public = {key: copy.deepcopy(item[key]) for key in keys if key in item}
+        public["context_reason"] = reason
+        return public
+
+    def contextualize_choices(
+        self,
+        session_id: str,
+        payload: dict[str, Any],
+    ) -> dict[str, Any]:
+        """Re-rank audited candidates after an upstream choice changes."""
+        allowed = {"expected_round", "environment_id", "contingency_id"}
+        if set(payload) - allowed or not {"expected_round", "environment_id"}.issubset(payload):
+            raise InteractiveError(
+                "invalid_request",
+                "请先选定当前环境，再查看它会怎样改变后面的选项。",
+            )
+        try:
+            expected_round = int(payload["expected_round"])
+        except (TypeError, ValueError) as exc:
+            raise InteractiveError("invalid_request", "轮次信息不正确，请刷新后重试。") from exc
+
+        with self._session_lock(session_id):
+            session = self._load_session(session_id)
+            next_round = int(session["round_index"]) + 1
+            if expected_round != next_round:
+                raise InteractiveError(
+                    "round_conflict",
+                    "这段记录已经向前走了一步，请刷新后再选。",
+                    http_status=409,
+                )
+            if next_round > int(session.get("max_rounds", 3)):
+                raise InteractiveError(
+                    "session_completed",
+                    "这条路线已经走完三轮。",
+                    http_status=409,
+                )
+            spec = self._effective_round_spec(session, next_round)
+            environment_id = payload.get("environment_id")
+            environment = _as_choice_map(spec["environments"]).get(environment_id)
+            if not environment:
+                raise InteractiveError(
+                    "invalid_choice",
+                    "这个环境不属于当前阶段，请重新选择。",
+                    http_status=409,
+                )
+            contingency = None
+            contingency_id = payload.get("contingency_id")
+            if contingency_id is not None:
+                contingency = _as_choice_map(spec["contingencies"]).get(contingency_id)
+                if not contingency:
+                    raise InteractiveError(
+                        "invalid_choice",
+                        "这个偶然事件不属于当前阶段，请重新选择。",
+                        http_status=409,
+                    )
+            previous = copy.deepcopy(session["current_stage"])
+
+        plan, metadata = self._option_planner(
+            previous,
+            copy.deepcopy(spec),
+            copy.deepcopy(environment),
+            copy.deepcopy(contingency),
+        )
+        contingency_map = _as_choice_map(spec["contingencies"])
+        direction_map = _as_choice_map(spec["directions"])
+
+        def resolve(
+            planned: Any,
+            candidates: dict[str, dict[str, Any]],
+            *,
+            direction: bool,
+        ) -> list[dict[str, Any]]:
+            if not isinstance(planned, list):
+                raise InteractiveError(
+                    "planner_invalid_output",
+                    "候选重算没有通过校验，请重新选择当前环境。",
+                    http_status=502,
+                    retryable=True,
+                )
+            resolved: list[dict[str, Any]] = []
+            seen: set[str] = set()
+            for choice in planned:
+                choice_id = choice.get("id") if isinstance(choice, dict) else None
+                reason = choice.get("reason") if isinstance(choice, dict) else None
+                if (
+                    not isinstance(choice_id, str)
+                    or choice_id in seen
+                    or choice_id not in candidates
+                    or not _is_natural_chinese(reason)
+                ):
+                    raise InteractiveError(
+                        "planner_invalid_output",
+                        "候选重算没有通过校验，请重新选择当前环境。",
+                        http_status=502,
+                        retryable=True,
+                    )
+                seen.add(choice_id)
+                resolved.append(
+                    self._choice_with_reason(
+                        candidates[choice_id],
+                        str(reason).strip(),
+                        direction=direction,
+                    )
+                )
+            if not resolved:
+                raise InteractiveError(
+                    "planner_invalid_output",
+                    "当前条件下没有得到可用候选，请换一个环境。",
+                    http_status=502,
+                    retryable=True,
+                )
+            return resolved
+
+        resolved_contingencies = resolve(
+            plan.get("contingencies") if isinstance(plan, dict) else None,
+            contingency_map,
+            direction=False,
+        )
+        resolved_directions = resolve(
+            plan.get("directions") if isinstance(plan, dict) else None,
+            direction_map,
+            direction=True,
+        )
+        response = {
+            "round": next_round,
+            "chapter": spec["chapter"],
+            "environment": self._choice_with_reason(
+                environment,
+                "后续候选正在按这个环境的选择压力重新排序。",
+            ),
+            "contingency": (
+                self._choice_with_reason(
+                    contingency,
+                    "演化方向也会把这次偶然变化的后果算进去。",
+                )
+                if contingency
+                else None
+            ),
+            "contingencies": resolved_contingencies,
+            "directions": resolved_directions,
+            "contextualized": True,
+            "model": {
+                "planner": str(metadata.get("planner", "unknown")),
+                "reasoning_effort": str(metadata.get("reasoning_effort", "not_applicable")),
+                "strict_schema": bool(metadata.get("strict_schema", False)),
+            },
+        }
+        with self._session_lock(session_id):
+            current = self._load_session(session_id)
+            if int(current["round_index"]) + 1 != next_round:
+                raise InteractiveError(
+                    "round_conflict",
+                    "这段记录已经向前走了一步，请刷新后再选。",
+                    http_status=409,
+                )
+            current["choice_context"] = {
+                "round": next_round,
+                "environment_id": environment["id"],
+                "contingency_id": contingency["id"] if contingency else None,
+                "environment_reason": response["environment"]["context_reason"],
+                "contingency_reasons": {
+                    item["id"]: item["context_reason"] for item in resolved_contingencies
+                },
+                "direction_reasons": {
+                    item["id"]: item["context_reason"] for item in resolved_directions
+                },
+                "model": copy.deepcopy(response["model"]),
+            }
+            self._write_session(current)
+        return response
+
     def public_envelope(self, session: dict[str, Any]) -> dict[str, Any]:
         public_session = {
             key: copy.deepcopy(session[key])
@@ -494,8 +760,6 @@ class InteractiveEvolutionService:
         ]
         public_session["lineage_video_url"] = (
             f"/api/sessions/{session['session_id']}/lineage-video"
-            if session.get("status") == "completed"
-            else None
         )
         return {
             "session": public_session,
@@ -513,6 +777,47 @@ class InteractiveEvolutionService:
                     retryable=True,
                 )
             session_dir = self._session_dir(session_id).resolve()
+            flf_root = session_dir / "lineage_flf"
+            flf_output = flf_root / "lineage_flf_complete.mp4"
+            flf_manifest = flf_root / "lineage_flf_validation.json"
+            if flf_output.is_file() and flf_manifest.is_file():
+                try:
+                    flf_evidence = _read_json(flf_manifest)
+                except (OSError, json.JSONDecodeError):
+                    flf_evidence = {}
+                flf_session = (
+                    flf_evidence.get("session")
+                    if isinstance(flf_evidence.get("session"), dict)
+                    else {}
+                )
+                flf_merged = (
+                    flf_evidence.get("merged")
+                    if isinstance(flf_evidence.get("merged"), dict)
+                    else {}
+                )
+                try:
+                    expected_stage_hashes = [
+                        {
+                            "round": int(stage.get("round", index)),
+                            "sha256": _sha256_file(
+                                session_dir / Path(str(stage.get("image_url", ""))).name
+                            ),
+                        }
+                        for index, stage in enumerate(session.get("history", []))
+                    ]
+                except OSError:
+                    expected_stage_hashes = []
+                if (
+                    flf_evidence.get("contract_version") == "1.0.0"
+                    and flf_evidence.get("passed") is True
+                    and flf_session.get("session_id") == session.get("session_id")
+                    and flf_session.get("updated_at") == session.get("updated_at")
+                    and flf_session.get("stage_sha256") == expected_stage_hashes
+                    and flf_merged.get("passed") is True
+                    and flf_output.stat().st_size >= 100_000
+                    and flf_merged.get("sha256") == _sha256_file(flf_output)
+                ):
+                    return flf_output
             output = session_dir / "lineage_recap.mp4"
             manifest = output.with_suffix(".json")
             if output.is_file() and manifest.is_file():
@@ -526,7 +831,7 @@ class InteractiveEvolutionService:
                     else {}
                 )
                 if (
-                    evidence.get("contract_version") == "1.1.0"
+                    evidence.get("contract_version") == "1.2.0"
                     and evidence.get("session_updated_at") == session.get("updated_at")
                     and evidence.get("input_stage_count", 0) >= 4
                     and output.stat().st_size >= 50_000
@@ -586,6 +891,12 @@ class InteractiveEvolutionService:
         session_dir = self.data_root / session_id
         session_dir.mkdir(parents=True, exist_ok=False)
         initial = copy.deepcopy(catalog["initial_stage"])
+        if scenario.get("constraint_mode") in {"historical_reconstruction", "mixed_evidence"}:
+            initial["protected_traits"] = list(
+                dict.fromkeys(initial.get("protected_traits") or initial.get("traits", [])[:2])
+            )
+        else:
+            initial.setdefault("protected_traits", [])
         origin_relative = Path(str(scenario.get("origin_asset", "")))
         origin_file = (REPO_ROOT / origin_relative).resolve()
         if REPO_ROOT not in origin_file.parents or origin_file.suffix.lower() not in {".png", ".svg"}:
@@ -689,6 +1000,33 @@ class InteractiveEvolutionService:
                     "这段记录已经向前走了一步，请刷新后再选。",
                     http_status=409,
                 )
+            choice_context = session.get("choice_context")
+            if (
+                isinstance(choice_context, dict)
+                and choice_context.get("round") == next_round
+                and choice_context.get("environment_id") == selection["environment"]["id"]
+                and choice_context.get("contingency_id") == selection["contingency"]["id"]
+            ):
+                contingency_reason = choice_context.get("contingency_reasons", {}).get(
+                    selection["contingency"]["id"]
+                )
+                direction_reason = choice_context.get("direction_reasons", {}).get(
+                    selection["direction"]["id"]
+                )
+                if not contingency_reason or not direction_reason:
+                    raise InteractiveError(
+                        "choice_context_conflict",
+                        "这组条件已经改变，请按当前环境重新选择。",
+                        http_status=409,
+                    )
+                selection["environment"]["context_reason"] = choice_context.get(
+                    "environment_reason", ""
+                )
+                selection["contingency"]["context_reason"] = contingency_reason
+                selection["direction"]["context_reason"] = direction_reason
+                selection["context_model"] = copy.deepcopy(
+                    choice_context.get("model", {})
+                )
 
             session["status"] = "generating"
             session["last_error"] = None
@@ -724,6 +1062,10 @@ class InteractiveEvolutionService:
                         "seed",
                         "duration_seconds",
                         "fallback_from",
+                        "reference_conditioning",
+                        "required_visual_change",
+                        "visual_forbidden",
+                        "visual_change_score",
                     )
                     if render_metadata.get(key) is not None
                 }
@@ -772,20 +1114,52 @@ class InteractiveEvolutionService:
         metadata: dict[str, Any],
     ) -> dict[str, Any]:
         direction = selection["direction"]
+        constraint_mode = spec.get("world", {}).get(
+            "constraint_mode", "historical_reconstruction"
+        )
         evidence_tag = direction.get("evidence_tag") or (
             "SCENARIO_EXTRAPOLATION"
-            if spec.get("time_scope") == "FUTURE_SCENARIO"
+            if constraint_mode == "future_scenario"
             else "KNOWN_MECHANISM"
             if direction["knowledge_card_id"] in self._cards
             else "MECHANISM_HYPOTHESIS"
         )
+        if constraint_mode == "future_scenario":
+            evidence_tag = "SCENARIO_EXTRAPOLATION"
         match_scope = direction.get("knowledge_match_scope") or (
             "external_pressure"
-            if spec.get("time_scope") == "FUTURE_SCENARIO"
+            if constraint_mode == "future_scenario"
             else "transition"
         )
-        inherited_traits = list(previous.get("traits", []))[:2]
-        traits = list(dict.fromkeys(inherited_traits + result["traits"]))[:6]
+        previous_traits = [str(item) for item in previous.get("traits", []) if str(item).strip()]
+        inherited_traits = previous_traits[:2]
+        protected_traits = [
+            str(item) for item in previous.get("protected_traits", []) if str(item).strip()
+        ]
+        declared_transformations = [
+            item
+            for item in direction.get("trait_transformations", [])
+            if isinstance(item, dict) and item.get("from") and item.get("to")
+        ]
+        if constraint_mode == "historical_reconstruction":
+            if not protected_traits:
+                protected_traits = previous_traits[:2]
+            for transformation in declared_transformations:
+                source_trait = str(transformation.get("from", "")).strip()
+                target_trait = str(transformation.get("to", "")).strip()
+                if source_trait in protected_traits and target_trait:
+                    protected_traits = [
+                        target_trait if trait == source_trait else trait
+                        for trait in protected_traits
+                    ]
+            protected_traits.extend(
+                str(item)
+                for item in direction.get("continuity_traits", [])
+                if str(item).strip()
+            )
+            protected_traits = list(dict.fromkeys(protected_traits))[:6]
+            inherited_traits = protected_traits
+        traits = list(dict.fromkeys(protected_traits + inherited_traits + result["traits"]))[:8]
         return {
             "round": round_no,
             "scenario_id": previous.get("scenario_id", self.default_scenario_id),
@@ -800,6 +1174,7 @@ class InteractiveEvolutionService:
             "lineage_summary": result["lineage_summary"],
             "change_summary": result["change_summary"],
             "inherited_traits": inherited_traits,
+            "protected_traits": protected_traits,
             "traits": traits,
             "internal_causes": result["internal_causes"],
             "external_causes": result["external_causes"],
@@ -813,7 +1188,15 @@ class InteractiveEvolutionService:
                 "contingency": selection["contingency"],
                 "direction": {
                     key: direction[key]
-                    for key in ("id", "title", "description", "tradeoff_hint", "transition_id")
+                    for key in (
+                        "id",
+                        "title",
+                        "description",
+                        "tradeoff_hint",
+                        "transition_id",
+                        "context_reason",
+                    )
+                    if key in direction
                 },
             },
             "knowledge_match": self._knowledge_match(
@@ -830,7 +1213,232 @@ class InteractiveEvolutionService:
                 "reasoning_effort": metadata["reasoning_effort"],
                 "strict_schema": bool(metadata["strict_schema"]),
                 "attempts": int(metadata.get("attempts", 1)),
+                "choice_planner": copy.deepcopy(selection.get("context_model", {})),
             },
+        }
+
+    def _fixture_option_plan(
+        self,
+        previous: dict[str, Any],
+        spec: dict[str, Any],
+        environment: dict[str, Any],
+        contingency: dict[str, Any] | None,
+    ) -> tuple[dict[str, Any], dict[str, Any]]:
+        """Deterministic browser fixture; production uses the constrained Step planner."""
+        del previous
+        environment_ids = [item["id"] for item in spec["environments"]]
+        environment_index = environment_ids.index(environment["id"])
+        contingency_ids = [item["id"] for item in spec["contingencies"]]
+        contingency_index = (
+            contingency_ids.index(contingency["id"]) + 1 if contingency else 0
+        )
+
+        def rotated(items: list[dict[str, Any]], offset: int) -> list[dict[str, Any]]:
+            if not items:
+                return []
+            ordered = items[offset % len(items):] + items[: offset % len(items)]
+            return ordered[: min(2, len(ordered))]
+
+        contingencies = rotated(spec["contingencies"], environment_index)
+        directions = rotated(spec["directions"], environment_index + contingency_index)
+        return {
+            "contingencies": [
+                {
+                    "id": item["id"],
+                    "reason": f"在“{environment['title']}”里，这次偶然变化更容易改变后果。",
+                }
+                for item in contingencies
+            ],
+            "directions": [
+                {
+                    "id": item["id"],
+                    "reason": (
+                        f"它同时回应“{environment['title']}”"
+                        + (f"和“{contingency['title']}”" if contingency else "带来的选择压力")
+                        + "，也没有越过已有性状的边界。"
+                    ),
+                }
+                for item in directions
+            ],
+        }, {
+            "planner": "fixture_context_ranker",
+            "reasoning_effort": "not_applicable",
+            "strict_schema": True,
+        }
+
+    @staticmethod
+    def _option_schema(spec: dict[str, Any]) -> dict[str, Any]:
+        def ranked_items(ids: list[str]) -> dict[str, Any]:
+            return {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": min(2, len(ids)),
+                "items": {
+                    "type": "object",
+                    "additionalProperties": False,
+                    "required": ["id", "reason"],
+                    "properties": {
+                        "id": {"type": "string", "enum": ids},
+                        "reason": {"type": "string", "minLength": 8, "maxLength": 160},
+                    },
+                },
+            }
+
+        return {
+            "type": "object",
+            "additionalProperties": False,
+            "required": ["contingencies", "directions"],
+            "properties": {
+                "contingencies": ranked_items(
+                    [str(item["id"]) for item in spec["contingencies"]]
+                ),
+                "directions": ranked_items(
+                    [str(item["id"]) for item in spec["directions"]]
+                ),
+            },
+        }
+
+    def _plan_options_with_step(
+        self,
+        previous: dict[str, Any],
+        spec: dict[str, Any],
+        environment: dict[str, Any],
+        contingency: dict[str, Any] | None,
+    ) -> tuple[dict[str, Any], dict[str, Any]]:
+        key = os.environ.get("STEP_API_KEY") or os.environ.get("STEPFUN_API_KEY")
+        if not key:
+            raise InteractiveError(
+                "planner_unavailable",
+                "环境重算服务还没有连接好，原来的记录不受影响。",
+                http_status=503,
+                retryable=True,
+            )
+        schema = self._option_schema(spec)
+        mode = spec.get("world", {}).get(
+            "constraint_mode", "historical_reconstruction"
+        )
+        if mode == "historical_reconstruction":
+            boundary = (
+                "这是历史重建。只能从候选清单中排序，不得发明新路线、新器官或智能阶段；"
+                "理由必须能由当前环境、已有性状和候选描述直接推出。"
+            )
+        elif mode == "future_scenario":
+            boundary = (
+                "这是未来情景推演。可以开放比较候选结果，但仍只能选择清单中的路线；"
+                "理由要明确是压力下的可能性，不得写成必然预测。"
+            )
+        else:
+            boundary = (
+                "这是竞争假说。只能比较清单中的候选局部步骤，不得宣布已经复原唯一历史。"
+            )
+        protected_traits = [
+            str(item) for item in previous.get("protected_traits", []) if str(item).strip()
+        ]
+        contingency_text = (
+            f"已选偶然事件：{contingency['title']}——{contingency['description']}\n"
+            if contingency
+            else "尚未选择偶然事件；先比较哪些事件在这个环境里更有影响。\n"
+        )
+        candidate_contingencies = "\n".join(
+            f"- {item['id']}｜{item['title']}：{item['description']}"
+            for item in spec["contingencies"]
+        )
+        candidate_directions = "\n".join(
+            f"- {item['id']}｜{item['title']}：{item['description']}；机制：{item['mechanism_hint']}；代价：{item['tradeoff_hint']}"
+            for item in spec["directions"]
+        )
+        messages = [
+            {
+                "role": "system",
+                "content": (
+                    "你是 EvoLab 的候选路线排序器。" + boundary
+                    + "每组最多选两个，按与当前条件的贴近程度排序。"
+                    "reason 使用一到两句完整、自然、简洁的简体中文，直接解释为什么此刻出现，不能复述标题，"
+                    "不能露出候选 ID，也不能把句子截断。"
+                    "只返回符合 JSON Schema 的 JSON。"
+                ),
+            },
+            {
+                "role": "user",
+                "content": (
+                    f"世界：{spec['world']['title']}\n"
+                    f"当前阶段：{previous['lineage_summary']}\n"
+                    f"已有性状：{'；'.join(previous.get('traits', []))}\n"
+                    f"不得无解释消失的性状：{'；'.join(protected_traits) if protected_traits else '无额外登记'}\n"
+                    f"已选环境：{environment['title']}——{environment['description']}\n"
+                    + contingency_text
+                    + "偶然事件候选：\n"
+                    + candidate_contingencies
+                    + "\n演化方向候选：\n"
+                    + candidate_directions
+                ),
+            },
+        ]
+        try:
+            envelope = helper.post_json(
+                STEP_ENDPOINT,
+                {
+                    "model": STEP_MODEL,
+                    "reasoning_effort": "high",
+                    "messages": messages,
+                    "response_format": {
+                        "type": "json_schema",
+                        "json_schema": {
+                            "name": "contextual_evolution_choices",
+                            "strict": True,
+                            "schema": schema,
+                        },
+                    },
+                },
+                {"Authorization": "Bearer " + key, "Content-Type": "application/json"},
+                self.step_timeout,
+            )
+            if envelope.get("model") != STEP_MODEL:
+                raise ValueError("unexpected model")
+            result = json.loads(envelope["choices"][0]["message"]["content"])
+        except Exception as exc:
+            raise InteractiveError(
+                "planner_unavailable",
+                "没有算出新的候选顺序，原来的记录不受影响，可以重试。",
+                http_status=502,
+                retryable=True,
+            ) from exc
+        errors = helper.validate_schema(result, schema)
+        candidate_titles = {
+            str(item["id"]): str(item["title"])
+            for item in spec["contingencies"] + spec["directions"]
+        }
+        for group in ("contingencies", "directions"):
+            values = result.get(group, []) if isinstance(result, dict) else []
+            ids = [item.get("id") for item in values if isinstance(item, dict)]
+            if len(ids) != len(set(ids)):
+                errors.append(f"$.{group}: duplicate ids")
+            if any(
+                not _is_natural_chinese(item.get("reason"))
+                for item in values
+                if isinstance(item, dict)
+            ):
+                errors.append(f"$.{group}: reasons must use natural Simplified Chinese")
+            for item in values:
+                if not isinstance(item, dict) or not isinstance(item.get("reason"), str):
+                    continue
+                reason = item["reason"].strip()
+                if not reason.endswith(("。", "！", "？")):
+                    errors.append(f"$.{group}: reason must be a complete sentence")
+                if any(candidate_id in reason for candidate_id in candidate_titles):
+                    errors.append(f"$.{group}: reason must not expose candidate ids")
+        if errors:
+            helper.log("Contextual option validation failed: " + "; ".join(errors[:10]))
+            raise InteractiveError(
+                "planner_invalid_output",
+                "候选重算没有通过校验，请重新选择当前环境。",
+                http_status=502,
+                retryable=True,
+            )
+        return result, {
+            "planner": STEP_MODEL,
+            "reasoning_effort": "high",
+            "strict_schema": True,
         }
 
     def _messages(
@@ -842,6 +1450,17 @@ class InteractiveEvolutionService:
     ) -> list[dict[str, str]]:
         direction = selection["direction"]
         chemistry_world = spec.get("world", {}).get("id") == "hydrothermal_origin"
+        constraint_mode = spec.get("world", {}).get(
+            "constraint_mode", "historical_reconstruction"
+        )
+        protected_traits = [
+            str(item) for item in previous.get("protected_traits", []) if str(item).strip()
+        ]
+        declared_transformations = [
+            item
+            for item in direction.get("trait_transformations", [])
+            if isinstance(item, dict) and item.get("from") and item.get("to")
+        ]
         retry_note = ""
         if retry_errors:
             retry_note = "\n上次输出未通过结构校验，请只修复这些问题：" + "；".join(retry_errors[:10])
@@ -851,14 +1470,31 @@ class InteractiveEvolutionService:
             if chemistry_world
             else "当前世界已有生物谱系。你描述的是跨多代选择，不是一个个体主动变形。"
         )
+        if constraint_mode == "historical_reconstruction":
+            constraint_rule = (
+                "历史重建模式：只允许使用场景包给出的有来源路径。关键性状不得无解释消失；"
+                "如果方向没有声明有证据支持的性状转化，就必须在名称、摘要、traits 和画面中继续保留。"
+                "不要为了让故事更戏剧化而发明器官、智能阶段或直线进步阶梯。"
+            )
+        elif constraint_mode == "future_scenario":
+            constraint_rule = (
+                "未来推演模式：允许在已知生理压力和遗传机制上提出多种结果，但每个结果都只是情景假说。"
+                "必须区分个体在太空中的短期适应、技术补偿与跨世代可遗传变化；"
+                "不能把适应性反应写成可遗传演化，也不能声称某种形态必然出现。"
+            )
+        else:
+            constraint_rule = (
+                "起源假说模式：只能拼接实验已证明可行的局部步骤，不能宣布已经复原第一生命或唯一历史。"
+            )
         system = (
-            "你是 EvoLab 的受约束科学情景规划器。" + subject_rule +
+            "你是 EvoLab 的受约束科学情景规划器。" + subject_rule + constraint_rule +
             "必须继承上一阶段至少一项可辨识特征，再叠加本轮环境、偶发事件和用户选择的方向。"
             "允许被本轮机制改变的旧性状发生转化，禁止把已经被替代的旧性状机械照搬。"
             "收益和代价必须同时出现，禁止目的论、必然论和没有来源的精确适合度数值。"
             "深时节点可以解释已知机制；未来阶段必须明确是受约束的情景推演，不是确定预测。"
             "竞争假说要明确写出未解之处，不要用宏大口号、论文摘要腔或整齐排比。"
             "image_prompt 必须使用英文，描述一张无文字、无标签、单一主体明确的电影感科学插画；"
+            "image_prompt 的第一句必须先说清本轮选定方向造成的可见主变化，不能只写同一种动物换了背景；"
             f"遵循当前世界的视觉锚点：{spec['world'].get('visual_anchor', '')}；"
             f"避免：{spec['world'].get('visual_negative', '')}；并保留上一阶段至少一项可辨认视觉特征。"
             "其余字段只使用自然、简洁的简体中文；除通用缩写外，任何整句英文都会被拒绝。"
@@ -871,13 +1507,26 @@ class InteractiveEvolutionService:
             f"上一阶段名称：{previous['organism_name']}\n"
             f"上一阶段记录：{previous['lineage_summary']}\n"
             f"上一阶段可供继承或转化的性状：{'；'.join(previous['traits'])}\n"
+            f"历史关键性状账本：{'；'.join(protected_traits) if protected_traits else '当前没有额外登记项'}\n"
             f"本轮环境：{selection['environment']['title']}——{selection['environment']['description']}\n"
             f"偶发事件：{selection['contingency']['title']}——{selection['contingency']['description']}\n"
             f"演化方向：{direction['title']}——{direction['description']}\n"
             f"机制约束：{direction['mechanism_hint']}\n"
             f"已知权衡：{direction['tradeoff_hint']}\n"
+            f"画面主变化约束（英文，必须遵守）：{direction.get('visible_change_prompt', 'follow the selected mechanism without inventing a later anatomical milestone')}\n"
+            f"画面禁止项：{'；'.join(direction.get('visual_forbidden', [])) or '遵守世界边界，不提前画出后续阶段的结构'}\n"
+            "本轮允许的关键性状转化："
+            + (
+                "；".join(
+                    f"{item['from']} → {item['to']}" for item in declared_transformations
+                )
+                if declared_transformations
+                else "没有；关键性状只能继续保留"
+            )
+            + "\n"
             "请生成下一阶段。lineage_summary 必须明确它继承了什么、改变了什么；"
-            "traits 至少保留一项上一阶段可辨认特征，再加入本轮新特征。"
+            "traits 至少保留一项上一阶段可辨认特征，再加入本轮新特征；"
+            "历史关键性状账本中的项目必须逐项保留，除非本方向明确声明了有证据支持的转化。"
             f"{retry_note}"
         )
         return [{"role": "system", "content": system}, {"role": "user", "content": user}]
@@ -984,16 +1633,124 @@ class InteractiveEvolutionService:
         previous_traits = ", ".join(str(item) for item in previous.get("traits", [])[:4])
         environment = selection["environment"]
         direction = selection["direction"]
+        scenario = self._scenario(previous.get("scenario_id"))
+        constraint_mode = scenario.get("constraint_mode", "historical_reconstruction")
+        protected_visual_traits = list(
+            dict.fromkeys(
+                [str(item) for item in previous.get("protected_traits", [])]
+                + [str(item) for item in direction.get("continuity_traits", [])]
+            )
+        )
+        declared_transformations = [
+            item
+            for item in direction.get("trait_transformations", [])
+            if isinstance(item, dict) and item.get("from") and item.get("to")
+        ]
+        for transformation in declared_transformations:
+            source_trait = str(transformation["from"])
+            target_trait = str(transformation["to"])
+            protected_visual_traits = [
+                target_trait if trait == source_trait else trait
+                for trait in protected_visual_traits
+            ]
+        protected_visual_traits = list(dict.fromkeys(protected_visual_traits))
+        previous_asset = destination.parent / Path(
+            str(previous.get("image_url", ""))
+        ).name
+        reference_image = (
+            previous_asset
+            if previous_asset.suffix.lower() == ".png" and previous_asset.is_file()
+            else None
+        )
         continuity = (
             " This is the immediate descendant of the previous lineage, not a new unrelated species."
             f" Previous lineage: {previous.get('organism_name', 'unnamed lineage')}."
             f" Preserve recognizable inherited features: {previous_traits}."
             f" New environmental pressure: {environment['title']} — {environment['description']}"
             f" Chosen evolutionary direction: {direction['title']} — {direction['description']}"
-            " Show a gradual modification at the same approximate scale and in the same lineage or chemical system."
+            " Show a gradual modification in the same lineage or chemical system, while allowing a new pose, framing,"
+            " proportions, and interaction with the habitat when they make the selected change easier to read."
             " Show the environment and adaptation as one coherent scene, with no comparison grid, text, letters, labels, or watermark."
         )
-        scenario = self._scenario(previous.get("scenario_id"))
+        catalog_visual_change = str(direction.get("visible_change_prompt", "")).strip()
+        visual_forbidden = [
+            str(item).strip()
+            for item in direction.get("visual_forbidden", [])
+            if str(item).strip()
+        ]
+        if catalog_visual_change:
+            required_visual_change = catalog_visual_change
+        elif declared_transformations:
+            required_visual_change = "; ".join(
+                f"change {item['from']} into {item['to']}"
+                for item in declared_transformations
+            )
+        elif direction.get("continuity_traits"):
+            required_visual_change = (
+                f"visibly strengthen or express {', '.join(direction['continuity_traits'])}"
+                f" through {direction['mechanism_hint']}"
+            )
+        else:
+            required_visual_change = (
+                f"visibly express the selected route '{direction['title']}' through"
+                f" {direction['mechanism_hint']} and behavior in the chosen habitat"
+            )
+        continuity += (
+            " Required visible change: "
+            + required_visual_change
+            + ". Make this selected change obvious at thumbnail scale through the silhouette,"
+            " load-bearing anatomy, surface coverage, posture, behavior, or contact with the environment."
+            " The reference defines lineage identity, not an exact pose or tracing template."
+            " Do not return an unchanged copy of the parent image."
+        )
+        if visual_forbidden:
+            continuity += (
+                " Catalog anatomy gate: do not show "
+                + ", ".join(visual_forbidden)
+                + ". These structures belong to another stage or lineage and would break the historical evidence chain."
+            )
+        if declared_transformations:
+            continuity += (
+                " The structural change should be readable in joint structure, appendage shape,"
+                " proportions, or how the body bears weight."
+            )
+        if constraint_mode == "historical_reconstruction" and protected_visual_traits:
+            continuity += (
+                " Historical reconstruction constraint: the following established lineage features MUST remain visibly"
+                " recognizable unless the selected catalog direction explicitly transforms them: "
+                + ", ".join(protected_visual_traits)
+                + ". Do not revert the body to an earlier generic form."
+            )
+            if declared_transformations:
+                continuity += (
+                    " The only catalog-approved structural transformations in this step are: "
+                    + "; ".join(
+                        f"{item['from']} -> {item['to']}"
+                        for item in declared_transformations
+                    )
+                    + ". Show the intermediate continuity clearly."
+                )
+            if reference_image is not None:
+                continuity += (
+                    " Use the supplied previous-stage image as the visual parent, not as a frame to copy."
+                    " Keep the lineage recognizable through homologous relationships among the head, trunk, tail, and paired appendages,"
+                    " while visibly changing the catalog-approved anatomy or behavior."
+                    " A protected structure already visible in the parent must stay recognizable in the descendant."
+                )
+            if scenario.get("id") == "devonian_estuary" and any(
+                "附肢" in trait or "肉质鳍" in trait
+                for trait in protected_visual_traits
+            ):
+                continuity += (
+                    " Devonian appendage lock: keep the four paired, weight-bearing appendages homologous to the shoulder and pelvic"
+                    " attachment regions. Their proportions, joints, distal supports, spread, and contact with the substrate may change"
+                    " visibly. Do not replace them with ordinary ray fins or reduce their number."
+                )
+        elif constraint_mode == "future_scenario":
+            continuity += (
+                " Future scenario constraint: keep the human lineage recognizable and show only gradual, multigenerational"
+                " divergence. Do not present technology, acclimatization, or a single astronaut's body response as inherited evolution."
+            )
         continuity += (
             f" World-specific visual anchor: {scenario.get('visual_anchor', '')}."
             f" Avoid: {scenario.get('negative_prompt', '')}."
@@ -1012,6 +1769,7 @@ class InteractiveEvolutionService:
         negative_prompt = (
             str(scenario.get("negative_prompt", ""))
             + ", text, labels, comparison grid, unrelated species"
+            + (", " + ", ".join(visual_forbidden) if visual_forbidden else "")
         )
         remove_negative_terms = (
             ("duplicated organism, ",)
@@ -1046,6 +1804,8 @@ class InteractiveEvolutionService:
                 wait_for_prompt=helper.wait_for_comfy,
                 locate_output=helper.comfy_output_path,
                 remove_negative_terms=remove_negative_terms,
+                reference_image=reference_image,
+                upload_reference=video_generation.upload_image,
                 log=helper.log,
             )
         except (rendering.RendererConfigurationError, rendering.RendererExhaustedError) as exc:
@@ -1055,6 +1815,21 @@ class InteractiveEvolutionService:
                 http_status=502,
                 retryable=True,
             ) from exc
+        visual_change_score = None
+        if reference_image is not None:
+            visual_change_score = _visual_change_score(reference_image, destination)
+            if not MIN_REFERENCE_CHANGE <= visual_change_score <= MAX_REFERENCE_CHANGE:
+                destination.unlink(missing_ok=True)
+                helper.log(
+                    "reference-conditioned image rejected by visual change gate "
+                    f"({visual_change_score:.4f}; expected {MIN_REFERENCE_CHANGE:.2f}-{MAX_REFERENCE_CHANGE:.2f})"
+                )
+                raise InteractiveError(
+                    "visual_continuity_failed",
+                    "这次改变没有生成成功。原来的记录还在，可以直接重试。",
+                    http_status=502,
+                    retryable=True,
+                )
         return {
             "render_source": "generated",
             "generator": rendered.generator,
@@ -1062,6 +1837,10 @@ class InteractiveEvolutionService:
             "seed": rendered.seed,
             "duration_seconds": rendered.duration_seconds,
             "fallback_from": rendered.fallback_from,
+            "reference_conditioning": rendered.reference_conditioning,
+            "required_visual_change": required_visual_change,
+            "visual_forbidden": visual_forbidden,
+            "visual_change_score": visual_change_score,
         }
 
     def _dry_run_plan(
@@ -1075,6 +1854,9 @@ class InteractiveEvolutionService:
         contingency = selection["contingency"]
         inherited = [str(item) for item in previous.get("traits", [])[:2]]
         chemistry_world = spec.get("world", {}).get("id") == "hydrothermal_origin"
+        constraint_mode = spec.get("world", {}).get(
+            "constraint_mode", "historical_reconstruction"
+        )
         inherited_phrase = "和".join(inherited) if inherited else ("上一阶段的结构" if chemistry_world else "上一阶段的身体特征")
         scenario = self._scenario(spec.get("world", {}).get("id"))
         if chemistry_world:
@@ -1091,9 +1873,9 @@ class InteractiveEvolutionService:
             )
             change_summary = f"谱系没有突然变身；能稳定{direction['mechanism_hint']}的后代在多代中留下得更多。"
             uncertainty_note = (
-                "这是浏览器验收用的离线样例。未来形态只是受约束的假说。"
-                if spec.get("time_scope") == "FUTURE_SCENARIO"
-                else "这是浏览器验收用的离线样例；真实运行会由 Step 严格结构化生成。"
+                "这是浏览器验收用的离线样例。未来形态只是受约束的假说，不能当作预测。"
+                if constraint_mode == "future_scenario"
+                else "这是浏览器验收用的离线样例；历史路线受场景证据和关键性状账本约束。"
             )
         result = {
             "organism_name": spec.get(

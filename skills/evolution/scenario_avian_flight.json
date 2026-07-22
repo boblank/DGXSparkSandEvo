@@ -1,0 +1,89 @@
+{
+  "contract_version": "0.8.0",
+  "initial_stage": {
+    "stage_id": "origin",
+    "organism_name": "体表仍以鳞片为主的小型兽脚类近缘谱系",
+    "lineage_summary": "它在林下奔跑，前肢用于抓取和保持平衡，长尾帮助急转。体表大部分仍是鳞片，只有少量简单丝状结构；它还不是鸟，也不会飞。",
+    "change_summary": "故事从非鸟兽脚类的体表与运动组合开始。羽毛和飞行不会在同一轮凭空出现。",
+    "traits": [
+      "修长而可抓握的前肢",
+      "用于平衡的长骨质尾",
+      "以鳞片为主并带少量丝状体表结构",
+      "双足奔跑"
+    ],
+    "protected_traits": [
+      "修长而可抓握的前肢",
+      "用于平衡的长骨质尾"
+    ],
+    "internal_causes": ["体表结构与前肢发育已经存在可遗传差异"],
+    "external_causes": ["林下昼夜温差、展示竞争和捕食压力反复变化"],
+    "benefits": ["小体型与灵活前肢便于穿过复杂林下环境"],
+    "costs": ["保温不足，前肢还没有形成稳定气动表面"],
+    "evidence_tag": "TEACHING_SIMPLIFICATION",
+    "uncertainty_note": "化石显示羽毛样结构分布在多支恐龙中，但颜色、覆盖范围和各支关系仍有缺口。这个起点是教学重建，不是某件化石的完整复原。",
+    "knowledge_card_id": "FEATHER_EVOLUTION",
+    "transition_id": "B01"
+  },
+  "rounds": {
+    "1": {
+      "chapter": "羽毛最初不必承担飞行",
+      "time_scope": "AVIAN_TRANSITION",
+      "fixture_name": "披着保温丝状羽的小型兽脚类谱系",
+      "environments": [
+        {"id": "cold_nights", "title": "林下夜晚变得更冷", "description": "小身体散热快，能留住空气的体表结构更有价值。"},
+        {"id": "display_clearings", "title": "同类常在林间空地相遇", "description": "能被看见的体表形态可能参与求偶、威慑和个体识别。"},
+        {"id": "nest_exposure", "title": "巢与幼体更容易暴露在温差里", "description": "覆盖和保温会影响亲代照护与幼体存活。"}
+      ],
+      "contingencies": [
+        {"id": "branched_filaments", "title": "一簇体表丝开始分叉", "description": "同样质量能困住更多空气，也让轮廓更醒目。"},
+        {"id": "pigment_pattern", "title": "体表色素形成稳定斑块", "description": "识别和展示信息增加，同时也可能更容易被捕食者看见。"},
+        {"id": "forelimb_cover", "title": "前肢外侧的丝状结构变得更长", "description": "摆动前肢时阻力改变，但这还不是完整飞行翼。"}
+      ],
+      "directions": [
+        {"id": "insulating_plumage", "transition_id": "B01", "knowledge_card_id": "FEATHER_EVOLUTION", "evidence_tag": "MECHANISM_HYPOTHESIS", "title": "先把体温留住", "description": "让分叉丝状羽覆盖更多躯干，仍保留长尾和抓握前肢。", "mechanism_hint": "体表附属物分支、保温与小体型热平衡", "tradeoff_hint": "低温活动更稳定，生长和整理羽毛要消耗材料与时间", "continuity_traits": ["覆盖躯干的分叉保温羽"]},
+        {"id": "display_plumage", "transition_id": "B01", "knowledge_card_id": "FEATHER_EVOLUTION", "evidence_tag": "MECHANISM_HYPOTHESIS", "title": "让羽毛先成为可见信号", "description": "加大局部羽毛和色彩差异，不把展示结构直接当成翅膀。", "mechanism_hint": "性选择、信号可靠性与体表图案", "tradeoff_hint": "更容易识别和吸引同伴，也增加制造成本与暴露风险", "continuity_traits": ["用于展示的局部羽簇"]},
+        {"id": "brooding_cover", "transition_id": "B01", "knowledge_card_id": "FEATHER_EVOLUTION", "evidence_tag": "MECHANISM_HYPOTHESIS", "title": "用体表覆盖巢和幼体", "description": "亲代更常伏在巢上，前肢和躯干羽毛参与遮蔽与保温。", "mechanism_hint": "亲代照护、巢保温与行为—结构反馈", "tradeoff_hint": "幼体温度更稳定，亲代暴露和照护时间增加", "continuity_traits": ["可覆盖巢区的前肢羽毛"]}
+      ]
+    },
+    "2": {
+      "chapter": "羽片开始和空气认真打交道",
+      "time_scope": "AVIAN_TRANSITION",
+      "fixture_name": "前肢与尾部带有羽片的小型近鸟类谱系",
+      "environments": [
+        {"id": "layered_forest", "title": "食物分散在地面、灌木和低枝之间", "description": "跳跃、攀附与受控下落可以缩短穿行路线。"},
+        {"id": "steep_slope", "title": "坡面和倒木制造了频繁高差", "description": "失足时能控制身体姿态，比单纯跌落更容易活下来。"},
+        {"id": "fast_predators", "title": "地面捕食者缩短了逃跑时间", "description": "冲上斜坡、跃上低枝或改变落点都可能带来机会。"}
+      ],
+      "contingencies": [
+        {"id": "asymmetric_vanes", "title": "一部分前肢羽片变得不对称", "description": "羽轴两侧受力不再相同，气流控制能力增加。"},
+        {"id": "shoulder_range", "title": "肩带允许更大的前肢抬举范围", "description": "前肢能参与姿态控制，关节稳定和肌肉协调也更难。"},
+        {"id": "tail_fan", "title": "尾端羽片展开成更宽的扇面", "description": "俯仰和转向更容易，长骨质尾仍会带来惯性。"}
+      ],
+      "directions": [
+        {"id": "controlled_descent", "transition_id": "B02", "knowledge_card_id": "FLIGHT", "evidence_tag": "MECHANISM_HYPOTHESIS", "title": "先学会控制下落", "description": "让前肢和尾羽共同调整姿态，不直接跳到持续拍翼。", "mechanism_hint": "羽片气动表面、尾部配平与姿态控制", "tradeoff_hint": "跌落和跳跃更可控，羽片损伤会立刻影响稳定", "allowed_parent_direction_ids": ["insulating_plumage", "display_plumage", "brooding_cover"], "continuity_traits": ["能控制下落的前肢与尾羽"]},
+        {"id": "incline_assist", "transition_id": "B02", "knowledge_card_id": "FLIGHT", "evidence_tag": "MECHANISM_HYPOTHESIS", "title": "拍动前肢冲上陡坡", "description": "前肢产生的气动力帮助脚抓住斜面，但不宣称这是飞行唯一起点。", "mechanism_hint": "翼辅助斜坡奔跑、足部抓附与拍动协调", "tradeoff_hint": "逃生路线增加，肩带和胸肌的能量需求上升", "allowed_parent_direction_ids": ["insulating_plumage", "display_plumage", "brooding_cover"], "continuity_traits": ["可辅助陡坡奔跑的羽翼"]},
+        {"id": "long_jump_glide", "transition_id": "B02", "knowledge_card_id": "FLIGHT", "evidence_tag": "MECHANISM_HYPOTHESIS", "title": "把一次跳跃延长成短滑翔", "description": "从低枝或坡面跃出，用四肢与尾羽扩大受力面积。", "mechanism_hint": "低速滑翔、升阻比与落点控制", "tradeoff_hint": "能跨过障碍，起跳位置和羽面完整度限制很强", "allowed_parent_direction_ids": ["insulating_plumage", "display_plumage", "brooding_cover"], "continuity_traits": ["可短距离滑翔的羽面"]}
+      ]
+    },
+    "3": {
+      "chapter": "动力飞行是一整套身体协作",
+      "time_scope": "AVIAN_TRANSITION",
+      "fixture_name": "能进行短程动力飞行的早期鸟翼谱系",
+      "environments": [
+        {"id": "broken_canopy", "title": "林冠被空隙切成许多小岛", "description": "跨过空隙可以逃避地面风险，也要求更可靠的起飞和着陆。"},
+        {"id": "aerial_insects", "title": "空中小型猎物在暖季大量出现", "description": "机动性提高会打开新的食物来源，失败也可能直接坠落。"},
+        {"id": "seasonal_routes", "title": "资源随季节沿林缘移动", "description": "更远的空中移动有收益，续航和换羽成本随之增加。"}
+      ],
+      "contingencies": [
+        {"id": "larger_keel", "title": "胸部肌肉附着区进一步扩大", "description": "拍翼功率提高，但胸带、呼吸和散热都要配合。"},
+        {"id": "shorter_bony_tail", "title": "骨质尾缩短，尾羽接过配平任务", "description": "转动惯量下降，原有长尾结构发生有证据约束的转化。"},
+        {"id": "feather_slotting", "title": "翼端羽片能在受力时分开", "description": "低速控制改善，羽毛维护和神经控制要求更高。"}
+      ],
+      "directions": [
+        {"id": "burst_flight", "transition_id": "B03", "knowledge_card_id": "FLIGHT", "evidence_tag": "TEACHING_SIMPLIFICATION", "title": "先获得短促而可靠的拍翼飞行", "description": "把气动羽面、肩带、胸肌、呼吸和感觉控制接成一套。", "mechanism_hint": "动力输出、升力控制、呼吸与神经协调", "tradeoff_hint": "能越过林隙和快速逃逸，持续高功率活动非常耗能", "allowed_parent_direction_ids": ["controlled_descent", "incline_assist", "long_jump_glide"], "continuity_traits": ["可完成短程动力飞行的羽翼"], "trait_transformations": [{"from": "用于平衡的长骨质尾", "to": "缩短骨质尾与扇形尾羽"}]},
+        {"id": "maneuverable_forest_flight", "transition_id": "B03", "knowledge_card_id": "FLIGHT", "evidence_tag": "TEACHING_SIMPLIFICATION", "title": "把转弯和着陆练得更稳", "description": "保留短程飞行，以翼端、尾羽和足部配合复杂林间路线。", "mechanism_hint": "低速机动、视觉前庭整合与抓枝着陆", "tradeoff_hint": "林间操控更好，翼形不一定适合长距离高速飞行", "allowed_parent_direction_ids": ["controlled_descent", "incline_assist", "long_jump_glide"], "continuity_traits": ["适合林间机动与着陆的羽翼"], "trait_transformations": [{"from": "用于平衡的长骨质尾", "to": "以尾羽完成空中配平"}]},
+        {"id": "terrestrial_wing_assist", "transition_id": "B03", "knowledge_card_id": "FLIGHT", "evidence_tag": "TEACHING_SIMPLIFICATION", "title": "保留强壮后肢，让翅膀辅助奔跑和跃起", "description": "空中能力与地面运动继续并存，不把所有近鸟类都推向同一种飞行。", "mechanism_hint": "镶嵌式运动、拍翼辅助与生态位分化", "tradeoff_hint": "地面与短距空中路线都可用，持续飞行性能受限", "allowed_parent_direction_ids": ["controlled_descent", "incline_assist", "long_jump_glide"], "continuity_traits": ["兼顾奔跑与拍翼辅助的前肢"]}
+      ]
+    }
+  }
+}

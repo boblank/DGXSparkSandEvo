@@ -83,10 +83,33 @@ class InteractiveServerTests(unittest.TestCase):
             self.assertEqual(response.headers.get_content_type(), "image/svg+xml")
             self.assertTrue(response.read().startswith(b"<svg"))
 
+    def test_environment_choice_endpoint_recomputes_candidates(self) -> None:
+        status, envelope = self._json_request(
+            "/api/sessions",
+            {"scenario_id": "devonian_estuary"},
+        )
+        self.assertEqual(status, 201)
+        session_id = envelope["session"]["session_id"]
+        status, first = self._json_request(
+            f"/api/sessions/{session_id}/choices",
+            {"expected_round": 1, "environment_id": "oxygen_poor_pool"},
+        )
+        self.assertEqual(status, 200)
+        status, second = self._json_request(
+            f"/api/sessions/{session_id}/choices",
+            {"expected_round": 1, "environment_id": "weedy_shallows"},
+        )
+        self.assertEqual(status, 200)
+        self.assertNotEqual(
+            [item["id"] for item in first["directions"]],
+            [item["id"] for item in second["directions"]],
+        )
+        self.assertTrue(all(item.get("context_reason") for item in second["directions"]))
+
     def test_scenario_registry_and_scene_selection_contract(self) -> None:
         status, registry = self._json_request("/api/scenarios")
         self.assertEqual(status, 200)
-        self.assertEqual(len(registry["scenarios"]), 4)
+        self.assertEqual(len(registry["scenarios"]), 7)
         self.assertEqual(registry["default_scenario_id"], "tidal_symbiosis")
 
         status, envelope = self._json_request(
@@ -112,9 +135,11 @@ class InteractiveServerTests(unittest.TestCase):
         self.assertIn("最后一轮之后还有一段回放", index)
         self.assertIn("选完这一轮，继续等到视频出现", index)
         self.assertIn("第 2 / 2 步 · 正在制作回放", index)
+        self.assertIn("约 10 秒视频", index)
         self.assertIn("生成最终阶段并制作回放", app)
         self.assertIn("第 1 / 2 步：最终阶段正在生成。", app)
         self.assertIn("先别离开，四阶段回放还在生成", app)
+        self.assertIn("约 10 秒视频", app)
         self.assertIn("视频已经生成", app)
         self.assertIn("watchEndingVideoReady(session.session_id, Date.now() + 30000)", app)
         self.assertIn('["loadeddata", "canplay"]', app)

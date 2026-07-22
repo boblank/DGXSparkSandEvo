@@ -11,6 +11,14 @@
     EARLY_ANIMAL_ECOSYSTEM: "晚埃迪卡拉纪 · 海床生态",
     CAMBRIAN_TRANSITION: "埃迪卡拉—寒武纪过渡",
     DEVONIAN_TRANSITION: "泥盆纪 · 水陆边缘",
+    HOMININ_TRANSITION: "上新世至中更新世 · 人族分枝",
+    AVIAN_TRANSITION: "侏罗纪至早白垩纪 · 鸟类起源",
+  };
+  const CONSTRAINT_LABELS = {
+    historical_reconstruction: "历史重建",
+    origin_hypothesis: "起源假说",
+    mixed_evidence: "历史与假说交界",
+    future_scenario: "未来推演",
   };
   const EVIDENCE_LABELS = {
     KNOWN_MECHANISM: "已知机制",
@@ -44,6 +52,8 @@
     envelope: null,
     selected: { environment: null, contingency: null, direction: null },
     busy: false,
+    choiceBusy: false,
+    choiceRequestId: 0,
     waitingTimer: null,
     waitingIndex: 0,
     videoReadyTimer: null,
@@ -68,7 +78,7 @@
       "round-label", "round-rail", "organism-image", "image-placeholder", "time-scope",
       "habitat-label", "stage-kicker", "organism-name", "organism-summary", "trait-list",
       "generation-overlay", "generation-title", "generation-message", "choice-deck", "choice-content", "ending-content",
-      "round-number", "chapter-label", "choice-title", "choice-lead", "direction-legend",
+      "round-number", "chapter-label", "choice-title", "choice-lead", "contingency-legend", "direction-legend",
       "evolve-button-label", "final-video-hint", "ending-kicker", "ending-title", "evolution-form", "environment-choices",
       "contingency-choices", "direction-choices", "selection-recap", "evolve-button",
       "ending-restart", "ending-worlds", "ending-summary", "ending-video-card", "ending-video",
@@ -144,7 +154,7 @@
 
   async function loadWorldAtlas() {
     hideError();
-    setRuntime("正在读取四个世界", "busy");
+    setRuntime("正在读取七个世界", "busy");
     try {
       const results = await Promise.all([request("/health"), request("/scenarios")]);
       const health = results[0] || {};
@@ -154,7 +164,7 @@
       selectScenario(registry.default_scenario_id || (state.scenarios[0] && state.scenarios[0].id));
       const restored = await restoreSessionFromUrl();
       if (!restored) {
-        setRuntime(health.mode === "live" ? "DGX Spark 已就绪" : "四个世界可以预演", "ready");
+        setRuntime(health.mode === "live" ? "DGX Spark 已就绪" : "七个世界可以预演", "ready");
       }
     } catch (error) {
       setRuntime("世界图谱暂时没有打开", "error");
@@ -170,8 +180,9 @@
       button.className = "scenario-node";
       button.dataset.scenarioId = safeText(scenario.id);
       button.style.setProperty("--scene-accent", safeColor(scenario.accent));
-      button.style.setProperty("--scene-index", String(index));
+      button.style.setProperty("--scene-step", String(index % 4));
       button.setAttribute("aria-pressed", "false");
+      button.classList.toggle("is-future", scenario.constraint_mode === "future_scenario");
 
       const image = document.createElement("img");
       image.src = assetUrl(scenario.origin_asset);
@@ -180,11 +191,14 @@
       veil.className = "scenario-veil";
       const era = document.createElement("small");
       era.textContent = safeText(scenario.era);
+      const mode = document.createElement("em");
+      mode.textContent = constraintLabel(scenario.constraint_mode);
       const title = document.createElement("strong");
       title.textContent = safeText(scenario.short_title, scenario.title);
       const habitat = document.createElement("span");
+      habitat.className = "scenario-habitat";
       habitat.textContent = safeText(scenario.depth, scenario.habitat);
-      button.append(image, veil, era, title, habitat);
+      button.append(image, veil, era, mode, title, habitat);
       button.addEventListener("click", function () {
         selectScenario(scenario.id, true);
       });
@@ -206,7 +220,7 @@
     el["world-preview-image"].alt = safeText(scenario.title) + "的起始环境";
     el["world-preview-era"].textContent = safeText(scenario.era);
     el["world-preview-depth"].textContent = safeText(scenario.depth, scenario.habitat);
-    el["world-preview-habitat"].textContent = safeText(scenario.habitat);
+    el["world-preview-habitat"].textContent = constraintLabel(scenario.constraint_mode) + " · " + safeText(scenario.habitat);
     el["world-preview-title"].textContent = safeText(scenario.title);
     el["world-preview-summary"].textContent = safeText(scenario.summary);
     el["world-preview-question"].textContent = safeText(scenario.entry_question);
@@ -332,18 +346,34 @@
     el["chapter-label"].textContent = safeText(choices.chapter, "新的难题");
     el["choice-title"].textContent = chemistry ? "这一阶段会发生什么？" : "这一代要面对什么？";
     el["choice-lead"].textContent = chemistry
-      ? "先改变周围条件，再让偶然扰动进入系统。最后决定哪类化学路径更容易延续。"
-      : "先让世界发生变化，再给偶然一次机会。最后决定哪些差异更可能被留下。";
-    el["direction-legend"].textContent = chemistry ? "哪类反应路径更容易延续" : "哪些后代会留下更多";
+      ? "先选周围条件。系统会据此重算哪些扰动更关键，再比较更容易延续的路径。"
+      : "先选环境。系统会据此重算哪些偶然事件更关键，再比较更受支持的方向。";
+    el["contingency-legend"].textContent = chemistry ? "此时哪些扰动更有影响" : "此时哪些偶然事件更有影响";
+    el["direction-legend"].textContent = chemistry ? "这组条件更支持哪些反应路径" : "这组条件更支持哪些方向";
     el["final-video-hint"].hidden = !finalRound;
     el["evolve-button-label"].textContent = finalRound
       ? "生成最终阶段并制作回放"
       : chemistry ? "看看下一阶段" : "让下一代出现";
     state.selected = { environment: null, contingency: null, direction: null };
+    state.choiceBusy = false;
+    state.choiceRequestId += 1;
     renderChoiceGroup("environment", choices.environments || [], el["environment-choices"], false);
-    renderChoiceGroup("contingency", choices.contingencies || [], el["contingency-choices"], false);
-    renderChoiceGroup("direction", choices.directions || [], el["direction-choices"], true);
+    renderChoicePlaceholder(el["contingency-choices"], "选定环境后，这里才会出现。", false);
+    renderChoicePlaceholder(el["direction-choices"], "环境和偶然事件确定后，这里才会出现。", false);
     updateSelectionRecap();
+  }
+
+  function renderChoicePlaceholder(container, message, busy) {
+    container.replaceChildren();
+    const status = document.createElement("p");
+    status.className = "choice-placeholder" + (busy ? " is-loading" : "");
+    status.setAttribute("role", "status");
+    const mark = document.createElement("span");
+    mark.setAttribute("aria-hidden", "true");
+    const copy = document.createElement("span");
+    copy.textContent = message;
+    status.append(mark, copy);
+    container.appendChild(status);
   }
 
   function renderChoiceGroup(group, choices, container, isDirection) {
@@ -362,6 +392,11 @@
       const detail = document.createElement("small");
       detail.textContent = safeText(choice.description);
       button.append(mark, title, detail);
+      if (choice.context_reason) {
+        const reason = document.createElement("em");
+        reason.textContent = "为什么现在出现：" + safeText(choice.context_reason);
+        button.appendChild(reason);
+      }
       if (isDirection) {
         const arrow = document.createElement("i");
         arrow.textContent = "→";
@@ -375,22 +410,93 @@
     });
   }
 
-  function selectChoice(group, choice, container, button) {
-    if (state.busy) return;
+  async function selectChoice(group, choice, container, button) {
+    if (state.busy || state.choiceBusy) return;
     state.selected[group] = choice;
     Array.from(container.querySelectorAll("button")).forEach(function (option) {
       const active = option === button;
       option.classList.toggle("is-selected", active);
       option.setAttribute("aria-pressed", active ? "true" : "false");
     });
+    if (group === "environment") {
+      state.selected.contingency = null;
+      state.selected.direction = null;
+      renderChoicePlaceholder(el["contingency-choices"], "正在根据当前环境重算候选…", true);
+      renderChoicePlaceholder(el["direction-choices"], "先等环境压力把候选重新排好。", false);
+      updateSelectionRecap();
+      await recomputeChoices("environment");
+      return;
+    }
+    if (group === "contingency") {
+      state.selected.direction = null;
+      renderChoicePlaceholder(el["direction-choices"], "正在把环境和偶然事件放在一起重算…", true);
+      updateSelectionRecap();
+      await recomputeChoices("contingency");
+      return;
+    }
     updateSelectionRecap();
+  }
+
+  function setChoiceBusy(busy) {
+    state.choiceBusy = busy;
+    el["evolution-form"].classList.toggle("is-recomputing", busy);
+    el["evolution-form"].setAttribute("aria-busy", busy ? "true" : "false");
+    Array.from(el["evolution-form"].querySelectorAll("button")).forEach(function (button) {
+      if (button !== el["evolve-button"]) button.disabled = busy;
+    });
+    updateSelectionRecap();
+  }
+
+  async function recomputeChoices(stage) {
+    if (!state.envelope) return;
+    const session = state.envelope.session;
+    const expectedRound = state.envelope.choices && state.envelope.choices.round;
+    const selected = state.selected;
+    const requestId = ++state.choiceRequestId;
+    const payload = {
+      expected_round: expectedRound,
+      environment_id: selected.environment.id,
+    };
+    if (stage === "contingency" && selected.contingency) {
+      payload.contingency_id = selected.contingency.id;
+    }
+    hideError();
+    setChoiceBusy(true);
+    try {
+      const choices = await request(
+        "/sessions/" + encodeURIComponent(session.session_id) + "/choices",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        }
+      );
+      if (requestId !== state.choiceRequestId) return;
+      if (stage === "environment") {
+        renderChoiceGroup("contingency", choices.contingencies || [], el["contingency-choices"], false);
+        renderChoicePlaceholder(el["direction-choices"], "再选一个偶然事件，方向会继续收窄。", false);
+        const first = el["contingency-choices"].querySelector("button");
+        if (first) first.focus({ preventScroll: true });
+      } else {
+        renderChoiceGroup("direction", choices.directions || [], el["direction-choices"], true);
+        const first = el["direction-choices"].querySelector("button");
+        if (first) first.focus({ preventScroll: true });
+      }
+    } catch (error) {
+      if (requestId !== state.choiceRequestId) return;
+      const target = stage === "environment" ? el["contingency-choices"] : el["direction-choices"];
+      renderChoicePlaceholder(target, "候选没有重算出来。可以换一个选择，或再试一次。", false);
+      showError(readableError(error));
+    } finally {
+      if (requestId === state.choiceRequestId) setChoiceBusy(false);
+    }
   }
 
   function updateSelectionRecap() {
     if (!el["selection-recap"]) return;
     const selected = state.selected;
     const complete = selected.environment && selected.contingency && selected.direction;
-    el["evolve-button"].disabled = !complete || state.busy;
+    el["evolve-button"].disabled = !complete || state.busy || state.choiceBusy;
     if (complete) {
       el["selection-recap"].textContent =
         selected.environment.title + "；" + selected.contingency.title + "。" +
@@ -638,7 +744,7 @@
     }
     el["ending-video-guide-step"].textContent = "第 2 / 2 步 · 正在制作回放";
     el["ending-video-guide-title"].textContent = "先别离开，四阶段回放还在生成";
-    el["ending-video-guide-body"].textContent = "我们正在把起点、三次改变和你的选择整理成约 7 秒视频。完成后会自动出现。";
+    el["ending-video-guide-body"].textContent = "我们正在把起点、三次改变和你的选择整理成约 10 秒视频。完成后会自动出现。";
   }
 
   function hideEndingVideo() {
@@ -714,6 +820,10 @@
   function setRuntime(label, mode) {
     el["runtime-state"].className = "runtime-state" + (mode ? " is-" + mode : "");
     el["runtime-state"].querySelector("span").textContent = label;
+  }
+
+  function constraintLabel(mode) {
+    return CONSTRAINT_LABELS[mode] || "证据边界待确认";
   }
 
   function showError(message) {

@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" role="img" aria-labelledby="title desc">
+  <title id="title">羽毛出现之前后的小型兽脚类</title>
+  <desc id="desc">一只长尾、双足的小型兽脚类在侏罗纪林下奔跑，体表以鳞片为主，颈背有少量简单丝状结构。</desc>
+  <defs>
+    <linearGradient id="bg" x2="0" y2="1"><stop stop-color="#5f7c71"/><stop offset=".55" stop-color="#263f3a"/><stop offset="1" stop-color="#0a2428"/></linearGradient>
+    <radialGradient id="light"><stop stop-color="#f0d78c" stop-opacity=".7"/><stop offset="1" stop-color="#f0d78c" stop-opacity="0"/></radialGradient>
+    <filter id="grain"><feTurbulence baseFrequency=".8" numOctaves="3"/><feColorMatrix values="1 0 0 0 0 0 1 0 0 0 0 0 1 0 0 0 0 0 .1 0"/></filter>
+  </defs>
+  <rect width="1600" height="900" fill="url(#bg)"/><circle cx="1020" cy="180" r="300" fill="url(#light)"/>
+  <g fill="#102c2d" opacity=".88"><path d="M120 0h120l-36 620H95z"/><path d="M1380 0h105l36 630h-175z"/><path d="M350 0h60l52 460h-92z"/></g>
+  <path d="M0 690q310-100 630-16t970-25v251H0Z" fill="#102c2b"/>
+  <g transform="translate(300 170)">
+    <path d="M290 360q160-160 390-50 105 49 183 13 102-48 209 1-129 2-213 78-79 74-213 82-187 10-302-42-87-40-205 23 68-87 151-105Z" fill="#384943" stroke="#0e2728" stroke-width="12"/>
+    <path d="M730 335q54-82 127-108 74-27 135 18-42 10-58 41 47 3 74 36-93 46-180 78z" fill="#3f5049" stroke="#0e2728" stroke-width="12"/>
+    <circle cx="925" cy="270" r="10" fill="#e8c764"/><circle cx="929" cy="267" r="3" fill="#08191a"/>
+    <path d="M580 430l-69 210 53 57M684 432l22 212 59 49" fill="none" stroke="#263a37" stroke-width="42" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M532 694l-50 15m82-13 28 19m115-70-35 43m93 4 33 13" fill="none" stroke="#192e2d" stroke-width="13" stroke-linecap="round"/>
+    <path d="M650 356q-45 18-118 119m158-101q-26 43-75 87" fill="none" stroke="#263a37" stroke-width="28" stroke-linecap="round"/>
+    <g stroke="#c49b58" stroke-width="8" stroke-linecap="round" opacity=".78"><path d="M718 309l-22-31m47 36-10-40m39 48 4-42m34 58 17-38m30 50 25-31"/></g>
+    <g fill="none" stroke="#9ca274" stroke-width="7" opacity=".55"><path d="M370 355q75 45 148 6"/><path d="M408 407q95 44 180 4"/><path d="M495 452q80 26 152-7"/></g>
+  </g>
+  <rect width="1600" height="900" filter="url(#grain)" opacity=".4"/>
+</svg>

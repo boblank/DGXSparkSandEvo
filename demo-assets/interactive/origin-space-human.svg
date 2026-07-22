@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" role="img" aria-labelledby="title desc">
+  <title id="title">人类多世代轨道栖息地</title>
+  <desc id="desc">地球上空的旋转轨道城，普通居民仍保持现代人类形态，依靠生命保障与人工重力生活。</desc>
+  <defs>
+    <radialGradient id="space"><stop stop-color="#1b3150"/><stop offset=".55" stop-color="#0a172b"/><stop offset="1" stop-color="#030812"/></radialGradient>
+    <radialGradient id="earth"><stop stop-color="#b7e9f0"/><stop offset=".55" stop-color="#3b92ad"/><stop offset=".75" stop-color="#2f4c78"/><stop offset="1" stop-color="#07101c"/></radialGradient>
+    <linearGradient id="metal"><stop stop-color="#9aa6bb"/><stop offset=".5" stop-color="#27344c"/><stop offset="1" stop-color="#bbc5d4"/></linearGradient>
+    <filter id="glow"><feGaussianBlur stdDeviation="9" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  </defs>
+  <rect width="1600" height="900" fill="url(#space)"/>
+  <g fill="#dce8ff" opacity=".7"><circle cx="170" cy="120" r="2"/><circle cx="420" cy="180" r="3"/><circle cx="760" cy="80" r="2"/><circle cx="1210" cy="150" r="3"/><circle cx="1470" cy="300" r="2"/><circle cx="210" cy="610" r="2"/><circle cx="1150" cy="710" r="2"/></g>
+  <circle cx="1360" cy="700" r="300" fill="url(#earth)"/><path d="M1170 600q110-65 205-20t188 20" fill="none" stroke="#d8f4ee" stroke-width="18" opacity=".45"/>
+  <g transform="translate(660 410) rotate(-13)">
+    <ellipse rx="440" ry="242" fill="none" stroke="#6b7892" stroke-width="78" opacity=".48"/>
+    <ellipse rx="440" ry="242" fill="none" stroke="url(#metal)" stroke-width="34"/>
+    <ellipse rx="440" ry="242" fill="none" stroke="#75d3c2" stroke-width="5" stroke-dasharray="38 25" filter="url(#glow)"/>
+    <g stroke="#748099" stroke-width="11"><path d="M-332-159L-77-44M332 159L77 44M-373 124L-83 28M373-124L83-28"/></g>
+    <rect x="-100" y="-48" width="200" height="96" rx="24" fill="url(#metal)" stroke="#b6c4d7" stroke-width="5"/>
+    <path d="M-20-48V-225M20 48v225" stroke="#7b89a3" stroke-width="20"/><rect x="-98" y="-255" width="196" height="48" rx="12" fill="#4e607a"/><rect x="-98" y="207" width="196" height="48" rx="12" fill="#4e607a"/>
+    <g fill="#efd36f" filter="url(#glow)"><circle cx="-388" cy="-105" r="8"/><circle cx="-285" cy="-196" r="8"/><circle cx="290" cy="193" r="8"/><circle cx="390" cy="95" r="8"/></g>
+  </g>
+  <path d="M80 810Q500 670 960 815" fill="none" stroke="#a99ce8" stroke-width="3" opacity=".4"/>
+</svg>

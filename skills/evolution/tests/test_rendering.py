@@ -60,6 +60,65 @@ class RendererProfileTests(unittest.TestCase):
         self.assertIn("Avoid these failures", workflow["4"]["inputs"]["text"])
         self.assertEqual(metadata["renderer"], "flux2-klein-4b")
 
+    def test_klein_reference_workflow_conditions_on_previous_stage(self) -> None:
+        workflow, metadata = rendering.build_image_workflow(
+            "flux2-klein-4b",
+            prompt="preserve the parent body plan",
+            negative_prompt="missing appendages",
+            seed=29,
+            filename_prefix="lineage/stage_02",
+            reference_image="evolab_parent.png",
+        )
+        self.assertEqual(workflow["14"]["inputs"]["image"], "evolab_parent.png")
+        self.assertEqual(workflow["16"]["class_type"], "VAEEncode")
+        self.assertEqual(workflow["17"]["class_type"], "ReferenceLatent")
+        self.assertEqual(workflow["18"]["class_type"], "ReferenceLatent")
+        self.assertEqual(workflow["6"]["inputs"]["positive"], ["17", 0])
+        self.assertTrue(metadata["reference_conditioning"])
+        self.assertEqual(
+            metadata["workflow_file"], "creature_workflow_flux2_klein_edit.json"
+        )
+
+    def test_klein_renderer_uploads_parent_for_reference_conditioning(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            parent = root / "stage_01.png"
+            parent.write_bytes(b"parent-image")
+            source = root / "comfy.png"
+            source.write_bytes(b"edited-descendant")
+            destination = root / "stage_02.png"
+            uploads: list[tuple[Path, str]] = []
+
+            def upload(path: Path, url: str) -> str:
+                uploads.append((path, url))
+                return "evolab_parent.png"
+
+            def submit(workflow: dict, _url: str) -> str:
+                self.assertEqual(
+                    workflow["14"]["inputs"]["image"], "evolab_parent.png"
+                )
+                return "prompt-edit"
+
+            rendered = rendering.render_image_with_fallback(
+                ["flux2-klein-4b"],
+                prompt="same lineage, gradual change",
+                negative_prompt="missing appendages",
+                seed=37,
+                filename_prefix="reference-edit",
+                destination=destination,
+                comfy_url="http://127.0.0.1:7000",
+                comfy_output=root,
+                timeout=5,
+                submit_prompt=submit,
+                wait_for_prompt=lambda *_args: {"ok": True},
+                locate_output=lambda *_args: source,
+                reference_image=parent,
+                upload_reference=upload,
+            )
+            self.assertEqual(uploads, [(parent, "http://127.0.0.1:7000")])
+            self.assertTrue(rendered.reference_conditioning)
+            self.assertEqual(destination.read_bytes(), b"edited-descendant")
+
     def test_candidate_failure_falls_back_without_changing_flux1(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
@@ -93,6 +152,33 @@ class RendererProfileTests(unittest.TestCase):
             self.assertEqual(rendered.renderer, "flux1")
             self.assertEqual(rendered.fallback_from, "flux2-klein-4b")
             self.assertEqual(destination.read_bytes(), b"stable-flux1-output")
+
+    def test_reference_render_never_drops_to_an_unconditioned_profile(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            parent = root / "stage_01.png"
+            parent.write_bytes(b"parent-image")
+            with self.assertRaises(rendering.RendererExhaustedError) as raised:
+                rendering.render_image_with_fallback(
+                    ["flux1"],
+                    prompt="preserve the same lineage",
+                    negative_prompt="unrelated species",
+                    seed=41,
+                    filename_prefix="reference-required",
+                    destination=root / "stage_02.png",
+                    comfy_url="http://127.0.0.1:7000",
+                    comfy_output=root,
+                    timeout=5,
+                    submit_prompt=lambda *_args: "must-not-submit",
+                    wait_for_prompt=lambda *_args: {},
+                    locate_output=lambda *_args: root / "missing.png",
+                    reference_image=parent,
+                    upload_reference=lambda *_args: "parent.png",
+                )
+            self.assertEqual(
+                raised.exception.attempts,
+                [{"renderer": "flux1", "error": "RendererConfigurationError"}],
+            )
 
     def test_unknown_renderer_fails_closed(self) -> None:
         with self.assertRaises(rendering.RendererConfigurationError):

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib.util
+import hashlib
 import json
 import os
 import tempfile
@@ -65,6 +66,117 @@ class InteractiveEvolutionServiceTests(unittest.TestCase):
         self.assertEqual(future_match["generated_outcome_status"], "no_match")
         persisted = json.loads((self.root / session_id / "session.json").read_text())
         self.assertEqual(persisted["history"], envelope["session"]["history"])
+
+    def test_validated_first_last_frame_video_is_preferred_over_static_recap(self) -> None:
+        service = engine.InteractiveEvolutionService(self.root, dry_run=True)
+        envelope = service.create_session("devonian_estuary")
+        session_id = envelope["session"]["session_id"]
+        for round_no in range(1, 4):
+            envelope = service.evolve(session_id, first_selection(envelope, round_no))
+        session = json.loads((self.root / session_id / "session.json").read_text())
+        session_dir = self.root / session_id
+        flf_root = session_dir / "lineage_flf"
+        flf_root.mkdir()
+        output = flf_root / "lineage_flf_complete.mp4"
+        output.write_bytes(b"real-first-last-frame-video" * 5000)
+        stage_hashes = []
+        for index, stage in enumerate(session["history"]):
+            stage_path = session_dir / Path(stage["image_url"]).name
+            stage_hashes.append(
+                {
+                    "round": int(stage.get("round", index)),
+                    "sha256": hashlib.sha256(stage_path.read_bytes()).hexdigest(),
+                }
+            )
+        manifest = {
+            "contract_version": "1.0.0",
+            "passed": True,
+            "session": {
+                "session_id": session_id,
+                "updated_at": session["updated_at"],
+                "stage_sha256": stage_hashes,
+            },
+            "merged": {
+                "passed": True,
+                "sha256": hashlib.sha256(output.read_bytes()).hexdigest(),
+            },
+        }
+        (flf_root / "lineage_flf_validation.json").write_text(
+            json.dumps(manifest), encoding="utf-8"
+        )
+
+        self.assertEqual(service.lineage_video_path(session_id), output.resolve())
+
+    def test_selected_environment_recomputes_downstream_candidates(self) -> None:
+        calls: list[tuple[str, str | None]] = []
+
+        def option_planner(previous, spec, environment, contingency):
+            del previous
+            calls.append((environment["id"], contingency["id"] if contingency else None))
+            direction_ids = {
+                "oxygen_poor_pool": ["air_breathing", "bottom_support"],
+                "weedy_shallows": ["bottom_support", "deepwater_return"],
+            }[environment["id"]]
+            return {
+                "contingencies": [
+                    {"id": item["id"], "reason": "当前环境会改变这件事的后果。"}
+                    for item in spec["contingencies"][:2]
+                ],
+                "directions": [
+                    {"id": item_id, "reason": "这条路线与当前压力和已有性状更贴近。"}
+                    for item_id in direction_ids
+                ],
+            }, {"planner": "fixture", "strict_schema": True}
+
+        service = engine.InteractiveEvolutionService(
+            self.root,
+            dry_run=True,
+            option_planner=option_planner,
+        )
+        envelope = service.create_session("devonian_estuary")
+        session_id = envelope["session"]["session_id"]
+        low_oxygen = service.contextualize_choices(
+            session_id,
+            {"expected_round": 1, "environment_id": "oxygen_poor_pool"},
+        )
+        weeds = service.contextualize_choices(
+            session_id,
+            {"expected_round": 1, "environment_id": "weedy_shallows"},
+        )
+        self.assertEqual(calls, [("oxygen_poor_pool", None), ("weedy_shallows", None)])
+        self.assertEqual(
+            [item["id"] for item in low_oxygen["directions"]],
+            ["air_breathing", "bottom_support"],
+        )
+        self.assertEqual(
+            [item["id"] for item in weeds["directions"]],
+            ["bottom_support", "deepwater_return"],
+        )
+        self.assertTrue(all(item.get("context_reason") for item in weeds["directions"]))
+        contextual = service.contextualize_choices(
+            session_id,
+            {
+                "expected_round": 1,
+                "environment_id": "weedy_shallows",
+                "contingency_id": weeds["contingencies"][0]["id"],
+            },
+        )
+        evolved = service.evolve(
+            session_id,
+            {
+                "expected_round": 1,
+                "environment_id": "weedy_shallows",
+                "contingency_id": contextual["contingencies"][0]["id"],
+                "direction_id": contextual["directions"][0]["id"],
+            },
+        )
+        stage_selection = evolved["session"]["current_stage"]["selection"]
+        self.assertTrue(stage_selection["contingency"]["context_reason"])
+        self.assertTrue(stage_selection["direction"]["context_reason"])
+        self.assertEqual(
+            evolved["session"]["current_stage"]["model"]["choice_planner"]["planner"],
+            "fixture",
+        )
         self.assertEqual(
             envelope["session"]["lineage_video_url"],
             f"/api/sessions/{session_id}/lineage-video",
@@ -103,7 +215,7 @@ class InteractiveEvolutionServiceTests(unittest.TestCase):
             self.assertTrue(public_stage[field])
             self.assertTrue(all(engine.CHINESE_PATTERN.search(item) for item in public_stage[field]))
 
-    def test_open_world_registry_creates_four_distinct_scenarios(self) -> None:
+    def test_open_world_registry_creates_seven_distinct_scenarios(self) -> None:
         service = engine.InteractiveEvolutionService(self.root, dry_run=True)
         registry = service.list_scenarios()
         scenario_ids = [item["id"] for item in registry["scenarios"]]
@@ -114,6 +226,9 @@ class InteractiveEvolutionServiceTests(unittest.TestCase):
                 "tidal_symbiosis",
                 "ediacaran_seafloor",
                 "devonian_estuary",
+                "avian_flight",
+                "hominin_origins",
+                "space_human_future",
             ],
         )
         first_chapters: set[str] = set()
@@ -129,8 +244,123 @@ class InteractiveEvolutionServiceTests(unittest.TestCase):
             first_organisms.add(session["current_stage"]["organism_name"])
             asset_name = session["current_stage"]["image_url"].rsplit("/", 1)[1]
             self.assertTrue(service.asset_path(session["session_id"], asset_name).is_file())
-        self.assertEqual(len(first_chapters), 4)
-        self.assertEqual(len(first_organisms), 4)
+        self.assertEqual(len(first_chapters), 7)
+        self.assertEqual(len(first_organisms), 7)
+
+    def test_historical_key_innovation_survives_later_rounds(self) -> None:
+        service = engine.InteractiveEvolutionService(self.root, dry_run=True)
+        envelope = service.create_session("devonian_estuary")
+        session_id = envelope["session"]["session_id"]
+        envelope = service.evolve(
+            session_id,
+            {
+                "environment_id": "oxygen_poor_pool",
+                "contingency_id": "stronger_wrist_joint",
+                "direction_id": "bottom_support",
+                "expected_round": 1,
+            },
+        )
+        first_stage = envelope["session"]["current_stage"]
+        self.assertIn("能在浅水承重的成对附肢", first_stage["protected_traits"])
+        self.assertNotIn("有内部骨骼支撑的肉质鳍", first_stage["protected_traits"])
+        envelope = service.evolve(
+            session_id,
+            {
+                "environment_id": "seasonal_drought",
+                "contingency_id": "reinforced_rib",
+                "direction_id": "pool_hopper",
+                "expected_round": 2,
+            },
+        )
+        second_stage = envelope["session"]["current_stage"]
+        self.assertIn("能在湿泥短距推进的成对附肢", second_stage["protected_traits"])
+        self.assertNotIn("能在浅水承重的成对附肢", second_stage["protected_traits"])
+        envelope = service.evolve(
+            session_id,
+            {
+                "environment_id": "mudflat_expands",
+                "contingency_id": "broader_digits",
+                "direction_id": "amphibious_edge",
+                "expected_round": 3,
+            },
+        )
+        final_stage = envelope["session"]["current_stage"]
+        self.assertIn("带趾、仍适合浅水的承重附肢", final_stage["protected_traits"])
+        self.assertIn("带趾、仍适合浅水的承重附肢", final_stage["traits"])
+        self.assertNotIn("能在湿泥短距推进的成对附肢", final_stage["protected_traits"])
+
+    def test_historical_choices_cannot_skip_required_branch(self) -> None:
+        service = engine.InteractiveEvolutionService(self.root, dry_run=True)
+        envelope = service.create_session("devonian_estuary")
+        payload = first_selection(envelope, 1)
+        payload["direction_id"] = "deepwater_return"
+        envelope = service.evolve(envelope["session"]["session_id"], payload)
+        direction_ids = {item["id"] for item in envelope["choices"]["directions"]}
+        self.assertNotIn("pool_hopper", direction_ids)
+        self.assertIn("buried_dormancy", direction_ids)
+
+    def test_landing_route_requires_the_actual_appendage_ledger(self) -> None:
+        service = engine.InteractiveEvolutionService(self.root, dry_run=True)
+        envelope = service.create_session("devonian_estuary")
+        session_id = envelope["session"]["session_id"]
+        envelope = service.evolve(
+            session_id,
+            {
+                "environment_id": "oxygen_poor_pool",
+                "contingency_id": "air_gulping_reflex",
+                "direction_id": "air_breathing",
+                "expected_round": 1,
+            },
+        )
+        envelope = service.evolve(
+            session_id,
+            {
+                "environment_id": "shoreline_food",
+                "contingency_id": "shoreline_hearing",
+                "direction_id": "shoreline_ambush",
+                "expected_round": 2,
+            },
+        )
+        direction_ids = {item["id"] for item in envelope["choices"]["directions"]}
+        self.assertNotIn("amphibious_edge", direction_ids)
+        self.assertNotIn("shoreline_forager", direction_ids)
+        self.assertIn("aquatic_specialist", direction_ids)
+
+    def test_future_world_keeps_open_outcomes_explicit(self) -> None:
+        service = engine.InteractiveEvolutionService(self.root, dry_run=True)
+        envelope = service.create_session("space_human_future")
+        self.assertEqual(envelope["session"]["scenario"]["constraint_mode"], "future_scenario")
+        for round_no in range(1, 4):
+            envelope = service.evolve(
+                envelope["session"]["session_id"],
+                first_selection(envelope, round_no),
+            )
+            stage = envelope["session"]["current_stage"]
+            self.assertEqual(stage["evidence_tag"], "SCENARIO_EXTRAPOLATION")
+            self.assertIn("未来", stage["uncertainty_note"])
+
+    def test_planner_prompt_separates_historical_reconstruction_from_future_scenario(self) -> None:
+        service = engine.InteractiveEvolutionService(self.root, dry_run=True)
+        historical = service.create_session("devonian_estuary")
+        historical_spec = service._round_spec(1, "devonian_estuary")
+        historical_selection = service._validate_selection(
+            historical_spec,
+            first_selection(historical, 1),
+        )
+        historical_system = service._messages(
+            historical["session"]["current_stage"], historical_selection, historical_spec
+        )[0]["content"]
+        self.assertIn("历史重建模式", historical_system)
+        self.assertIn("关键性状不得无解释消失", historical_system)
+
+        future = service.create_session("space_human_future")
+        future_spec = service._round_spec(1, "space_human_future")
+        future_selection = service._validate_selection(future_spec, first_selection(future, 1))
+        future_system = service._messages(
+            future["session"]["current_stage"], future_selection, future_spec
+        )[0]["content"]
+        self.assertIn("未来推演模式", future_system)
+        self.assertIn("不能把适应性反应写成可遗传演化", future_system)
 
     def test_every_world_has_three_complete_rounds_and_curated_direction_cards(self) -> None:
         service = engine.InteractiveEvolutionService(self.root, dry_run=True)
@@ -148,6 +378,41 @@ class InteractiveEvolutionServiceTests(unittest.TestCase):
                         self.assertIn(card_id, service._cards)
                     else:
                         self.assertTrue(direction["transition_id"])
+
+    def test_every_world_can_finish_three_rounds_without_losing_historical_ledger(self) -> None:
+        service = engine.InteractiveEvolutionService(self.root, dry_run=True)
+        for scenario in service.list_scenarios()["scenarios"]:
+            envelope = service.create_session(scenario["id"])
+            previous_protected = set(
+                envelope["session"]["current_stage"].get("protected_traits", [])
+            )
+            for round_no in range(1, 4):
+                self.assertTrue(
+                    envelope["choices"]["directions"],
+                    f"{scenario['id']} round {round_no} has no reachable direction",
+                )
+                selected_direction = service._effective_round_spec(
+                    envelope["session"], round_no
+                )["directions"][0]
+                envelope = service.evolve(
+                    envelope["session"]["session_id"],
+                    first_selection(envelope, round_no),
+                )
+                stage = envelope["session"]["current_stage"]
+                if scenario["constraint_mode"] == "historical_reconstruction":
+                    current_protected = set(stage.get("protected_traits", []))
+                    replacements = {
+                        item["from"]: item["to"]
+                        for item in selected_direction.get("trait_transformations", [])
+                    }
+                    for trait in previous_protected:
+                        self.assertTrue(
+                            trait in current_protected
+                            or replacements.get(trait) in current_protected,
+                            f"{scenario['id']} round {round_no} lost {trait!r} without a declared transformation",
+                        )
+                    previous_protected = current_protected
+            self.assertEqual(envelope["session"]["status"], "completed")
 
     def test_prebiotic_dry_run_never_calls_chemical_stages_descendants_or_species(self) -> None:
         service = engine.InteractiveEvolutionService(self.root, dry_run=True)
@@ -196,11 +461,27 @@ class InteractiveEvolutionServiceTests(unittest.TestCase):
         service = engine.InteractiveEvolutionService(self.root, dry_run=True)
         social = service._knowledge_match("SOCIAL_COOPERATION", "M10")
         microbial = service._knowledge_match("MICROBIAL_CONSORTIUM", "M11")
+        early_flight = service._knowledge_match("FLIGHT", "B03")
         unknown = service._knowledge_match("NOT_CURATED", "M99")
         self.assertEqual(social["status"], "matched")
         self.assertEqual(microbial["status"], "matched")
+        self.assertEqual(
+            {source["source_id"] for source in early_flight["sources"]},
+            {"SRC-FEA-005"},
+        )
         self.assertEqual(unknown["status"], "no_match")
         self.assertEqual(unknown["generated_outcome_status"], "no_match")
+
+    def test_unsupported_historical_alternative_stays_no_match(self) -> None:
+        service = engine.InteractiveEvolutionService(self.root, dry_run=True)
+        envelope = service.create_session("devonian_estuary")
+        payload = first_selection(envelope, 1)
+        payload["direction_id"] = "deepwater_return"
+        envelope = service.evolve(envelope["session"]["session_id"], payload)
+        stage = envelope["session"]["current_stage"]
+        self.assertEqual(stage["evidence_tag"], "TEACHING_SIMPLIFICATION")
+        self.assertEqual(stage["knowledge_match"]["status"], "no_match")
+        self.assertEqual(stage["knowledge_match"]["sources"], [])
 
     def test_stale_round_and_unknown_choice_are_rejected_without_advancing(self) -> None:
         service = engine.InteractiveEvolutionService(self.root, dry_run=True)
@@ -314,6 +595,94 @@ class InteractiveEvolutionServiceTests(unittest.TestCase):
                     service._plan_with_step(session["current_stage"], selection, spec)
         self.assertEqual(context.exception.code, "planner_invalid_output")
         self.assertEqual(post.call_count, 2)
+
+    def test_historical_renderer_receives_key_trait_ledger(self) -> None:
+        service = engine.InteractiveEvolutionService(self.root, dry_run=True)
+        envelope = service.create_session("devonian_estuary")
+        envelope = service.evolve(
+            envelope["session"]["session_id"],
+            {
+                "environment_id": "oxygen_poor_pool",
+                "contingency_id": "stronger_wrist_joint",
+                "direction_id": "bottom_support",
+                "expected_round": 1,
+            },
+        )
+        session = envelope["session"]
+        session["current_stage"]["image_url"] = (
+            f"/api/assets/{session['session_id']}/stage_01.png"
+        )
+        reference_image = self.root / "stage_01.png"
+        from PIL import Image
+
+        Image.new("RGB", (32, 32), (0, 0, 0)).save(reference_image)
+        spec = service._effective_round_spec(session, 2)
+        selection = service._validate_selection(
+            spec,
+            {
+                "environment_id": "seasonal_drought",
+                "contingency_id": "reinforced_rib",
+                "direction_id": "pool_hopper",
+                "expected_round": 2,
+            },
+        )
+        captured: dict = {}
+
+        def fake_render(_chain, **kwargs):
+            captured.update(kwargs)
+            Image.new("RGB", (32, 32), (30, 30, 30)).save(kwargs["destination"])
+            return mock.Mock(
+                generator="fixture",
+                renderer="flux1",
+                seed=123,
+                duration_seconds=1.0,
+                fallback_from=None,
+                reference_conditioning=True,
+            )
+
+        result = {
+            "image_prompt": "A Devonian shoreline vertebrate in shallow water"
+        }
+        with mock.patch.dict(os.environ, {"EVOLAB_UNLOAD_OLLAMA": "0"}, clear=False):
+            with mock.patch.object(
+                engine.rendering, "render_image_with_fallback", side_effect=fake_render
+            ):
+                metadata = service._render_with_comfy(
+                    result,
+                    session["current_stage"],
+                    selection,
+                    self.root / "stage_02.png",
+                )
+        self.assertIn("能在浅水承重的成对附肢", captured["prompt"])
+        self.assertIn("Do not revert the body to an earlier generic form", captured["prompt"])
+        self.assertIn("Use the supplied previous-stage image", captured["prompt"])
+        self.assertIn("Devonian appendage lock", captured["prompt"])
+        self.assertIn("Required visible change", captured["prompt"])
+        self.assertIn("obvious at thumbnail scale", captured["prompt"])
+        self.assertIn("still continuous paddles without separate digits", captured["prompt"])
+        self.assertIn("separate digits", captured["negative_prompt"])
+        self.assertNotIn("Preserve the same individual body plan", captured["prompt"])
+        self.assertEqual(captured["reference_image"], reference_image)
+        self.assertIs(captured["upload_reference"], engine.video_generation.upload_image)
+        self.assertAlmostEqual(metadata["visual_change_score"], 30 / 255, places=3)
+
+    def test_reference_change_gate_rejects_copies_and_identity_jumps(self) -> None:
+        from PIL import Image
+
+        parent = self.root / "parent.png"
+        copy_like = self.root / "copy-like.png"
+        identity_jump = self.root / "identity-jump.png"
+        Image.new("RGB", (32, 32), (0, 0, 0)).save(parent)
+        Image.new("RGB", (32, 32), (5, 5, 5)).save(copy_like)
+        Image.new("RGB", (32, 32), (100, 100, 100)).save(identity_jump)
+        self.assertLess(
+            engine._visual_change_score(parent, copy_like),
+            engine.MIN_REFERENCE_CHANGE,
+        )
+        self.assertGreater(
+            engine._visual_change_score(parent, identity_jump),
+            engine.MAX_REFERENCE_CHANGE,
+        )
 
 
 if __name__ == "__main__":

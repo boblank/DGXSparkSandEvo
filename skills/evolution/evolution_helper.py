@@ -626,15 +626,10 @@ def apply_deterministic_rules(
             summary = revision.get("summary", "")
             if summary and summary not in route["description"]:
                 route["description"] = route["description"].rstrip("。") + "；" + summary
-            if rule["rule_id"] == "TRAIT_CONFLICT_HEAVY_FAST_CHEAP":
-                route["benefits"] = [
-                    "局部防护与伪装可降低被捕食风险",
-                    "短时爆发能力可支持伏击或紧急规避",
-                ]
-                route["costs"] = [
-                    "局部矿化和爆发运动仍需要额外能量投入",
-                    "持续游速受限，爆发后需要恢复",
-                ]
+            for outcome_key in ("benefits", "costs"):
+                authored_outcomes = revision.get(outcome_key)
+                if isinstance(authored_outcomes, list) and authored_outcomes:
+                    route[outcome_key] = [str(item) for item in authored_outcomes]
             rejections.append(
                 {
                     "rule_id": rule["rule_id"],

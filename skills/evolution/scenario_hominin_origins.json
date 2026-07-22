@@ -1,0 +1,89 @@
+{
+  "contract_version": "0.8.0",
+  "initial_stage": {
+    "stage_id": "origin",
+    "organism_name": "仍会爬树的早期人族近缘谱系",
+    "lineage_summary": "它生活在林地与开阔地交错的环境里，能双足走过一段地面，也保留有助于攀爬的上肢和手。这里不把任何化石指定为智人的唯一祖先。",
+    "change_summary": "故事从上新世非洲的多种人族开始。它们共享一些特征，也走向了许多没有延续到今天的旁支。",
+    "traits": [
+      "能够双足行走",
+      "仍保留明显攀爬能力",
+      "灵活抓握的手",
+      "以植物性食物为主的杂食取食"
+    ],
+    "protected_traits": [
+      "能够双足行走",
+      "灵活抓握的手"
+    ],
+    "internal_causes": ["骨盆、下肢和足部已经形成多种双足承重组合"],
+    "external_causes": ["林地、灌丛、水岸和开阔地在气候波动中反复移动"],
+    "benefits": ["双足行走能腾出手，也便于在斑块间移动"],
+    "costs": ["地面行走、攀爬和分娩之间存在长期结构权衡"],
+    "evidence_tag": "TEACHING_SIMPLIFICATION",
+    "uncertainty_note": "人族演化是一棵分枝繁多的树。现有化石不足以把每个种都排成通往智人的直线。",
+    "knowledge_card_id": "HUMAN_BIPEDALISM",
+    "transition_id": "H01"
+  },
+  "rounds": {
+    "1": {
+      "chapter": "双足行走不是一次完成的动作",
+      "time_scope": "HOMININ_TRANSITION",
+      "fixture_name": "在林地边缘行走的双足人族谱系",
+      "environments": [
+        {"id": "patchy_woodland", "title": "林地被开阔地切成许多斑块", "description": "食物仍在树上和灌丛里，但相邻斑块之间需要更长的地面移动。"},
+        {"id": "seasonal_water", "title": "旱季把水源压缩到少数河岸", "description": "种群必须在遮蔽、饮水和食物之间反复往返。"},
+        {"id": "mixed_relief", "title": "坡地、岩面和树根让地面很不平", "description": "行走方式要兼顾稳定、跨越障碍和必要时重新上树。"}
+      ],
+      "contingencies": [
+        {"id": "stiffer_midfoot", "title": "足中部更适合承受推进力", "description": "足部在蹬离地面时更稳定，抓握树枝的能力却受到限制。"},
+        {"id": "broader_pelvis", "title": "骨盆更能稳定单腿支撑", "description": "每一步左右晃动更少，但骨盆和产道的其他功能也要一起协调。"},
+        {"id": "longer_lower_limb", "title": "下肢比例略向地面行走倾斜", "description": "步幅和移动效率提高，上树时的动作组合却变了。"}
+      ],
+      "directions": [
+        {"id": "habitual_biped", "transition_id": "H01", "knowledge_card_id": "HUMAN_BIPEDALISM", "evidence_tag": "KNOWN_MECHANISM", "title": "把双足行走变成日常方式", "description": "继续调整骨盆、膝、足弓和下肢比例，不把身体直接画成现代人。", "mechanism_hint": "双足承重、步态稳定与下肢重配", "tradeoff_hint": "地面移动更省力，攀爬时可用的动作范围会缩小", "continuity_traits": ["稳定的双足承重步态"]},
+        {"id": "mixed_locomotion", "transition_id": "H01", "knowledge_card_id": "HUMAN_BIPEDALISM", "evidence_tag": "KNOWN_MECHANISM", "title": "保留上树，也更常在地面走", "description": "让双足移动与攀爬长期并存，不假定两者只能二选一。", "mechanism_hint": "镶嵌式运动、上肢保留与行为切换", "tradeoff_hint": "两种环境都能利用，任何一种运动方式都难做到完全专化", "continuity_traits": ["双足与攀爬并存的运动组合"]},
+        {"id": "arboreal_refuge", "transition_id": "H01", "knowledge_card_id": "HUMAN_BIPEDALISM", "evidence_tag": "TEACHING_SIMPLIFICATION", "title": "把夜间和危险时段留给树冠", "description": "地面取食后仍回树上休息，让攀爬能力继续受到选择。", "mechanism_hint": "栖息地分时利用与攀爬能力保留", "tradeoff_hint": "躲避部分地面风险，长距离地面移动仍受限制"}
+      ]
+    },
+    "2": {
+      "chapter": "手、食物和学习开始互相改变",
+      "time_scope": "HOMININ_TRANSITION",
+      "fixture_name": "会把取食技巧教给同伴的早期人属谱系",
+      "environments": [
+        {"id": "unstable_food", "title": "熟悉的食物每个季节都在换位置", "description": "固定吃法很难一直奏效，寻找、处理和分享食物变得重要。"},
+        {"id": "open_country", "title": "开阔地把食物点拉得更远", "description": "远距离移动、携带和合作取食的收益上升。"},
+        {"id": "carcass_window", "title": "大型动物留下短暂的食物机会", "description": "坚硬组织需要石片处理，现场也伴随捕食者和竞争者。"}
+      ],
+      "contingencies": [
+        {"id": "precise_grip", "title": "拇指与手指配合得更精细", "description": "抓握和调整石块更稳定，但手仍要承担攀爬、携带等任务。"},
+        {"id": "long_childhood", "title": "幼体依赖照料的时间更长", "description": "学习窗口变长，养育成本也压到整个群体。"},
+        {"id": "shared_attention", "title": "更容易跟随同伴的目光和手势", "description": "共同处理目标更顺畅，误读和欺骗也会带来代价。"}
+      ],
+      "directions": [
+        {"id": "tool_assisted_foraging", "transition_id": "H02", "knowledge_card_id": "HUMAN_GENE_CULTURE", "evidence_tag": "MECHANISM_HYPOTHESIS", "title": "让石器进入日常取食", "description": "保留双足和抓握能力，把石片制作变成需要练习和传递的技能。", "mechanism_hint": "工具使用、精细抓握与社会学习", "tradeoff_hint": "可处理更多食物，学习和携带工具都需要时间与能量", "allowed_parent_direction_ids": ["habitual_biped", "mixed_locomotion", "arboreal_refuge"], "continuity_traits": ["可社会传递的石器取食技能"]},
+        {"id": "endurance_foraging", "transition_id": "H01", "knowledge_card_id": "HUMAN_BIPEDALISM", "evidence_tag": "MECHANISM_HYPOTHESIS", "title": "把更远的地面路线连起来", "description": "提高长距离行走和散热能力，但不把耐力奔跑写成唯一解释。", "mechanism_hint": "长距离步行、散热与路线记忆", "tradeoff_hint": "活动范围扩大，水分与能量预算变得更紧", "allowed_parent_direction_ids": ["habitual_biped", "mixed_locomotion"], "continuity_traits": ["适合长距离行走的身体比例"]},
+        {"id": "cooperative_care", "transition_id": "M10", "knowledge_card_id": "SOCIAL_COOPERATION", "evidence_tag": "MECHANISM_HYPOTHESIS", "title": "让更多同伴参与照料幼体", "description": "把食物、警戒和学习成本分散到亲属与稳定伙伴之间。", "mechanism_hint": "合作育幼、互惠与社会学习", "tradeoff_hint": "幼体得到更长学习期，群体也要处理搭便车和冲突", "allowed_parent_direction_ids": ["habitual_biped", "mixed_locomotion", "arboreal_refuge"], "continuity_traits": ["延长的社会学习期"]}
+      ]
+    },
+    "3": {
+      "chapter": "智人来自相连的种群，不是一处突然升级",
+      "time_scope": "HOMININ_TRANSITION",
+      "fixture_name": "彼此往来并保留地方差异的早期智人谱系",
+      "environments": [
+        {"id": "african_mosaic", "title": "非洲各地的湿润与干旱阶段交替出现", "description": "种群时而隔离，时而沿河流、湖岸和草原重新接触。"},
+        {"id": "resource_frontiers", "title": "新的海岸、高地和荒漠边缘可以进入", "description": "不同地区需要新的取食组合、衣物、火与协作方式。"},
+        {"id": "population_contact", "title": "原本分开的群体再次相遇", "description": "基因、技术和习俗可能交换，也可能因竞争而中断。"}
+      ],
+      "contingencies": [
+        {"id": "long_distance_exchange", "title": "一件材料跨过了很远的地理距离", "description": "物品流动提示群体之间存在反复联系，但不能单独证明完整贸易网络。"},
+        {"id": "compound_tools", "title": "多种材料被组合成一件工具", "description": "制作顺序和修理方法更难靠偶然模仿稳定传下去。"},
+        {"id": "population_bottleneck", "title": "一次气候事件让局部种群骤减", "description": "少数幸存者保留的基因与文化会放大，许多地方传统也可能丢失。"}
+      ],
+      "directions": [
+        {"id": "connected_populations", "transition_id": "H03", "knowledge_card_id": "HOMO_SAPIENS_ORIGINS", "evidence_tag": "MECHANISM_HYPOTHESIS", "title": "让分散种群保持断续往来", "description": "地方差异继续存在，基因和文化又在接触期重新汇合。", "mechanism_hint": "种群结构、迁移、基因交流与文化传播", "tradeoff_hint": "多样性和创新来源增加，疾病、冲突与外来竞争也会传播", "allowed_parent_direction_ids": ["tool_assisted_foraging", "endurance_foraging", "cooperative_care"], "continuity_traits": ["跨群体的社会与文化联结"]},
+        {"id": "high_fidelity_teaching", "transition_id": "H02", "knowledge_card_id": "HUMAN_GENE_CULTURE", "evidence_tag": "MECHANISM_HYPOTHESIS", "title": "把复杂技能更准确地教给下一代", "description": "通过示范、手势和语言样交流提高传递精度，不宣称语言在某个时点突然完成。", "mechanism_hint": "教学、共同注意与高保真文化传递", "tradeoff_hint": "复杂技术更易积累，学习周期和社会依赖也更长", "allowed_parent_direction_ids": ["tool_assisted_foraging", "cooperative_care"], "continuity_traits": ["高保真社会学习与教学"]},
+        {"id": "regional_specialization", "transition_id": "H03", "knowledge_card_id": "HOMO_SAPIENS_ORIGINS", "evidence_tag": "TEACHING_SIMPLIFICATION", "title": "先适应地方环境，再在接触时交换", "description": "保留区域性身体与文化差异，不把单一地区写成全部智人的唯一起点。", "mechanism_hint": "地方适应、种群结构与间歇交流", "tradeoff_hint": "地方生存更稳定，长期隔离也可能减少遗传与文化交流", "allowed_parent_direction_ids": ["tool_assisted_foraging", "endurance_foraging", "cooperative_care"], "continuity_traits": ["区域适应与群体间歇交流"]}
+      ]
+    }
+  }
+}

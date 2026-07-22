@@ -1,0 +1,86 @@
+{
+  "contract_version": "0.8.0",
+  "initial_stage": {
+    "stage_id": "origin",
+    "organism_name": "第一批长期生活在轨道栖息地的人类居民",
+    "lineage_summary": "他们仍是现代人，依靠旋转重力、屏蔽层、药物、锻炼和生命保障系统生活。最先出现的是生理适应与技术补偿，不是一个人在太空里突然进化。",
+    "change_summary": "故事从已知航天生理反应出发，向多世代隔离后的可能性推演。每一轮都必须保留“尚未被证实”的边界。",
+    "traits": [
+      "现代人类的基本身体结构",
+      "依赖工程生命保障系统",
+      "骨骼和肌肉会对低重力发生可塑性变化",
+      "仍与地球种群保持基因与文化联系"
+    ],
+    "protected_traits": [],
+    "internal_causes": ["人类种群已有影响骨代谢、辐射反应和昼夜节律的遗传差异"],
+    "external_causes": ["低重力、辐射、封闭生态与技术环境共同塑造生活"],
+    "benefits": ["工程系统挡住了大部分直接选择压力"],
+    "costs": ["系统故障、资源封闭与小种群效应会放大风险"],
+    "evidence_tag": "SCENARIO_EXTRAPOLATION",
+    "uncertainty_note": "已知证据主要来自短期或单代航天任务。跨数百年至数千年的可遗传变化没有被观察到，以下都是受约束的未来情景。",
+    "knowledge_card_id": "SPACE_PHYSIOLOGY",
+    "transition_id": "F01"
+  },
+  "rounds": {
+    "1": {
+      "chapter": "先活下来：生理反应不等于演化",
+      "time_scope": "FUTURE_SCENARIO",
+      "fixture_name": "由技术保护的第一代太空居民",
+      "environments": [
+        {"id": "microgravity_station", "title": "栖息地长期只有很低的有效重力", "description": "骨、肌肉、体液和前庭系统持续受到不同于地球的刺激。", "knowledge_card_id": "SPACE_PHYSIOLOGY", "pressure_id": "MICROGRAVITY"},
+        {"id": "radiation_shelter", "title": "辐射屏蔽足够日常使用，却不能消除全部暴露", "description": "屏蔽、修复和任务安排共同决定风险，不能把辐射直接写成定向突变器。", "knowledge_card_id": "SPACE_RADIATION", "pressure_id": "SPACE_RADIATION"},
+        {"id": "artificial_gravity", "title": "旋转舱每天提供一段人工重力", "description": "技术把压力削弱，也可能让多数地球身体特征继续维持。", "knowledge_card_id": "SPACE_PHYSIOLOGY", "pressure_id": "MICROGRAVITY"}
+      ],
+      "contingencies": [
+        {"id": "exercise_failure", "title": "一次设备故障打断了数月抗阻训练", "description": "居民出现可逆的骨量和肌力变化，这仍是个体生理反应。"},
+        {"id": "shielding_upgrade", "title": "水与食物储层被重新布置成屏蔽墙", "description": "工程改变了暴露环境，也改变了资源和空间分配。"},
+        {"id": "circadian_redesign", "title": "照明系统重新模拟二十四小时昼夜", "description": "睡眠和代谢节律改善，技术继续承担主要适应。"}
+      ],
+      "directions": [
+        {"id": "technology_buffered", "transition_id": "F01", "knowledge_card_id": "SPACE_PHYSIOLOGY", "evidence_tag": "SCENARIO_EXTRAPOLATION", "title": "尽量用工程保留地球身体", "description": "加强人工重力、锻炼和医疗，把生理变化控制在可逆范围。", "mechanism_hint": "技术生态位建构、生理可塑性与医疗监测", "tradeoff_hint": "身体变化较少，栖息地却更依赖能源、维护和备件"},
+        {"id": "low_gravity_lifestyle", "transition_id": "F01", "knowledge_card_id": "SPACE_PHYSIOLOGY", "evidence_tag": "SCENARIO_EXTRAPOLATION", "title": "让生活方式适应低重力", "description": "用抓握路线、轻负载工作和短时重力训练重新安排日常，不宣称这些变化已经遗传。", "mechanism_hint": "行为适应、运动学习与可塑性", "tradeoff_hint": "太空活动更省力，返回地球会更困难"},
+        {"id": "radiation_cautious", "transition_id": "F01", "knowledge_card_id": "SPACE_RADIATION", "evidence_tag": "SCENARIO_EXTRAPOLATION", "title": "把暴露管理放在形态变化之前", "description": "用屏蔽、预警和修复医疗降低损伤，不把癌症或突变浪漫化。", "mechanism_hint": "辐射防护、DNA 损伤监测与风险分层", "tradeoff_hint": "健康风险下降，活动范围和资源预算受到限制"}
+      ]
+    },
+    "2": {
+      "chapter": "只有跨过许多代，遗传频率才可能改变",
+      "time_scope": "FUTURE_SCENARIO",
+      "fixture_name": "在部分重力栖息地繁衍多代的人类种群",
+      "environments": [
+        {"id": "partial_gravity_settlement", "title": "定居点在部分重力下运行了许多代", "description": "发育、妊娠和一生运动都在新重力环境中完成，但真实长期数据仍不存在。", "knowledge_card_id": "SPACE_MULTIGENERATIONAL", "pressure_id": "PARTIAL_GRAVITY"},
+        {"id": "closed_ecology", "title": "封闭生态把食物和微生物暴露变得不同", "description": "饮食、免疫和代谢共同变化，文化实践仍可能强于遗传选择。", "knowledge_card_id": "SPACE_MULTIGENERATIONAL", "pressure_id": "POPULATION_ISOLATION"},
+        {"id": "rare_earth_contact", "title": "与地球的迁移从每年变成几十年一次", "description": "基因流下降，小种群漂变和创始者效应更容易放大。", "knowledge_card_id": "SPACE_MULTIGENERATIONAL", "pressure_id": "POPULATION_ISOLATION"}
+      ],
+      "contingencies": [
+        {"id": "founder_effect", "title": "一次迁移只留下了很小的繁殖群体", "description": "原本偶然的遗传频率被放大，不代表这些差异更优。"},
+        {"id": "gravity_policy", "title": "公共健康政策规定儿童每天进入重力舱", "description": "制度改变选择压力，也可能长期保留地球兼容性。"},
+        {"id": "reproductive_bottleneck", "title": "生殖健康危机压缩了有效种群规模", "description": "医学和社会选择都会影响谁能留下后代，伦理风险必须被看见。"}
+      ],
+      "directions": [
+        {"id": "earth_compatible", "transition_id": "F02", "knowledge_card_id": "SPACE_MULTIGENERATIONAL", "evidence_tag": "SCENARIO_EXTRAPOLATION", "title": "主动保留与地球往返的能力", "description": "用人工重力、迁移和医疗降低种群分化，变化主要停留在生活史与文化。", "mechanism_hint": "基因流、技术缓冲与发展可塑性", "tradeoff_hint": "保持跨星球流动，基础设施和能源成本长期偏高", "allowed_parent_direction_ids": ["technology_buffered", "low_gravity_lifestyle", "radiation_cautious"]},
+        {"id": "partial_gravity_adaptation", "transition_id": "F02", "knowledge_card_id": "SPACE_MULTIGENERATIONAL", "evidence_tag": "SCENARIO_EXTRAPOLATION", "title": "允许部分重力中的发育差异逐代积累", "description": "假设骨重塑、平衡和循环相关差异在多代中改变频率，但不指定夸张外形。", "mechanism_hint": "可遗传变异、发育约束、自然选择与漂变", "tradeoff_hint": "当地生活可能更稳定，对高重力环境的耐受或下降", "allowed_parent_direction_ids": ["technology_buffered", "low_gravity_lifestyle", "radiation_cautious"]},
+        {"id": "small_population_drift", "transition_id": "F02", "knowledge_card_id": "SPACE_MULTIGENERATIONAL", "evidence_tag": "SCENARIO_EXTRAPOLATION", "title": "让隔离和漂变成为更强的力量", "description": "小种群中的偶然频率变化可能超过适应性选择，结果未必更适合环境。", "mechanism_hint": "创始者效应、遗传漂变与近交管理", "tradeoff_hint": "群体特征快速分化，遗传负担与脆弱性也可能上升", "allowed_parent_direction_ids": ["technology_buffered", "low_gravity_lifestyle", "radiation_cautious"]}
+      ]
+    },
+    "3": {
+      "chapter": "未来不是一种新人类，而是一组可撤回的假说",
+      "time_scope": "FUTURE_SCENARIO",
+      "fixture_name": "与地球仍可交流的太空人类分支",
+      "environments": [
+        {"id": "multiple_habitats", "title": "轨道、月面和火星形成不同重力生态位", "description": "同一个人类物种可能先出现文化与生活史分化，而非整齐划一的新身体。", "knowledge_card_id": "SPACE_MULTIGENERATIONAL", "pressure_id": "PARTIAL_GRAVITY"},
+        {"id": "high_radiation_frontier", "title": "边远栖息地仍有较高辐射背景", "description": "选择、医学和工程会同时作用，任何遗传外推都高度不确定。", "knowledge_card_id": "SPACE_RADIATION", "pressure_id": "SPACE_RADIATION"},
+        {"id": "renewed_migration", "title": "新推进技术重新打开星球间迁移", "description": "基因流可能抹平部分差异，也让不同栖息地的风险互相传播。", "knowledge_card_id": "SPACE_MULTIGENERATIONAL", "pressure_id": "POPULATION_ISOLATION"}
+      ],
+      "contingencies": [
+        {"id": "medical_gene_flow", "title": "跨栖息地医疗与胚胎运输恢复", "description": "人为基因流让分化速度下降，也带来治理与伦理冲突。"},
+        {"id": "habitat_failure", "title": "一次栖息地故障迫使居民迁往不同重力环境", "description": "原本当地有利的差异可能立刻成为负担。"},
+        {"id": "cultural_split", "title": "社群对人工重力和身体改造产生不同制度", "description": "文化选择改变暴露环境，但不能被误写成自然选择本身。"}
+      ],
+      "directions": [
+        {"id": "connected_humanity", "transition_id": "F03", "knowledge_card_id": "SPACE_MULTIGENERATIONAL", "evidence_tag": "SCENARIO_EXTRAPOLATION", "title": "保持一个持续交流的人类种群网络", "description": "迁移、人工重力与医学让差异保持可逆，不追求制造新物种。", "mechanism_hint": "基因流、文化交流与技术缓冲", "tradeoff_hint": "共同体联系更强，维持跨星球基础设施的代价巨大", "allowed_parent_direction_ids": ["earth_compatible", "partial_gravity_adaptation", "small_population_drift"]},
+        {"id": "habitat_specialists", "transition_id": "F03", "knowledge_card_id": "SPACE_MULTIGENERATIONAL", "evidence_tag": "SCENARIO_EXTRAPOLATION", "title": "形成仍可交流的栖息地专化群体", "description": "对重力、昼夜和封闭生态的差异可能积累，但外观和幅度都不作确定预言。", "mechanism_hint": "地方选择、漂变、基因流与基因—文化共演化", "tradeoff_hint": "当地适配提高，跨栖息地迁移和医疗更困难", "allowed_parent_direction_ids": ["earth_compatible", "partial_gravity_adaptation", "small_population_drift"]},
+        {"id": "cultural_divergence", "transition_id": "F03", "knowledge_card_id": "SPACE_MULTIGENERATIONAL", "evidence_tag": "SCENARIO_EXTRAPOLATION", "title": "先让文化与技术分化，身体变化保持有限", "description": "不同社群用制度、建筑和生活方式解决压力，遗传分化被持续基因流压低。", "mechanism_hint": "文化进化、生态位建构与基因流", "tradeoff_hint": "身体兼容性保留，社会制度之间的冲突可能扩大", "allowed_parent_direction_ids": ["earth_compatible", "partial_gravity_adaptation", "small_population_drift"]}
+      ]
+    }
+  }
+}

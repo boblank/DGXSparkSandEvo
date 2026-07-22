@@ -133,6 +133,136 @@
   ],
   "sources": [
     {
+      "source_id": "SRC-HUM-001",
+      "title": "A new hominin foot from Ethiopia shows multiple Pliocene bipedal adaptations",
+      "url": "https://www.nature.com/articles/nature10922",
+      "supports": "约三百四十万年前的足部化石显示，同时代人族存在不止一种运动适应组合。",
+      "boundary": "局部足骨支持运动多样性，不足以确定完整身体形态或直接祖先关系。",
+      "transition_ids": ["H01"],
+      "pressure_ids": [],
+      "knowledge_card_ids": ["HUMAN_BIPEDALISM"]
+    },
+    {
+      "source_id": "SRC-HUM-002",
+      "title": "A juvenile early hominin skeleton from Dikika, Ethiopia",
+      "url": "https://www.nature.com/articles/nature05047",
+      "supports": "Dikika 幼年南方古猿骨架同时保留双足行走与部分攀爬相关特征。",
+      "boundary": "单一个体和幼年骨架不能代表全部早期人族，也不能排出唯一运动演化顺序。",
+      "transition_ids": ["H01"],
+      "pressure_ids": [],
+      "knowledge_card_ids": ["HUMAN_BIPEDALISM"]
+    },
+    {
+      "source_id": "SRC-HUM-003",
+      "title": "New fossils from Jebel Irhoud, Morocco and the pan-African origin of Homo sapiens",
+      "url": "https://www.nature.com/articles/nature22336",
+      "supports": "杰贝尔伊鲁德化石把早期智人形态记录扩展至约三十万年前，并支持泛非洲视角。",
+      "boundary": "一个遗址不能独自确定全部智人的唯一起源地或完整种群关系。",
+      "transition_ids": ["H03"],
+      "pressure_ids": [],
+      "knowledge_card_ids": ["HOMO_SAPIENS_ORIGINS"]
+    },
+    {
+      "source_id": "SRC-HUM-004",
+      "title": "A weakly structured stem for human origins in Africa",
+      "url": "https://www.nature.com/articles/s41586-023-06055-y",
+      "supports": "遗传模型支持非洲内部长期存在结构较弱、相互交流的祖先种群，而非单一孤立起点。",
+      "boundary": "模型结果依赖数据与人口史假设，不是已经逐年复原的真实迁徙地图。",
+      "transition_ids": ["H03"],
+      "pressure_ids": [],
+      "knowledge_card_ids": ["HOMO_SAPIENS_ORIGINS"]
+    },
+    {
+      "source_id": "SRC-HUM-005",
+      "title": "Experimental evidence for the co-evolution of hominin tool-making teaching and language",
+      "url": "https://www.nature.com/articles/ncomms7029",
+      "supports": "现代实验中，教学和语言样交流提高了石器制作信息的传递效率。",
+      "boundary": "现代受试者实验支持传递机制，不是古人类语言出现时间的直接证据。",
+      "transition_ids": ["H02"],
+      "pressure_ids": [],
+      "knowledge_card_ids": ["HUMAN_GENE_CULTURE"]
+    },
+    {
+      "source_id": "SRC-FEA-001",
+      "title": "Branched integumental structures in Sinornithosaurus and the origin of feathers",
+      "url": "https://www.nature.com/articles/35065589",
+      "supports": "非鸟恐龙化石保存了分叉体表结构，为羽毛早于鸟类飞行提供形态证据。",
+      "boundary": "保存状态和不同恐龙支系关系限制了颜色、覆盖范围与祖先顺序的还原。",
+      "transition_ids": ["B01"],
+      "pressure_ids": [],
+      "knowledge_card_ids": ["FEATHER_EVOLUTION"]
+    },
+    {
+      "source_id": "SRC-FEA-002",
+      "title": "'Modern' feathers on a non-avian dinosaur",
+      "url": "https://www.nature.com/articles/416036a",
+      "supports": "非鸟恐龙上存在具有现代羽片特征的羽毛，说明复杂羽毛并非鸟类独有。",
+      "boundary": "复杂羽毛存在不等于该动物能够动力飞行。",
+      "transition_ids": ["B01"],
+      "pressure_ids": [],
+      "knowledge_card_ids": ["FEATHER_EVOLUTION"]
+    },
+    {
+      "source_id": "SRC-FEA-003",
+      "title": "New specimen of Archaeopteryx provides insights into the evolution of pennaceous feathers",
+      "url": "https://www.nature.com/articles/nature13467",
+      "supports": "始祖鸟新标本记录羽片在身体不同区域的分布，为飞行前后多功能羽毛提供约束。",
+      "boundary": "始祖鸟是一种具体镶嵌形态，不代表所有鸟类飞行路径的单一直系祖先。",
+      "transition_ids": ["B01", "B02"],
+      "pressure_ids": [],
+      "knowledge_card_ids": ["FEATHER_EVOLUTION", "FLIGHT"]
+    },
+    {
+      "source_id": "SRC-FEA-004",
+      "title": "Aerodynamic performance of the feathered dinosaur Microraptor and the evolution of feathered flight",
+      "url": "https://www.nature.com/articles/ncomms3489",
+      "supports": "物理模型测试了小盗龙不同姿态的气动表现，说明羽面可支持受控滑翔情景。",
+      "boundary": "模型约束可行姿态，不证明飞行起源只有一种行为路线。",
+      "transition_ids": ["B02"],
+      "pressure_ids": [],
+      "knowledge_card_ids": ["FLIGHT"]
+    },
+    {
+      "source_id": "SRC-FEA-005",
+      "title": "Wing bone geometry reveals active flight in Archaeopteryx",
+      "url": "https://www.nature.com/articles/s41467-018-03296-8",
+      "supports": "三件始祖鸟标本的翼骨截面几何与现生飞行鸟类比较，支持其具备主动拍翼、尤其是短距离拍翼飞行能力。",
+      "boundary": "骨骼力学支持始祖鸟能够主动飞行，不等于已经确定鸟类最初如何起飞，也不证明所有近鸟类共享同一路径。",
+      "transition_ids": ["B03"],
+      "pressure_ids": [],
+      "knowledge_card_ids": ["FLIGHT"]
+    },
+    {
+      "source_id": "SRC-SPC-001",
+      "title": "The NASA Twins Study: A multidimensional analysis of a year-long human spaceflight",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/30975860/",
+      "supports": "一年航天任务前后可观察到多系统生理与分子变化，其中许多在返回后恢复或需要继续追踪。",
+      "boundary": "双生子个案研究样本极小，不能推断跨世代遗传演化。",
+      "transition_ids": ["F01", "F02", "F03"],
+      "pressure_ids": ["MICROGRAVITY", "SPACE_RADIATION"],
+      "knowledge_card_ids": ["SPACE_PHYSIOLOGY", "SPACE_RADIATION", "SPACE_MULTIGENERATIONAL"]
+    },
+    {
+      "source_id": "SRC-SPC-002",
+      "title": "The effects of microgravity on bone structure and function",
+      "url": "https://www.nature.com/articles/s41526-022-00194-8",
+      "supports": "综述低重力对骨重塑、骨量和骨功能的影响及其机制。",
+      "boundary": "航天生理反应和地面模拟不能直接外推数百代后的可遗传形态。",
+      "transition_ids": ["F01", "F02", "F03"],
+      "pressure_ids": ["MICROGRAVITY", "PARTIAL_GRAVITY"],
+      "knowledge_card_ids": ["SPACE_PHYSIOLOGY", "SPACE_MULTIGENERATIONAL"]
+    },
+    {
+      "source_id": "SRC-SPC-003",
+      "title": "A systematic review and meta-analysis of bone loss in space travelers",
+      "url": "https://www.nature.com/articles/s41526-020-0103-2",
+      "supports": "系统综述与荟萃分析量化了航天人员骨量下降，并显示任务和部位之间存在差异。",
+      "boundary": "汇总的是个体任务期变化，不是自然选择或太空出生后代的数据。",
+      "transition_ids": ["F01", "F02", "F03"],
+      "pressure_ids": ["MICROGRAVITY", "PARTIAL_GRAVITY"],
+      "knowledge_card_ids": ["SPACE_PHYSIOLOGY", "SPACE_MULTIGENERATIONAL"]
+    },
+    {
       "source_id": "SRC-EUK-001",
       "title": "The emerging view on the origin and early evolution of eukaryotic cells",
       "url": "https://doi.org/10.1038/s41586-024-07677-6",

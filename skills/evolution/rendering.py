@@ -40,6 +40,7 @@ class RenderedImage:
     seed: int
     duration_seconds: float
     fallback_from: str | None
+    reference_conditioning: bool = False
 
 
 def _read_json(path: Path) -> Any:
@@ -111,9 +112,15 @@ def build_image_workflow(
     width: int = 1024,
     height: int = 1024,
     remove_negative_terms: tuple[str, ...] = (),
+    reference_image: str | None = None,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     resolved_id, profile = resolve_renderer(renderer_id)
-    workflow_path = SCRIPT_DIR / str(profile["workflow_file"])
+    workflow_filename = (
+        profile.get("reference_workflow_file")
+        if reference_image and profile.get("reference_workflow_file")
+        else profile["workflow_file"]
+    )
+    workflow_path = SCRIPT_DIR / str(workflow_filename)
     workflow = copy.deepcopy(_read_json(workflow_path))
     roles = profile["nodes"]
 
@@ -138,6 +145,14 @@ def build_image_workflow(
     seed_inputs[str(roles["seed"]["field"])] = int(seed)
     output_inputs = _node(workflow, roles["output"])
     output_inputs[str(roles["output"]["field"])] = filename_prefix
+    if reference_image:
+        reference_role = roles.get("reference")
+        if not reference_role or not profile.get("reference_workflow_file"):
+            raise RendererConfigurationError(
+                f"renderer {resolved_id} does not support reference conditioning"
+            )
+        reference_inputs = _node(workflow, reference_role)
+        reference_inputs[str(reference_role["field"])] = reference_image
     for dimension_role in roles.get("dimensions", []):
         dimension_inputs = _node(workflow, dimension_role)
         dimension_inputs[str(dimension_role["width_field"])] = int(width)
@@ -150,6 +165,7 @@ def build_image_workflow(
         "seed": int(seed),
         "width": int(width),
         "height": int(height),
+        "reference_conditioning": bool(reference_image),
     }
 
 
@@ -157,6 +173,7 @@ SubmitPrompt = Callable[[dict[str, Any], str], str]
 WaitForPrompt = Callable[[str, str, int], dict[str, Any]]
 LocateOutput = Callable[[dict[str, Any], Path], Path]
 LogMessage = Callable[[str], None]
+UploadReference = Callable[[Path, str], str]
 
 
 def render_image_with_fallback(
@@ -176,6 +193,8 @@ def render_image_with_fallback(
     width: int = 1024,
     height: int = 1024,
     remove_negative_terms: tuple[str, ...] = (),
+    reference_image: Path | None = None,
+    upload_reference: UploadReference | None = None,
     log: LogMessage | None = None,
 ) -> RenderedImage:
     attempts: list[dict[str, str]] = []
@@ -183,6 +202,20 @@ def render_image_with_fallback(
     for renderer_id in renderer_ids:
         started = time.monotonic()
         try:
+            _, profile = resolve_renderer(renderer_id)
+            reference_name = None
+            if reference_image:
+                if not profile.get("reference_workflow_file"):
+                    raise RendererConfigurationError(
+                        f"renderer {renderer_id} cannot preserve the supplied lineage reference"
+                    )
+                if not reference_image.is_file():
+                    raise FileNotFoundError("reference image is missing")
+                if upload_reference is None:
+                    raise RendererConfigurationError(
+                        "reference-capable rendering requires an uploader"
+                    )
+                reference_name = upload_reference(reference_image, comfy_url)
             workflow, metadata = build_image_workflow(
                 renderer_id,
                 prompt=prompt,
@@ -192,6 +225,7 @@ def render_image_with_fallback(
                 width=width,
                 height=height,
                 remove_negative_terms=remove_negative_terms,
+                reference_image=reference_name,
             )
             prompt_id = submit_prompt(workflow, comfy_url)
             outputs = wait_for_prompt(prompt_id, comfy_url, timeout)
@@ -207,6 +241,7 @@ def render_image_with_fallback(
                 seed=int(seed),
                 duration_seconds=round(time.monotonic() - started, 3),
                 fallback_from=primary if renderer_id != primary else None,
+                reference_conditioning=bool(metadata["reference_conditioning"]),
             )
         except Exception as exc:
             attempts.append({"renderer": renderer_id, "error": type(exc).__name__})

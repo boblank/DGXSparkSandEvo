@@ -303,6 +303,16 @@ class EvoLabHandler(SimpleHTTPRequestHandler):
                 scenario_id = payload.get("scenario_id")
                 self._send_json(201, self.service.create_session(scenario_id))
                 return
+            choices = re.fullmatch(
+                r"/api/sessions/([0-9]{8}T[0-9]{6}-[a-f0-9]{8})/choices", path
+            )
+            if choices:
+                payload = self._read_json_body()
+                self._send_json(
+                    200,
+                    self.service.contextualize_choices(choices.group(1), payload),
+                )
+                return
             match = re.fullmatch(
                 r"/api/sessions/([0-9]{8}T[0-9]{6}-[a-f0-9]{8})/evolve", path
             )

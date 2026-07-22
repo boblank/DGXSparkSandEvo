@@ -1,0 +1,50 @@
+{
+  "contract_version": "1.0.0",
+  "release": "v1.0.0-submission",
+  "generated_at": "2026-07-22T15:33:00Z",
+  "assets": [
+    {
+      "role": "90_second_project_introduction",
+      "path": "evolab-90s-introduction.mp4",
+      "duration_seconds": 90.005333,
+      "bytes": 19021764,
+      "sha256": "12cc48fd48144d2fcdb2fe0dc458b3770af5b7b2785a52f027043144565e6aae",
+      "video": {
+        "codec": "h264",
+        "width": 1920,
+        "height": 1080,
+        "fps": 24
+      },
+      "audio": {
+        "codec": "aac",
+        "sample_rate": 48000,
+        "channels": 2,
+        "narration": "StepAudio 2.5 TTS, official ruyananshi voice"
+      },
+      "validation": {
+        "hyperframes_lint_errors": 0,
+        "runtime_errors": 0,
+        "layout_errors": 0,
+        "motion_errors": 0,
+        "contrast_checks_passed": "40/40",
+        "full_decode_pass": true,
+        "manual_frame_review_pass": true
+      }
+    },
+    {
+      "role": "fixed_four_stage_lineage_replay",
+      "path": "evolab-fixed-lineage-replay.mp4",
+      "duration_seconds": 9.75,
+      "bytes": 741257,
+      "sha256": "3624732702bd90aadd74f87f32441c7ba51911807767d2c8afa9b33f8deb2c5d",
+      "video": {
+        "codec": "h264",
+        "width": 1280,
+        "height": 720,
+        "fps": 24
+      },
+      "audio": null,
+      "boundary_zh": "固定回放用于断网或实时生成失败时复现四阶段谱系，不替代真实交互。"
+    }
+  ]
+}

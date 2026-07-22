@@ -4,6 +4,7 @@ import importlib.util
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -17,7 +18,7 @@ SPEC.loader.exec_module(lineage_video)
 class LineageVideoTests(unittest.TestCase):
     def test_plan_uses_four_stage_images_and_saved_chinese_choices(self) -> None:
         try:
-            from PIL import Image
+            from PIL import Image, ImageChops, ImageDraw
         except ImportError as exc:  # pragma: no cover - the encoder runtime ships Pillow
             self.skipTest(str(exc))
 
@@ -28,9 +29,10 @@ class LineageVideoTests(unittest.TestCase):
                 encoding="utf-8",
             )
             for round_no in range(1, 4):
-                Image.new("RGB", (48, 32), (20 * round_no, 60, 80)).save(
-                    root / f"stage_{round_no:02d}.png"
-                )
+                image = Image.new("RGB", (48, 32), (20 * round_no, 60, 80))
+                draw = ImageDraw.Draw(image)
+                draw.ellipse((8 + round_no, 5, 35, 27), fill=(180, 130, 70))
+                image.save(root / f"stage_{round_no:02d}.png")
 
             history = [
                 {
@@ -68,17 +70,44 @@ class LineageVideoTests(unittest.TestCase):
                 "history": history,
             }
 
-            plan = lineage_video.build_recap_plan(session, root)
+            with mock.patch.object(lineage_video.shutil, "which", return_value=None):
+                plan = lineage_video.build_recap_plan(session, root)
             self.assertEqual(plan["input_stage_count"], 4)
             self.assertEqual([stage["round"] for stage in plan["stages"]], [0, 1, 2, 3])
-            self.assertEqual(plan["stages"][0]["source_kind"], "vector_placeholder")
+            self.assertEqual(plan["stages"][0]["source_kind"], "vector_unavailable")
             self.assertEqual(plan["stages"][3]["source_kind"], "raster")
             self.assertEqual(plan["stages"][2]["choice"], "第2轮用户选择")
             self.assertEqual(plan["stages"][2]["change"], "第2轮留下的变化与代价。")
+            self.assertEqual(
+                plan["stages"][0]["visible_copy"],
+                {"eyebrow": "起点", "headline": "泥盆纪河口的肉鳍鱼"},
+            )
+            self.assertEqual(
+                plan["stages"][2]["visible_copy"],
+                {"eyebrow": "第 2 次改变", "headline": "第2轮用户选择"},
+            )
+            self.assertEqual(len(plan["stages"][2]["visible_copy"]), 2)
             self.assertNotIn("English", str(plan["stages"]))
             card = lineage_video.render_stage_card(plan["stages"][2])
             self.assertEqual(card.size, (1280, 720))
-            self.assertEqual(lineage_video.expected_frame_count(4), 179)
+            moving_card = lineage_video.render_stage_card(plan["stages"][2], progress=0.8)
+            self.assertIsNotNone(ImageChops.difference(card, moving_card).getbbox())
+            self.assertEqual(lineage_video.expected_frame_count(4), 234)
+
+    def test_svg_without_rasterizer_fails_instead_of_drawing_placeholder(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            image = Path(temporary) / "stage_00_origin.svg"
+            image.write_text(
+                '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20"></svg>',
+                encoding="utf-8",
+            )
+            stage = {"image": str(image)}
+            with mock.patch.object(lineage_video.shutil, "which", return_value=None):
+                with self.assertRaisesRegex(
+                    lineage_video.LineageVideoError,
+                    "refusing to render a placeholder video",
+                ):
+                    lineage_video.render_stage_card(stage)
 
 
 if __name__ == "__main__":

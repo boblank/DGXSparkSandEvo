@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" role="img" aria-labelledby="title desc">
+  <title id="title">非洲林地与草原交界的早期人族</title>
+  <desc id="desc">两名保留攀爬能力、能够短距离双足行走的早期人族穿过林地边缘。</desc>
+  <defs>
+    <linearGradient id="sky" x2="0" y2="1"><stop stop-color="#728c87"/><stop offset=".52" stop-color="#d1b47e"/><stop offset="1" stop-color="#66563f"/></linearGradient>
+    <linearGradient id="ground" x2="0" y2="1"><stop stop-color="#68704f"/><stop offset="1" stop-color="#182e2c"/></linearGradient>
+    <radialGradient id="sun"><stop stop-color="#f6d585" stop-opacity=".9"/><stop offset="1" stop-color="#f6d585" stop-opacity="0"/></radialGradient>
+    <filter id="grain"><feTurbulence baseFrequency=".7" numOctaves="3"/><feColorMatrix values="1 0 0 0 0 0 1 0 0 0 0 0 1 0 0 0 0 0 .09 0"/></filter>
+  </defs>
+  <rect width="1600" height="900" fill="url(#sky)"/>
+  <circle cx="1220" cy="180" r="230" fill="url(#sun)"/>
+  <path d="M0 430Q260 340 500 430T930 400T1600 390V900H0Z" fill="#4e5d4b" opacity=".72"/>
+  <path d="M0 570Q280 480 560 590T1100 530T1600 520V900H0Z" fill="url(#ground)"/>
+  <g fill="#1a312e">
+    <path d="M170 570l55-360 44 6-8 355z"/><path d="M207 245q-125-25-165 76 114-31 181 14z"/><path d="M240 235q72-92 190-58-70 92-174 104z"/>
+    <path d="M1390 590l-30-325 38-4 37 329z"/><path d="M1374 284q-87-80-174-18 93 29 178 74z"/><path d="M1396 276q85-73 170-13-91 26-165 69z"/>
+  </g>
+  <g fill="#223735" stroke="#152824" stroke-width="10" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="790" cy="370" r="46"/><path d="M763 408q-35 106-7 207l79 3q22-118-9-206z"/><path d="M775 456L686 575M818 455l96 94M772 609l-52 157M818 610l40 157"/>
+    <circle cx="1030" cy="430" r="38"/><path d="M1007 466q-27 82-5 159l63 2q17-90-7-157z"/><path d="M1017 505l-72 86m104-84 72 72m-106 45-42 132m75-131 34 128"/>
+  </g>
+  <g fill="none" stroke="#c5a766" stroke-width="5" opacity=".75"><path d="M70 790q220-120 420-30t430-20 560 8"/><path d="M0 818q220-90 370 7t430-14 500 22"/></g>
+  <rect width="1600" height="900" filter="url(#grain)" opacity=".45"/>
+</svg>

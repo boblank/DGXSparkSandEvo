@@ -24,11 +24,13 @@
       "label": "FLUX.2 Klein 4B Distilled FP8",
       "generator": "FLUX.2 Klein 4B Distilled FP8 via ComfyUI",
       "workflow_file": "creature_workflow_flux2_klein.json",
+      "reference_workflow_file": "creature_workflow_flux2_klein_edit.json",
       "negative_mode": "prompt_suffix",
       "nodes": {
         "prompt": {"id": "4", "field": "text"},
         "seed": {"id": "7", "field": "noise_seed"},
         "output": {"id": "13", "field": "filename_prefix"},
+        "reference": {"id": "14", "field": "image"},
         "dimensions": [
           {"id": "9", "width_field": "width", "height_field": "height"},
           {"id": "10", "width_field": "width", "height_field": "height"}

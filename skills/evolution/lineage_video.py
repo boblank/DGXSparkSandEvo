@@ -24,8 +24,9 @@ from urllib.parse import urlparse
 WIDTH = 1280
 HEIGHT = 720
 FPS = 24
-HOLD_SECONDS = 1.45
-TRANSITION_SECONDS = 0.55
+HOLD_SECONDS = 1.875
+TRANSITION_SECONDS = 0.75
+CAMERA_ZOOM = 0.055
 BACKGROUND = (6, 23, 29)
 FOSSIL = (233, 226, 208)
 MUTED = (185, 192, 184)
@@ -33,7 +34,7 @@ MEMBRANE = (105, 211, 190)
 IRON = (216, 102, 63)
 SULFUR = (231, 194, 90)
 CHINESE_PATTERN = re.compile(r"[\u3400-\u9fff]")
-CONTRACT_VERSION = "1.1.0"
+CONTRACT_VERSION = "1.2.0"
 
 FONT_CANDIDATES = (
     "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
@@ -79,6 +80,17 @@ def chinese_text(value: Any, fallback: str) -> str:
     return fallback
 
 
+def compact_headline(value: Any, fallback: str) -> str:
+    """Keep the recap readable at video speed without rewriting session truth."""
+
+    text = chinese_text(value, fallback)
+    for suffix in ("类近缘谱系", "近缘谱系", "近缘种", "谱系"):
+        if text.endswith(suffix) and len(text) - len(suffix) >= 4:
+            text = text[: -len(suffix)]
+            break
+    return text
+
+
 def _selection_text(selection: dict[str, Any], key: str, field: str) -> str:
     item = selection.get(key) or {}
     value = item.get(field) if isinstance(item, dict) else ""
@@ -121,9 +133,13 @@ def stage_caption(stage: dict[str, Any], scenario: dict[str, Any]) -> dict[str, 
                 stage.get("change_summary"),
                 "路线从这里开始，后面的变化都要保留可辨认的来路。",
             ),
+            "visible_copy": {
+                "eyebrow": "起点",
+                "headline": compact_headline(title, "这条路线的起点"),
+            },
         }
     default_title = ("第 %d 次化学变化" if chemistry else "第 %d 次谱系变化") % round_no
-    return {
+    caption = {
         "round": round_no,
         "chapter": f"第 {round_no} 次改变",
         "title": chinese_text(stage.get("organism_name"), default_title),
@@ -133,6 +149,11 @@ def stage_caption(stage: dict[str, Any], scenario: dict[str, Any]) -> dict[str, 
         "change": direction_detail
         or chinese_text(stage.get("change_summary"), "这一阶段保留了上一阶段的来路，也承担了新的代价。"),
     }
+    caption["visible_copy"] = {
+        "eyebrow": caption["chapter"],
+        "headline": compact_headline(direction, caption["title"]),
+    }
+    return caption
 
 
 def build_recap_plan(session: dict[str, Any], session_dir: Path) -> dict[str, Any]:
@@ -158,7 +179,7 @@ def build_recap_plan(session: dict[str, Any], session_dir: Path) -> dict[str, An
                     if image.suffix.lower() != ".svg"
                     else "vector_rasterized"
                     if shutil.which("gdk-pixbuf-thumbnailer")
-                    else "vector_placeholder"
+                    else "vector_unavailable"
                 ),
             }
         )
@@ -225,7 +246,7 @@ def _cover(image: Any, width: int, height: int) -> Any:
 
 
 def _load_background(stage: dict[str, Any]) -> Any:
-    from PIL import Image, ImageDraw
+    from PIL import Image
 
     path = Path(stage["image"])
     if path.suffix.lower() != ".svg":
@@ -233,90 +254,104 @@ def _load_background(stage: dict[str, Any]) -> Any:
             source.load()
             return _cover(source.convert("RGB"), WIDTH, HEIGHT)
     rasterizer = shutil.which("gdk-pixbuf-thumbnailer")
-    if rasterizer:
-        with tempfile.NamedTemporaryFile(suffix=".png") as temporary:
-            result = subprocess.run(
-                [rasterizer, "-s", str(max(WIDTH, HEIGHT)), str(path), temporary.name],
-                check=False,
-                capture_output=True,
-                timeout=20,
-            )
-            if result.returncode == 0 and Path(temporary.name).stat().st_size > 0:
-                with Image.open(temporary.name) as source:
-                    source.load()
-                    return _cover(source.convert("RGB"), WIDTH, HEIGHT)
-    image = Image.new("RGB", (WIDTH, HEIGHT), BACKGROUND)
-    draw = ImageDraw.Draw(image)
-    for index in range(12):
-        inset = index * 42
-        color = (
-            min(40, BACKGROUND[0] + index * 2),
-            min(78, BACKGROUND[1] + index * 4),
-            min(84, BACKGROUND[2] + index * 4),
+    if not rasterizer:
+        raise LineageVideoError(
+            f"SVG rasterizer unavailable; refusing to render a placeholder video: {path.name}"
         )
-        draw.ellipse((120 + inset, 40 + inset // 2, 1160 - inset, 820 - inset // 2), outline=color, width=3)
-    return image
+    with tempfile.NamedTemporaryFile(suffix=".png") as temporary:
+        result = subprocess.run(
+            [rasterizer, "-s", str(max(WIDTH, HEIGHT)), str(path), temporary.name],
+            check=False,
+            capture_output=True,
+            timeout=20,
+        )
+        if result.returncode == 0 and Path(temporary.name).stat().st_size > 0:
+            with Image.open(temporary.name) as source:
+                source.load()
+                return _cover(source.convert("RGB"), WIDTH, HEIGHT)
+    raise LineageVideoError(
+        f"SVG rasterization failed; refusing to render a placeholder video: {path.name}"
+    )
 
 
-def render_stage_card(stage: dict[str, Any]) -> Any:
+def _moving_crop(background: Any, progress: float, round_no: int) -> Any:
+    from PIL import Image
+
+    progress = max(0.0, min(1.0, float(progress)))
+    eased = progress * progress * (3.0 - 2.0 * progress)
+    scale = 1.0 + CAMERA_ZOOM * eased
+    resized = background.resize(
+        (round(WIDTH * scale), round(HEIGHT * scale)),
+        Image.Resampling.LANCZOS,
+    )
+    overflow_x = max(0, resized.width - WIDTH)
+    overflow_y = max(0, resized.height - HEIGHT)
+    travel = eased if round_no % 2 else 1.0 - eased
+    left = round(overflow_x * (0.18 + 0.64 * travel))
+    top = round(overflow_y * (0.32 + 0.20 * eased))
+    return resized.crop((left, top, left + WIDTH, top + HEIGHT))
+
+
+def _render_stage_card(stage: dict[str, Any], background: Any, progress: float) -> Any:
     from PIL import Image, ImageDraw
 
-    image = _load_background(stage).convert("RGBA")
+    image = _moving_crop(background, progress, int(stage["round"])).convert("RGBA")
     veil = Image.new("RGBA", image.size, (0, 0, 0, 0))
     veil_draw = ImageDraw.Draw(veil)
-    veil_draw.rectangle((0, 0, WIDTH, 112), fill=(3, 15, 20, 176))
-    for row in range(250):
-        alpha = round(30 + 205 * (row / 249))
-        veil_draw.rectangle((0, 470 + row, WIDTH, 471 + row), fill=(3, 15, 20, alpha))
+    veil_draw.rectangle((0, 0, WIDTH, 92), fill=(3, 15, 20, 150))
+    for row in range(220):
+        alpha = round(8 + 222 * (row / 219))
+        veil_draw.rectangle((0, 500 + row, WIDTH, 501 + row), fill=(3, 15, 20, alpha))
     image = Image.alpha_composite(image, veil)
     draw = ImageDraw.Draw(image)
 
-    data_font = _font(22)
-    chapter_font = _font(26, bold=True)
-    title_font = _font(49, bold=True)
-    label_font = _font(22, bold=True)
-    body_font = _font(23)
+    chapter_font = _font(22, bold=True)
+    title_font = _font(48, bold=True)
 
-    line_left = 84
-    line_right = WIDTH - 84
-    line_y = 48
-    draw.line((line_left, line_y, line_right, line_y), fill=(233, 226, 208, 92), width=3)
+    line_left = 64
+    line_right = WIDTH - 64
+    line_y = 45
+    draw.line((line_left, line_y, line_right, line_y), fill=(233, 226, 208, 72), width=2)
     for number in range(4):
         x = line_left + round((line_right - line_left) * number / 3)
         active = number <= int(stage["round"])
-        draw.ellipse((x - 8, line_y - 8, x + 8, line_y + 8), fill=MEMBRANE if active else (77, 96, 98))
-        draw.text((x - 18, 66), f"{number:02d}", font=data_font, fill=FOSSIL if number == int(stage["round"]) else MUTED)
+        radius = 8 if number == int(stage["round"]) else 5
+        draw.ellipse(
+            (x - radius, line_y - radius, x + radius, line_y + radius),
+            fill=MEMBRANE if active else (77, 96, 98),
+        )
 
-    draw.text((64, 126), stage["chapter"], font=chapter_font, fill=MEMBRANE)
-    title_lines = _wrap(draw, stage["title"], title_font, WIDTH - 128, 2)
+    visible = stage.get("visible_copy") if isinstance(stage.get("visible_copy"), dict) else {}
+    eyebrow = chinese_text(visible.get("eyebrow"), stage["chapter"])
+    headline = compact_headline(visible.get("headline"), stage["title"])
+    draw.text((64, 579), eyebrow, font=chapter_font, fill=MEMBRANE)
+    title_lines = _wrap(draw, headline, title_font, WIDTH - 128, 1)
     for index, line in enumerate(title_lines):
-        draw.text((64, 170 + index * 60), line, font=title_font, fill=FOSSIL)
-
-    draw.text((64, 505), "环境", font=label_font, fill=SULFUR)
-    draw.text((142, 505), stage["environment"], font=body_font, fill=FOSSIL)
-    draw.text((660, 505), "偶发", font=label_font, fill=SULFUR)
-    draw.text((738, 505), stage["contingency"], font=body_font, fill=FOSSIL)
-    draw.text((64, 555), "你的选择", font=label_font, fill=IRON)
-    draw.text((188, 555), stage["choice"], font=body_font, fill=FOSSIL)
-    draw.text((64, 606), "留下的变化", font=label_font, fill=MEMBRANE)
-    change_lines = _wrap(draw, stage["change"], body_font, WIDTH - 230, 2)
-    for index, line in enumerate(change_lines):
-        draw.text((218, 606 + index * 34), line, font=body_font, fill=FOSSIL)
+        draw.text((64, 618 + index * 58), line, font=title_font, fill=FOSSIL)
     return image.convert("RGB")
 
 
-def frame_sequence(cards: list[Any], fps: int = FPS) -> Iterator[Any]:
+def render_stage_card(stage: dict[str, Any], progress: float = 0.0) -> Any:
+    return _render_stage_card(stage, _load_background(stage), progress)
+
+
+def frame_sequence(stages: list[dict[str, Any]], fps: int = FPS) -> Iterator[Any]:
     from PIL import Image
 
     hold = max(1, round(HOLD_SECONDS * fps))
     transition = max(1, round(TRANSITION_SECONDS * fps))
-    for index, card in enumerate(cards):
-        for _ in range(hold):
-            yield card
-        if index + 1 < len(cards):
-            following = cards[index + 1]
+    backgrounds = [_load_background(stage) for stage in stages]
+    for index, stage in enumerate(stages):
+        for frame_no in range(hold):
+            progress = frame_no / max(1, hold - 1)
+            yield _render_stage_card(stage, backgrounds[index], progress)
+        if index + 1 < len(stages):
+            card = _render_stage_card(stage, backgrounds[index], 1.0)
+            following = _render_stage_card(stages[index + 1], backgrounds[index + 1], 0.0)
             for frame_no in range(1, transition + 1):
-                yield Image.blend(card, following, frame_no / (transition + 1))
+                progress = frame_no / (transition + 1)
+                eased = progress * progress * (3.0 - 2.0 * progress)
+                yield Image.blend(card, following, eased)
 
 
 def expected_frame_count(card_count: int, fps: int = FPS) -> int:
@@ -389,8 +424,8 @@ def _encode_with_ffmpeg(frames: Iterable[Any], output: Path, fps: int) -> str:
 
 
 def render_recap(plan: dict[str, Any], output: Path, fps: int = FPS) -> dict[str, Any]:
-    cards = [render_stage_card(stage) for stage in plan["stages"]]
-    if len(cards) < 2:
+    stages = plan["stages"]
+    if len(stages) < 2:
         raise LineageVideoError("at least two stage cards are required")
     output.parent.mkdir(parents=True, exist_ok=True)
     temporary = output.with_name(output.stem + ".rendering.mp4")
@@ -399,16 +434,18 @@ def render_recap(plan: dict[str, Any], output: Path, fps: int = FPS) -> dict[str
     try:
         import av  # noqa: F401
 
-        encoder = _encode_with_av(frame_sequence(cards, fps), temporary, fps)
+        encoder = _encode_with_av(frame_sequence(stages, fps), temporary, fps)
     except ImportError:
-        encoder = _encode_with_ffmpeg(frame_sequence(cards, fps), temporary, fps)
+        encoder = _encode_with_ffmpeg(frame_sequence(stages, fps), temporary, fps)
     if not temporary.is_file() or temporary.stat().st_size < 50_000:
         temporary.unlink(missing_ok=True)
         raise LineageVideoError("encoded recap is missing or unexpectedly small")
     temporary.replace(output)
-    frame_count = expected_frame_count(len(cards), fps)
+    frame_count = expected_frame_count(len(stages), fps)
     return {
         "encoder": encoder,
+        "motion_strategy": "slow_camera_move_with_match_dissolve",
+        "visible_copy_fields": 2,
         "width": WIDTH,
         "height": HEIGHT,
         "fps": fps,

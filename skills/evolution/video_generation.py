@@ -379,7 +379,7 @@ def wait_for_prompt(
                 tracker.sample()
                 return entry.get("outputs", {})
         time.sleep(poll_interval)
-    raise VideoGenerationError(f"HunyuanVideo timed out after {timeout} seconds")
+    raise VideoGenerationError(f"ComfyUI video generation timed out after {timeout} seconds")
 
 
 def _walk_dicts(value: Any) -> Iterator[dict[str, Any]]:
