@@ -4,10 +4,11 @@
 
 - 开源仓库：[boblank/DGXSparkSandEvo](https://github.com/boblank/DGXSparkSandEvo)
 - 90 秒有声演示：[evolab-90s-introduction.mp4](../demo-assets/submission/evolab-90s-introduction.mp4)
+- 最终目标审查：[评审标准与提交材料对照](final-goal-audit.md)
 - “十日谈”开发征文：[DGX Spark 黑客松十日谈](hackathon-ten-days.md)
 - 开源协议：MIT License
 - 作品形态：三轮有状态网页交互 + 四阶段谱系回放 + DGX 本地图像生成
-- 最终提交版本：`v1.0.0-submission`，七世界、历史/未来双约束版
+- 最终提交版本：`v1.0.1-submission`，七世界、历史/未来双约束版
 
 ## 一、作品概览
 
@@ -79,12 +80,14 @@ flowchart TD
     C["约束解析器<br/>父分支 / 关键性状 / 历史未来模式"]
     E["Evidence Binder<br/>图谱 / 知识卡 / 来源边界"]
     P["Step 3.7 Flash 规划<br/>strict JSON Schema"]
+    A["科学审查 Agent<br/>pass / revise / block"]
     G["本地科学门禁<br/>结构 / 目的论 / 伪精确 / 证据越界"]
     R["DGX Spark 渲染<br/>FLUX.2 Klein → FLUX.1"]
+    I["图像连续性审查<br/>Step 多模态 + 技术门禁"]
     O["session.json + stage_00..03.png"]
     V["四阶段谱系回放 / 知识弹层"]
 
-    U --> S --> C --> E --> P --> G --> R --> O --> V
+    U --> S --> C --> E --> P --> A --> G --> R --> I --> O --> V
 ```
 
 这条链路可以理解为一次受约束的编译：用户选择是输入，场景与知识层给出可用边界，规划器产出严格结构，DGX Spark 再把结构渲染成图像。每个阶段都有可核对的中间产物，不需要展示模型的隐藏思维过程。
@@ -113,13 +116,19 @@ flowchart TD
 
 会话锁、知识查询、来源绑定、渲染和文件校验由确定性 Module 承担，规划 Agent 只处理需要语义理解与结构生成的部分。职责收窄以后，系统更容易定位问题；规划服务暂时不可用时，上一阶段也不会被覆盖。
 
-### 2. 约束推理代替临时微调
+### 2. 有权否决的科学审查 Agent
+
+规划 Agent 不给自己的草案盖章。独立审查 Agent 只读取草案、父代性状账本、场景规则和 Evidence Binder 返回的证据包，然后给出 `pass`、`revise` 或 `block`。它最多要求规划 Agent 修订一次；第二次仍有证据越界或谱系断裂时，本轮在调用 GPU 之前停止。
+
+图片生成后还有一次视觉连续性审查。Step 多模态 Adapter 比较父图与候选图，检查身份、必须保留的性状和禁画项；Adapter 不可用时，系统只保留文件与结构检查，并明确记录 `technical_structure_only`，不会把像素指标说成语义判断。
+
+### 3. 约束推理代替临时微调
 
 十天窗口内没有在 DGX Spark 上微调基础模型。项目把优化集中在输入契约、状态继承、规则门禁和模型路由上：场景包缩小候选空间，Strict Schema 固定输出结构，Evidence Binder 负责来源，渲染器只接收已经过审的图像提示。
 
 这种做法减少了自由文本漂移，也把科学错误拦在 GPU 绘图之前。模型输出无效时，当前会话保留原状态，用户可以重试；第二轮真实验收中曾触发一次 `planner_invalid_output`，重试后继续完成三轮。
 
-### 3. 图像模型的 A/B 与回退门禁
+### 4. 图像模型的 A/B 与回退门禁
 
 Klein 的引入经过固定提示、固定尺寸、双种子盲评、真实三轮、冷/热运行与故障注入。历史路线从第二阶段起可上传父代图片作为参考，同时加入关键性状账本和禁止回退提示，用来降低谱系漂移。
 
@@ -216,7 +225,7 @@ curl -fsS http://127.0.0.1:8088/api/health
 | 本地语言模型基线 | Ollama + Qwen3.6 35B，用于官方 Workshop 复现与 CLI 回退验证 |
 | 图像生成 | ComfyUI、FLUX.2 Klein 4B Distilled FP8、FLUX.1 dev FP8 |
 | 视频生成 | HunyuanVideo-1.5 480p I2V Step Distilled FP8 |
-| Agent 能力 | Evolution Skill、OpenClaw 基线链路 |
+| Agent 能力 | Evolution Skill、Step 规划 Agent、独立科学审查 Agent、Step 多模态图像连续性审查；OpenClaw 作为已验证基线链路保留 |
 | 后端 | Python、标准库 HTTP 服务、文件会话状态 |
 | 前端 | HTML、CSS、原生 JavaScript |
 | 媒体与验证 | Pillow、PyAV / ffmpeg、H.264、自动化联系表与哈希记录 |
