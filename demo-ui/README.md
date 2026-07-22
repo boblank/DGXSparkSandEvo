@@ -8,7 +8,8 @@
 → 选择环境变化
 → 选择偶发事件
 → 选择更容易延续的方向
-→ 生成下一阶段图片与解释
+→ 规划下一阶段，由独立科学审查决定是否放行
+→ 审查通过后生成图片与解释
 → 在上一阶段基础上继续
 ```
 
@@ -45,12 +46,17 @@ python3 demo-ui/server.py --host 127.0.0.1 --port 8088
 - `reasoning_effort=high`
 - `response_format.type=json_schema`
 - `strict=true`
+- 独立科学审查；最多要求规划器修订一次
 - DGX Spark 本地 ComfyUI / FLUX
+- 有父图时先做结构门禁，再用多模态模型核对身份、关键性状和禁画项
+
+`EVOLAB_REVIEW_MODE=required` 会在审查超时、无效 JSON 或第二次未通过时阻断绘图。`optional` 允许审查服务不可用时改走规则门禁，记录会明确写成 `rules_only`，页面不会把它说成双 Agent。图像审查也有独立的 `EVOLAB_VISUAL_REVIEW_MODE`；语义审查没有运行时，只能报告结构门禁结果。
 
 ## HTTP 契约
 
 ```text
 GET  /api/health
+GET  /api/readiness
 GET  /api/scenarios
 POST /api/sessions
 GET  /api/sessions/{session_id}
@@ -79,7 +85,9 @@ GET  /api/assets/{session_id}/{filename}
 
 空请求仍进入 `tidal_symbiosis`，用于兼容原有浅海演示。
 
-服务端会保存 `lineage_parent`、`inherited_traits`、`protected_traits`、本轮选择、收益、代价、知识命中和图片地址。轮次冲突、重复提交、未知选项和不满足父分支前置条件的方向会被拒绝，不会让谱系悄悄跳步。
+`/api/health` 只回答 HTTP 进程是否存活；`/api/readiness` 会实际核对 Step 严格 JSON、ComfyUI、当前渲染链工作流、参考图节点和模型登记。任一依赖未就绪时返回 `503`。
+
+服务端会保存 `lineage_parent`、`inherited_traits`、`protected_traits`、本轮选择、收益、代价、知识命中、图片地址和私有 `review_trace`。公开阶段只带脱敏裁决摘要；原始模型响应、隐藏推理、完整提示词和密钥不会进入浏览器。轮次冲突、重复提交、未知选项和不满足父分支前置条件的方向会被拒绝，不会让谱系悄悄跳步。
 
 ## 安全边界
 

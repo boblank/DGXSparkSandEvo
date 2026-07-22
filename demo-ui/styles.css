@@ -368,7 +368,7 @@ button:focus-visible, a:focus-visible { outline: 3px solid var(--sulfur); outlin
 .generation-trace { padding: 36px; border: 1px solid var(--line-light); border-top: 0; display: grid; grid-template-columns: minmax(230px,.5fr) minmax(0,1.5fr); gap: 40px; background: #081d24; }
 .trace-heading p { margin: 0 0 7px; color: var(--active-accent); font: 700 9px var(--utility); letter-spacing: .13em; }
 .trace-heading h2 { margin: 0; font: 600 27px var(--display); }
-.generation-trace ol { margin: 0; padding: 0; display: grid; grid-template-columns: repeat(4,1fr); list-style: none; }
+.generation-trace ol { margin: 0; padding: 0; display: grid; grid-template-columns: repeat(5,1fr); list-style: none; }
 .generation-trace li { min-width: 0; padding: 14px 17px 0 0; border-top: 2px solid rgba(233,226,208,.18); color: rgba(233,226,208,.38); }
 .generation-trace li.is-done { border-color: var(--active-accent); color: var(--fossil); }
 .generation-trace li span { display: block; margin-bottom: 15px; color: inherit; font: 9px var(--utility); }

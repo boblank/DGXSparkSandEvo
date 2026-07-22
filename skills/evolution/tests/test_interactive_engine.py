@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 import importlib.util
 import hashlib
 import json
@@ -353,6 +354,18 @@ class InteractiveEvolutionServiceTests(unittest.TestCase):
         self.assertIn("历史重建模式", historical_system)
         self.assertIn("关键性状不得无解释消失", historical_system)
 
+        revision_spec = copy.deepcopy(historical_spec)
+        revision_spec["review_revision"] = {
+            "issue_codes": ["PROTECTED_TRAIT_MISSING"],
+            "summary": "规划漏掉了受保护性状。",
+            "required_protected_traits": ["有内部骨骼支撑的肉质鳍", "水下呼吸为主"],
+        }
+        revision_prompt = service._messages(
+            historical["session"]["current_stage"], historical_selection, revision_spec
+        )[1]["content"]
+        self.assertIn("本次必须逐字写入 traits", revision_prompt)
+        self.assertIn("有内部骨骼支撑的肉质鳍；水下呼吸为主", revision_prompt)
+
         future = service.create_session("space_human_future")
         future_spec = service._round_spec(1, "space_human_future")
         future_selection = service._validate_selection(future_spec, first_selection(future, 1))
@@ -641,7 +654,11 @@ class InteractiveEvolutionServiceTests(unittest.TestCase):
         reference_image = self.root / "stage_01.png"
         from PIL import Image
 
-        Image.new("RGB", (32, 32), (0, 0, 0)).save(reference_image)
+        parent_fixture = Image.new("RGB", (32, 32), (0, 0, 0))
+        for x in range(8, 24):
+            for y in range(10, 22):
+                parent_fixture.putpixel((x, y), (160, 160, 160))
+        parent_fixture.save(reference_image)
         spec = service._effective_round_spec(session, 2)
         selection = service._validate_selection(
             spec,
@@ -656,7 +673,7 @@ class InteractiveEvolutionServiceTests(unittest.TestCase):
 
         def fake_render(_chain, **kwargs):
             captured.update(kwargs)
-            Image.new("RGB", (32, 32), (30, 30, 30)).save(kwargs["destination"])
+            parent_fixture.point(lambda value: min(255, value + 30)).save(kwargs["destination"])
             return mock.Mock(
                 generator="fixture",
                 renderer="flux1",
@@ -690,7 +707,9 @@ class InteractiveEvolutionServiceTests(unittest.TestCase):
         self.assertNotIn("Preserve the same individual body plan", captured["prompt"])
         self.assertEqual(captured["reference_image"], reference_image)
         self.assertIs(captured["upload_reference"], engine.video_generation.upload_image)
-        self.assertAlmostEqual(metadata["visual_change_score"], 30 / 255, places=3)
+        self.assertAlmostEqual(metadata["visual_change_score"], 30 / 255, places=2)
+        self.assertTrue(metadata["technical_visual_gate"]["passed"])
+        self.assertEqual(metadata["visual_review"]["mode"], "technical_only")
 
     def test_reference_change_gate_rejects_copies_and_identity_jumps(self) -> None:
         from PIL import Image
@@ -709,6 +728,205 @@ class InteractiveEvolutionServiceTests(unittest.TestCase):
             engine._visual_change_score(parent, identity_jump),
             engine.MAX_REFERENCE_CHANGE,
         )
+
+    def test_review_may_request_one_revision_before_rendering(self) -> None:
+        planner_calls: list[dict] = []
+        review_calls: list[dict] = []
+        render_calls: list[Path] = []
+
+        fixture = engine.InteractiveEvolutionService(self.root / "fixture", dry_run=True)
+
+        def planner(previous, selection, spec):
+            planner_calls.append(spec)
+            return fixture._dry_run_plan(previous, selection, spec)
+
+        def reviewer(draft, previous, selection, spec, evidence):
+            del previous, selection, spec, evidence
+            review_calls.append(draft)
+            verdict = "revise" if len(review_calls) == 1 else "pass"
+            return {
+                "verdict": verdict,
+                "issue_codes": ["PROTECTED_TRAIT_MISSING"] if verdict == "revise" else [],
+                "summary": "请保留上一阶段已经建立的关键性状。" if verdict == "revise" else "修订后符合当前证据边界。",
+                "source_ids": [],
+                "transition_ids": [],
+                "pressure_ids": [],
+            }, {"adapter": "fixture-reviewer", "version": "1.0", "strict_schema": True}
+
+        def renderer(result, previous, selection, destination):
+            del result, previous, selection
+            render_calls.append(destination)
+            destination.write_bytes(b"image")
+            return {"render_source": "generated", "renderer": "fixture"}
+
+        service = engine.InteractiveEvolutionService(
+            self.root / "review-revise",
+            planner=planner,
+            reviewer=reviewer,
+            renderer=renderer,
+            review_mode="required",
+        )
+        envelope = service.create_session("devonian_estuary")
+        session_id = envelope["session"]["session_id"]
+        envelope = service.evolve(session_id, first_selection(envelope, 1))
+        self.assertEqual(len(planner_calls), 2)
+        self.assertEqual(planner_calls[1]["review_revision"]["issue_codes"], ["PROTECTED_TRAIT_MISSING"])
+        self.assertEqual(
+            planner_calls[1]["review_revision"]["required_protected_traits"],
+            ["能在浅水承重的成对附肢", "水下呼吸为主"],
+        )
+        self.assertEqual(len(render_calls), 1)
+        summary = envelope["session"]["current_stage"]["review_summary"]
+        self.assertEqual(summary["verdict"], "pass")
+        self.assertEqual(summary["revision_count"], 1)
+        persisted = json.loads((service.data_root / session_id / "session.json").read_text())
+        self.assertEqual(len(persisted["review_trace"]), 2)
+        self.assertNotIn("review_trace", envelope["session"])
+
+    def test_second_non_pass_blocks_before_renderer(self) -> None:
+        fixture = engine.InteractiveEvolutionService(self.root / "fixture-block", dry_run=True)
+        render_calls: list[Path] = []
+
+        def planner(previous, selection, spec):
+            return fixture._dry_run_plan(previous, selection, spec)
+
+        def reviewer(*_args):
+            return {
+                "verdict": "revise",
+                "issue_codes": ["PROTECTED_TRAIT_MISSING"],
+                "summary": "关键性状仍未保留。",
+                "source_ids": [],
+                "transition_ids": [],
+                "pressure_ids": [],
+            }, {"adapter": "fixture-reviewer", "version": "1.0", "strict_schema": True}
+
+        def renderer(*args):
+            render_calls.append(args[-1])
+            return {"render_source": "generated"}
+
+        service = engine.InteractiveEvolutionService(
+            self.root / "review-block",
+            planner=planner,
+            reviewer=reviewer,
+            renderer=renderer,
+            review_mode="required",
+        )
+        envelope = service.create_session("devonian_estuary")
+        session_id = envelope["session"]["session_id"]
+        with self.assertRaises(engine.InteractiveError) as raised:
+            service.evolve(session_id, first_selection(envelope, 1))
+        self.assertEqual(raised.exception.code, "review_blocked")
+        self.assertEqual(render_calls, [])
+        persisted = json.loads((service.data_root / session_id / "session.json").read_text())
+        self.assertEqual(persisted["round_index"], 0)
+        self.assertEqual(len(persisted["review_trace"]), 2)
+
+    def test_optional_review_failure_uses_rules_only_without_claiming_agent(self) -> None:
+        fixture = engine.InteractiveEvolutionService(self.root / "fixture-rules", dry_run=True)
+
+        def planner(previous, selection, spec):
+            return fixture._dry_run_plan(previous, selection, spec)
+
+        def unavailable(*_args):
+            raise TimeoutError("injected reviewer timeout")
+
+        def renderer(result, previous, selection, destination):
+            del result, previous, selection
+            destination.write_bytes(b"image")
+            return {"render_source": "generated", "renderer": "fixture"}
+
+        service = engine.InteractiveEvolutionService(
+            self.root / "review-rules",
+            planner=planner,
+            reviewer=unavailable,
+            renderer=renderer,
+            review_mode="optional",
+        )
+        envelope = service.create_session("devonian_estuary")
+        envelope = service.evolve(
+            envelope["session"]["session_id"],
+            first_selection(envelope, 1),
+        )
+        summary = envelope["session"]["current_stage"]["review_summary"]
+        self.assertEqual(summary["review_mode"], "rules_only")
+        self.assertNotIn("agent", json.dumps(summary).lower())
+
+    def test_required_review_timeout_blocks_before_renderer(self) -> None:
+        fixture = engine.InteractiveEvolutionService(self.root / "fixture-timeout", dry_run=True)
+        render_calls: list[Path] = []
+
+        def planner(previous, selection, spec):
+            return fixture._dry_run_plan(previous, selection, spec)
+
+        def timeout(*_args):
+            raise TimeoutError("injected timeout")
+
+        def renderer(*args):
+            render_calls.append(args[-1])
+            return {"render_source": "generated"}
+
+        service = engine.InteractiveEvolutionService(
+            self.root / "review-timeout",
+            planner=planner,
+            reviewer=timeout,
+            renderer=renderer,
+            review_mode="required",
+        )
+        envelope = service.create_session("devonian_estuary")
+        session_id = envelope["session"]["session_id"]
+        with self.assertRaises(engine.InteractiveError) as raised:
+            service.evolve(session_id, first_selection(envelope, 1))
+        self.assertEqual(raised.exception.code, "review_unavailable")
+        self.assertEqual(render_calls, [])
+        persisted = json.loads((service.data_root / session_id / "session.json").read_text())
+        self.assertEqual(persisted["review_trace"][-1]["final_fallback_path"], "fail_closed")
+        self.assertNotIn("injected timeout", json.dumps(persisted))
+
+    def test_visual_block_keeps_only_sanitized_private_trace(self) -> None:
+        fixture = engine.InteractiveEvolutionService(self.root / "fixture-visual", dry_run=True)
+
+        def planner(previous, selection, spec):
+            return fixture._dry_run_plan(previous, selection, spec)
+
+        def reviewer(*_args):
+            return {
+                "verdict": "pass",
+                "issue_codes": [],
+                "summary": "符合当前证据边界。",
+                "source_ids": [],
+                "transition_ids": [],
+                "pressure_ids": [],
+            }, {"adapter": "fixture-reviewer", "version": "1.0"}
+
+        def blocked_renderer(*_args):
+            error = engine.InteractiveError(
+                "visual_semantic_review_blocked",
+                "图像审查没有确认谱系连续性。",
+                http_status=502,
+                retryable=True,
+            )
+            error.private_details = {
+                "mode": "semantic",
+                "verdict": "block",
+                "forbidden_findings": ["出现未经声明的翅膀"],
+            }
+            raise error
+
+        service = engine.InteractiveEvolutionService(
+            self.root / "visual-block",
+            planner=planner,
+            reviewer=reviewer,
+            renderer=blocked_renderer,
+            review_mode="required",
+        )
+        envelope = service.create_session("devonian_estuary")
+        session_id = envelope["session"]["session_id"]
+        with self.assertRaises(engine.InteractiveError):
+            service.evolve(session_id, first_selection(envelope, 1))
+        persisted = json.loads((service.data_root / session_id / "session.json").read_text())
+        self.assertEqual(persisted["visual_review_trace"][-1]["verdict"], "block")
+        public = service.get_session(session_id)["session"]
+        self.assertNotIn("visual_review_trace", public)
 
 
 if __name__ == "__main__":

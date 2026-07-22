@@ -43,6 +43,19 @@ MIN_REFERENCE_CHANGE = 0.07
 MAX_REFERENCE_CHANGE = 0.20
 
 
+def configured_step_model() -> str:
+    return os.environ.get("STEP_MODEL", STEP_MODEL).strip() or STEP_MODEL
+
+
+def configured_step_endpoint() -> str:
+    configured = os.environ.get("STEP_BASE_URL", "").strip().rstrip("/")
+    if not configured:
+        return STEP_ENDPOINT
+    if configured.endswith("/chat/completions"):
+        return configured
+    return configured + "/chat/completions"
+
+
 def _load_helper() -> Any:
     spec = importlib.util.spec_from_file_location(
         "evolution_interactive_shared_helper",
@@ -70,6 +83,57 @@ def _load_rendering() -> Any:
 
 
 rendering = _load_rendering()
+
+
+def _load_scientific_review() -> Any:
+    module_name = "evolution_interactive_scientific_review"
+    spec = importlib.util.spec_from_file_location(
+        module_name,
+        SCRIPT_DIR / "scientific_review.py",
+    )
+    if not spec or not spec.loader:
+        raise RuntimeError("cannot load scientific review module")
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[module_name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+scientific_review = _load_scientific_review()
+
+
+def _load_visual_continuity() -> Any:
+    module_name = "evolution_interactive_visual_continuity"
+    spec = importlib.util.spec_from_file_location(
+        module_name,
+        SCRIPT_DIR / "visual_continuity.py",
+    )
+    if not spec or not spec.loader:
+        raise RuntimeError("cannot load visual continuity module")
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[module_name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+visual_continuity = _load_visual_continuity()
+
+
+def _load_runtime_readiness() -> Any:
+    module_name = "evolution_interactive_runtime_readiness"
+    spec = importlib.util.spec_from_file_location(
+        module_name,
+        SCRIPT_DIR / "runtime_readiness.py",
+    )
+    if not spec or not spec.loader:
+        raise RuntimeError("cannot load runtime readiness module")
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[module_name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+runtime_readiness = _load_runtime_readiness()
 
 
 def _load_video_generation() -> Any:
@@ -116,6 +180,14 @@ Renderer = Callable[
 ]
 OptionPlanner = Callable[
     [dict[str, Any], dict[str, Any], dict[str, Any], Optional[dict[str, Any]]],
+    tuple[dict[str, Any], dict[str, Any]],
+]
+Reviewer = Callable[
+    [dict[str, Any], dict[str, Any], dict[str, Any], dict[str, Any], dict[str, Any]],
+    tuple[dict[str, Any], dict[str, Any]],
+]
+VisualReviewer = Callable[
+    [Path, Path, list[str], list[str]],
     tuple[dict[str, Any], dict[str, Any]],
 ]
 
@@ -184,6 +256,10 @@ class InteractiveEvolutionService:
         planner: Planner | None = None,
         renderer: Renderer | None = None,
         option_planner: OptionPlanner | None = None,
+        reviewer: Reviewer | None = None,
+        review_mode: str | None = None,
+        visual_reviewer: VisualReviewer | None = None,
+        visual_review_mode: str | None = None,
         step_timeout: int = 240,
         comfy_timeout: int = 900,
     ) -> None:
@@ -214,9 +290,23 @@ class InteractiveEvolutionService:
         self._option_planner = option_planner or (
             self._fixture_option_plan if dry_run else self._plan_options_with_step
         )
+        self.review_mode = (review_mode or os.environ.get("EVOLAB_REVIEW_MODE", "optional")).strip().lower()
+        if self.review_mode not in {"off", "optional", "required"}:
+            raise ValueError("EVOLAB_REVIEW_MODE must be off, optional, or required")
+        self._reviewer = reviewer or (None if dry_run else self._review_with_step)
+        self.visual_review_mode = (
+            visual_review_mode
+            or os.environ.get("EVOLAB_VISUAL_REVIEW_MODE", "optional")
+        ).strip().lower()
+        if self.visual_review_mode not in {"off", "optional", "required"}:
+            raise ValueError("EVOLAB_VISUAL_REVIEW_MODE must be off, optional, or required")
+        self._visual_reviewer = visual_reviewer or (
+            None if dry_run else self._review_visual_with_step
+        )
         self._locks: dict[str, threading.Lock] = {}
         self._locks_guard = threading.Lock()
         self._cards, self._sources = self._load_knowledge()
+        self._readiness_cache: tuple[float, dict[str, Any]] | None = None
 
     @property
     def contract_version(self) -> str:
@@ -251,6 +341,32 @@ class InteractiveEvolutionService:
                 for scenario in self.registry.get("scenarios", [])
             ],
         }
+
+    def readiness(self, *, force: bool = False) -> dict[str, Any]:
+        if (
+            not force
+            and self._readiness_cache is not None
+            and time.monotonic() - self._readiness_cache[0] < 30
+        ):
+            return copy.deepcopy(self._readiness_cache[1])
+        primary = os.environ.get("EVOLAB_IMAGE_RENDERER", "flux1")
+        fallback = os.environ.get("EVOLAB_IMAGE_FALLBACK", "flux1")
+        renderer_ids = rendering.renderer_chain(primary, fallback)
+        result = runtime_readiness.probe_runtime(
+            dry_run=self.dry_run,
+            step_endpoint=configured_step_endpoint(),
+            step_model=configured_step_model(),
+            step_key=os.environ.get("STEP_API_KEY") or os.environ.get("STEPFUN_API_KEY"),
+            comfy_url=os.environ.get("COMFYUI_URL", "http://127.0.0.1:7000"),
+            renderer_ids=renderer_ids,
+            renderer_catalog=rendering.renderer_catalog(),
+            workflow_root=SCRIPT_DIR,
+            get_json=helper.get_json,
+            post_json=helper.post_json,
+            timeout=min(15, self.step_timeout),
+        )
+        self._readiness_cache = (time.monotonic(), copy.deepcopy(result))
+        return result
 
     def _scenario(self, scenario_id: str | None = None) -> dict[str, Any]:
         candidate = scenario_id or self.default_scenario_id
@@ -952,6 +1068,7 @@ class InteractiveEvolutionService:
             "max_rounds": len(catalog["rounds"]),
             "current_stage": initial,
             "history": [initial],
+            "review_trace": [],
             "last_error": None,
             "created_at": now,
             "updated_at": now,
@@ -1059,11 +1176,25 @@ class InteractiveEvolutionService:
             session["updated_at"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
             self._write_session(session)
             previous = copy.deepcopy(session["current_stage"])
+            review_records: list[dict[str, Any]] = []
             try:
                 if self.dry_run:
                     result, metadata = self._dry_run_plan(previous, selection, spec)
                 else:
                     result, metadata = self._planner(previous, selection, spec)
+                result, metadata, review_summary = self._review_plan(
+                    result,
+                    metadata,
+                    previous,
+                    selection,
+                    spec,
+                    review_records,
+                )
+                # The scientific verdict is durable before the GPU call starts.
+                # A renderer crash must not erase which evidence gate released it.
+                session.setdefault("review_trace", []).extend(review_records)
+                self._write_session(session)
+                review_records.clear()
                 stage = self._build_stage(
                     next_round,
                     previous,
@@ -1072,6 +1203,7 @@ class InteractiveEvolutionService:
                     spec,
                     metadata,
                 )
+                stage["review_summary"] = review_summary
                 destination = self._session_dir(session_id) / f"stage_{next_round:02d}.png"
                 if self.dry_run:
                     destination = destination.with_suffix(".svg")
@@ -1092,10 +1224,18 @@ class InteractiveEvolutionService:
                         "required_visual_change",
                         "visual_forbidden",
                         "visual_change_score",
+                        "technical_visual_gate",
+                        "visual_review",
                     )
                     if render_metadata.get(key) is not None
                 }
             except InteractiveError as exc:
+                session.setdefault("review_trace", []).extend(review_records)
+                private_details = getattr(exc, "private_details", None)
+                if isinstance(private_details, dict):
+                    session.setdefault("visual_review_trace", []).append(
+                        copy.deepcopy(private_details)
+                    )
                 session["status"] = "error"
                 session["last_error"] = {
                     "code": exc.code,
@@ -1106,6 +1246,7 @@ class InteractiveEvolutionService:
                 self._write_session(session)
                 raise
             except Exception as exc:
+                session.setdefault("review_trace", []).extend(review_records)
                 session["status"] = "error"
                 session["last_error"] = {
                     "code": "generation_failed",
@@ -1124,11 +1265,232 @@ class InteractiveEvolutionService:
             session["round_index"] = next_round
             session["current_stage"] = stage
             session["history"].append(stage)
+            session.setdefault("review_trace", []).extend(review_records)
             session["status"] = "completed" if next_round == max_rounds else "ready"
             session["last_error"] = None
             session["updated_at"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
             self._write_session(session)
             return self.public_envelope(session)
+
+    def _review_evidence_pack(
+        self,
+        selection: dict[str, Any],
+        spec: dict[str, Any],
+    ) -> dict[str, Any]:
+        direction = selection["direction"]
+        constraint_mode = spec.get("world", {}).get(
+            "constraint_mode", "historical_reconstruction"
+        )
+        match_scope = direction.get("knowledge_match_scope") or (
+            "external_pressure" if constraint_mode == "future_scenario" else "transition"
+        )
+        card_id = (
+            selection["environment"].get("knowledge_card_id", "NONE")
+            if match_scope == "external_pressure"
+            else direction.get("knowledge_card_id", "NONE")
+        )
+        match = self._knowledge_match(
+            str(card_id),
+            str(direction["transition_id"]),
+            match_scope=match_scope,
+        )
+        sources = list(match.get("sources", [])) + list(match.get("context_sources", []))
+        card = self._cards.get(str(card_id), {})
+        pressure_ids = [
+            str(item)
+            for item in (
+                [selection["environment"].get("pressure_id")]
+                + list(card.get("pressure_ids", []))
+            )
+            if item
+        ]
+        return {
+            "status": str(match.get("status", "no_match")),
+            "match_scope": str(match.get("match_scope", match_scope)),
+            "knowledge_card_id": str(match.get("knowledge_card_id", "NONE")),
+            "transition_ids": [str(direction["transition_id"])],
+            "pressure_ids": list(dict.fromkeys(pressure_ids)),
+            "source_ids": list(
+                dict.fromkeys(
+                    str(source.get("source_id"))
+                    for source in sources
+                    if isinstance(source, dict) and source.get("source_id")
+                )
+            ),
+            "prerequisites": [str(item) for item in card.get("prerequisites", [])],
+            "sources": [
+                {
+                    key: str(source.get(key, ""))
+                    for key in ("source_id", "supports", "boundary")
+                }
+                for source in sources
+                if isinstance(source, dict)
+            ],
+        }
+
+    def _review_plan(
+        self,
+        result: dict[str, Any],
+        metadata: dict[str, Any],
+        previous: dict[str, Any],
+        selection: dict[str, Any],
+        spec: dict[str, Any],
+        records: list[dict[str, Any]],
+    ) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any]]:
+        if self.review_mode == "off":
+            return result, metadata, {
+                "verdict": "not_run",
+                "review_mode": "off",
+                "revision_count": 0,
+                "summary": "本轮沿用单规划器链路，没有运行科学审查。",
+            }
+
+        evidence_pack = self._review_evidence_pack(selection, spec)
+        revision_count = 0
+        current_result = result
+        current_metadata = metadata
+        for review_index in range(2):
+            started_at = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+            input_hash = scientific_review.input_summary_hash(
+                current_result,
+                previous,
+                selection,
+                spec,
+                evidence_pack,
+            )
+            rule_decision = scientific_review.deterministic_review(
+                draft=current_result,
+                previous=previous,
+                selection=selection,
+                spec=spec,
+                evidence_pack=evidence_pack,
+            )
+            review_mode = "agent"
+            adapter = "step-scientific-reviewer"
+            version = STEP_MODEL
+            fallback_path = "none"
+            try:
+                if self._reviewer is None:
+                    raise RuntimeError("reviewer is not configured")
+                raw_decision, review_metadata = self._reviewer(
+                    copy.deepcopy(current_result),
+                    copy.deepcopy(previous),
+                    copy.deepcopy(selection),
+                    copy.deepcopy(spec),
+                    copy.deepcopy(evidence_pack),
+                )
+                decision = scientific_review.normalize_decision(
+                    raw_decision,
+                    evidence_pack=evidence_pack,
+                )
+                adapter = str(review_metadata.get("adapter", adapter))[:80]
+                version = str(review_metadata.get("version", version))[:80]
+            except Exception as exc:
+                if self.review_mode == "required":
+                    ended_at = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+                    records.append(
+                        {
+                            "role": "scientific_reviewer",
+                            "adapter": adapter,
+                            "adapter_version": version,
+                            "input_summary_hash": input_hash,
+                            "started_at": started_at,
+                            "ended_at": ended_at,
+                            "verdict": "block",
+                            "transition_ids": evidence_pack["transition_ids"],
+                            "pressure_ids": evidence_pack["pressure_ids"],
+                            "source_ids": evidence_pack["source_ids"],
+                            "issue_codes": ["REVIEWER_UNAVAILABLE"],
+                            "summary": "科学审查服务没有在本轮完成。",
+                            "revision_count": revision_count,
+                            "final_fallback_path": "fail_closed",
+                            "review_mode": "required",
+                        }
+                    )
+                    raise InteractiveError(
+                        "review_unavailable",
+                        "科学审查暂时没有完成。原来的记录还在，可以稍后重试。",
+                        http_status=503,
+                        retryable=True,
+                    ) from exc
+                decision = rule_decision
+                review_mode = "rules_only"
+                adapter = "deterministic-rules-gate"
+                version = "1.0"
+                fallback_path = "rules_only"
+
+            if rule_decision["verdict"] != "pass":
+                decision = rule_decision
+                if review_mode == "agent":
+                    fallback_path = "agent_plus_rules"
+            ended_at = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+            if review_index == 1 and decision["verdict"] != "pass":
+                decision = {**decision, "verdict": "block"}
+                fallback_path = "blocked_after_one_revision"
+            records.append(
+                {
+                    "role": "scientific_reviewer",
+                    "adapter": adapter,
+                    "adapter_version": version,
+                    "input_summary_hash": input_hash,
+                    "started_at": started_at,
+                    "ended_at": ended_at,
+                    "verdict": decision["verdict"],
+                    "transition_ids": decision["transition_ids"],
+                    "pressure_ids": decision["pressure_ids"],
+                    "source_ids": decision["source_ids"],
+                    "issue_codes": decision["issue_codes"],
+                    "summary": decision["summary"],
+                    "revision_count": revision_count,
+                    "final_fallback_path": fallback_path,
+                    "review_mode": review_mode,
+                }
+            )
+            if decision["verdict"] == "pass":
+                return current_result, current_metadata, {
+                    "verdict": "pass",
+                    "review_mode": review_mode,
+                    "revision_count": revision_count,
+                    "issue_codes": decision["issue_codes"],
+                    "summary": decision["summary"],
+                }
+            if decision["verdict"] == "block" or review_index == 1:
+                raise InteractiveError(
+                    "review_blocked",
+                    "科学审查没有放行这一轮。原来的记录还在，请换一条路线或稍后重试。",
+                    http_status=422,
+                    retryable=True,
+                )
+            revision_count = 1
+            revision_spec = copy.deepcopy(spec)
+            transformations = {
+                str(item.get("from")): str(item.get("to"))
+                for item in selection["direction"].get("trait_transformations", [])
+                if isinstance(item, dict) and item.get("from") and item.get("to")
+            }
+            required_protected_traits = [
+                transformations.get(str(trait), str(trait))
+                for trait in previous.get("protected_traits", [])
+                if str(trait).strip()
+            ]
+            revision_spec["review_revision"] = {
+                "issue_codes": decision["issue_codes"],
+                "summary": decision["summary"],
+                "required_protected_traits": required_protected_traits,
+            }
+            if self.dry_run:
+                current_result, current_metadata = self._dry_run_plan(
+                    previous,
+                    selection,
+                    revision_spec,
+                )
+            else:
+                current_result, current_metadata = self._planner(
+                    previous,
+                    selection,
+                    revision_spec,
+                )
+        raise AssertionError("review loop exceeded its bound")
 
     def _build_stage(
         self,
@@ -1402,9 +1764,9 @@ class InteractiveEvolutionService:
         ]
         try:
             envelope = helper.post_json(
-                STEP_ENDPOINT,
+                configured_step_endpoint(),
                 {
-                    "model": STEP_MODEL,
+                    "model": configured_step_model(),
                     "reasoning_effort": "high",
                     "messages": messages,
                     "response_format": {
@@ -1419,7 +1781,7 @@ class InteractiveEvolutionService:
                 {"Authorization": "Bearer " + key, "Content-Type": "application/json"},
                 self.step_timeout,
             )
-            if envelope.get("model") != STEP_MODEL:
+            if envelope.get("model") != configured_step_model():
                 raise ValueError("unexpected model")
             result = json.loads(envelope["choices"][0]["message"]["content"])
         except Exception as exc:
@@ -1462,7 +1824,7 @@ class InteractiveEvolutionService:
                 retryable=True,
             )
         return result, {
-            "planner": STEP_MODEL,
+            "planner": configured_step_model(),
             "reasoning_effort": "high",
             "strict_schema": True,
         }
@@ -1490,6 +1852,28 @@ class InteractiveEvolutionService:
         retry_note = ""
         if retry_errors:
             retry_note = "\n上次输出未通过结构校验，请只修复这些问题：" + "；".join(retry_errors[:10])
+        review_revision = spec.get("review_revision")
+        if isinstance(review_revision, dict):
+            issue_codes = [
+                str(item) for item in review_revision.get("issue_codes", [])[:8]
+            ]
+            review_summary = str(review_revision.get("summary", "")).strip()[:240]
+            required_revision_traits = [
+                str(item).strip()
+                for item in review_revision.get("required_protected_traits", [])[:6]
+                if str(item).strip()
+            ]
+            retry_note += (
+                "\n科学审查只允许本次修订："
+                + "；".join(issue_codes)
+                + ("。裁决摘要：" + review_summary if review_summary else "")
+            )
+            if "PROTECTED_TRAIT_MISSING" in issue_codes and required_revision_traits:
+                retry_note += (
+                    "\n本次必须逐字写入 traits，并在 lineage_summary 中明确说明仍然保留："
+                    + "；".join(required_revision_traits)
+                    + "。不要用近义词替换这些账本名称。"
+                )
         subject_rule = (
             "当前世界位于生命起源之前。主语只能是化学系统、反应网络或原始区室；"
             "使用结构、反应循环和延续，不得写身体、后代、物种或已确认生物。"
@@ -1574,7 +1958,7 @@ class InteractiveEvolutionService:
         retry_errors: list[str] | None = None
         for attempt in range(2):
             body = {
-                "model": STEP_MODEL,
+                "model": configured_step_model(),
                 "reasoning_effort": "high",
                 "messages": self._messages(previous, selection, spec, retry_errors),
                 "response_format": {
@@ -1588,12 +1972,12 @@ class InteractiveEvolutionService:
             }
             try:
                 envelope = helper.post_json(
-                    STEP_ENDPOINT,
+                    configured_step_endpoint(),
                     body,
                     {"Authorization": "Bearer " + key, "Content-Type": "application/json"},
                     self.step_timeout,
                 )
-                if envelope.get("model") != STEP_MODEL:
+                if envelope.get("model") != configured_step_model():
                     raise ValueError("unexpected model")
                 result = json.loads(envelope["choices"][0]["message"]["content"])
             except InteractiveError:
@@ -1631,7 +2015,7 @@ class InteractiveEvolutionService:
                     errors.append(f"$.{field}: must use natural Simplified Chinese")
             if not errors:
                 return result, {
-                    "planner": STEP_MODEL,
+                    "planner": configured_step_model(),
                     "reasoning_effort": "high",
                     "strict_schema": True,
                     "attempts": attempt + 1,
@@ -1648,6 +2032,85 @@ class InteractiveEvolutionService:
             http_status=502,
             retryable=True,
         )
+
+    def _review_with_step(
+        self,
+        draft: dict[str, Any],
+        previous: dict[str, Any],
+        selection: dict[str, Any],
+        spec: dict[str, Any],
+        evidence_pack: dict[str, Any],
+    ) -> tuple[dict[str, Any], dict[str, Any]]:
+        key = os.environ.get("STEP_API_KEY") or os.environ.get("STEPFUN_API_KEY")
+        if not key:
+            raise RuntimeError("reviewer credential is not configured")
+        bounded_input = {
+            "draft": draft,
+            "parent_trait_ledger": {
+                "traits": previous.get("traits", []),
+                "protected_traits": previous.get("protected_traits", []),
+            },
+            "scenario_rules": {
+                "world_id": spec.get("world", {}).get("id"),
+                "constraint_mode": spec.get("world", {}).get("constraint_mode"),
+                "time_scope": spec.get("time_scope"),
+                "selected_transition_id": selection.get("direction", {}).get("transition_id"),
+                "declared_trait_transformations": selection.get("direction", {}).get(
+                    "trait_transformations", []
+                ),
+            },
+            "evidence_pack": evidence_pack,
+        }
+        system = (
+            "你是 EvoLab 的独立科学审查员。你只审查给定的结构化草案、父代性状账本、"
+            "场景规则和证据包，不猜测规划器的隐藏推理。检查历史前置条件、关键性状连续性、"
+            "未来情景中个体适应与可遗传演化的区分，以及来源是否确实存在于证据包。"
+            "历史重建模式必须逐项保留 protected_traits，除非场景明确声明了转化；"
+            "起源假说模式的 traits 是描述性记录，不是强制逐项复制的历史账本，只需保留至少一个可辨认结构，"
+            "并确保仍以化学系统、区室、反应或循环为主语，不提前宣布生命、遗传体系或物种已经出现；"
+            "未来情景只阻断把个体短期反应或技术补偿直接写成可遗传演化的草案。"
+            "轻微措辞、命名风格或非保护性状的取舍不构成 revise 或 block。"
+            "verdict 只能是 pass、revise 或 block；revise 必须给出稳定的问题代码。"
+            "不得续写故事，不得发明来源，不得输出提示词、密钥或思维过程。"
+            "只返回符合指定 JSON Schema 的 JSON。"
+        )
+        body = {
+            "model": configured_step_model(),
+            "reasoning_effort": "high",
+            "messages": [
+                {"role": "system", "content": system},
+                {
+                    "role": "user",
+                    "content": json.dumps(bounded_input, ensure_ascii=False, sort_keys=True),
+                },
+            ],
+            "response_format": {
+                "type": "json_schema",
+                "json_schema": {
+                    "name": "evolab_scientific_review",
+                    "strict": True,
+                    "schema": scientific_review.REVIEW_SCHEMA,
+                },
+            },
+        }
+        envelope = helper.post_json(
+            configured_step_endpoint(),
+            body,
+            {"Authorization": "Bearer " + key, "Content-Type": "application/json"},
+            self.step_timeout,
+        )
+        if envelope.get("model") != configured_step_model():
+            raise ValueError("unexpected review model")
+        raw = json.loads(envelope["choices"][0]["message"]["content"])
+        errors = helper.validate_schema(raw, scientific_review.REVIEW_SCHEMA)
+        if errors:
+            raise ValueError("invalid review response")
+        decision = scientific_review.normalize_decision(raw, evidence_pack=evidence_pack)
+        return decision, {
+            "adapter": "step-scientific-reviewer",
+            "version": configured_step_model(),
+            "strict_schema": True,
+        }
 
     def _render_with_comfy(
         self,
@@ -1842,20 +2305,95 @@ class InteractiveEvolutionService:
                 retryable=True,
             ) from exc
         visual_change_score = None
+        technical_visual_gate = None
+        visual_review: dict[str, Any] = {
+            "mode": "not_applicable",
+            "verdict": "not_run",
+            "summary": "首张生成图没有可供比较的父代 PNG。",
+        }
         if reference_image is not None:
             visual_change_score = _visual_change_score(reference_image, destination)
-            if not MIN_REFERENCE_CHANGE <= visual_change_score <= MAX_REFERENCE_CHANGE:
+            technical_visual_gate = visual_continuity.technical_visual_gate(
+                reference_image,
+                destination,
+            )
+            if not technical_visual_gate["passed"]:
                 destination.unlink(missing_ok=True)
                 helper.log(
-                    "reference-conditioned image rejected by visual change gate "
-                    f"({visual_change_score:.4f}; expected {MIN_REFERENCE_CHANGE:.2f}-{MAX_REFERENCE_CHANGE:.2f})"
+                    "reference-conditioned image rejected by technical visual gate "
+                    + ",".join(technical_visual_gate["issue_codes"])
                 )
-                raise InteractiveError(
+                error = InteractiveError(
                     "visual_continuity_failed",
                     "这次改变没有生成成功。原来的记录还在，可以直接重试。",
                     http_status=502,
                     retryable=True,
                 )
+                error.private_details = {
+                    "mode": "technical_structure_only",
+                    "verdict": "block",
+                    "issue_codes": technical_visual_gate["issue_codes"],
+                    "metrics": technical_visual_gate,
+                }
+                raise error
+            if self.visual_review_mode == "off":
+                visual_review = {
+                    "mode": "technical_only",
+                    "verdict": "not_run",
+                    "summary": "只完成了结构与文件门禁，没有进行图像语义审查。",
+                }
+            else:
+                try:
+                    if self._visual_reviewer is None:
+                        raise RuntimeError("visual reviewer is not configured")
+                    decision, review_metadata = self._visual_reviewer(
+                        reference_image,
+                        destination,
+                        protected_visual_traits,
+                        visual_forbidden,
+                    )
+                    visual_review = {
+                        "mode": "semantic",
+                        "verdict": decision["verdict"],
+                        "adapter": str(review_metadata.get("adapter", "unknown")),
+                        "adapter_version": str(review_metadata.get("version", "unknown")),
+                        "identity_continuity": bool(decision["identity_continuity"]),
+                        "protected_traits": decision["protected_traits"],
+                        "forbidden_findings": decision["forbidden_findings"],
+                        "summary": decision["summary"],
+                    }
+                    if decision["verdict"] != "pass":
+                        destination.unlink(missing_ok=True)
+                        error = InteractiveError(
+                            "visual_semantic_review_blocked",
+                            "图像审查没有确认谱系连续性。原来的记录还在，可以直接重试。",
+                            http_status=502,
+                            retryable=True,
+                        )
+                        error.private_details = copy.deepcopy(visual_review)
+                        raise error
+                except InteractiveError:
+                    raise
+                except Exception as exc:
+                    if self.visual_review_mode == "required":
+                        destination.unlink(missing_ok=True)
+                        error = InteractiveError(
+                            "visual_reviewer_unavailable",
+                            "图像审查暂时没有完成。原来的记录还在，可以稍后重试。",
+                            http_status=503,
+                            retryable=True,
+                        )
+                        error.private_details = {
+                            "mode": "semantic",
+                            "verdict": "block",
+                            "issue_codes": ["VISUAL_REVIEWER_UNAVAILABLE"],
+                        }
+                        raise error from exc
+                    visual_review = {
+                        "mode": "technical_only",
+                        "verdict": "not_run",
+                        "summary": "图像语义审查暂时不可用，本轮只完成结构与文件门禁。",
+                    }
         return {
             "render_source": "generated",
             "generator": rendered.generator,
@@ -1867,6 +2405,35 @@ class InteractiveEvolutionService:
             "required_visual_change": required_visual_change,
             "visual_forbidden": visual_forbidden,
             "visual_change_score": visual_change_score,
+            "technical_visual_gate": technical_visual_gate,
+            "visual_review": visual_review,
+        }
+
+    def _review_visual_with_step(
+        self,
+        parent: Path,
+        descendant: Path,
+        protected_traits: list[str],
+        forbidden_traits: list[str],
+    ) -> tuple[dict[str, Any], dict[str, Any]]:
+        key = os.environ.get("STEP_API_KEY") or os.environ.get("STEPFUN_API_KEY")
+        if not key:
+            raise RuntimeError("visual reviewer credential is not configured")
+        decision = visual_continuity.review_with_step(
+            parent=parent,
+            descendant=descendant,
+            protected_traits=protected_traits,
+            forbidden_traits=forbidden_traits,
+            endpoint=configured_step_endpoint(),
+            model=configured_step_model(),
+            api_key=key,
+            timeout=self.step_timeout,
+            post_json=helper.post_json,
+            validate_schema=helper.validate_schema,
+        )
+        return decision, {
+            "adapter": "step-multimodal-visual-reviewer",
+            "version": configured_step_model(),
         }
 
     def _dry_run_plan(
@@ -1878,7 +2445,18 @@ class InteractiveEvolutionService:
         direction = selection["direction"]
         environment = selection["environment"]
         contingency = selection["contingency"]
-        inherited = [str(item) for item in previous.get("traits", [])[:2]]
+        inherited = list(
+            dict.fromkeys(
+                [str(item) for item in previous.get("traits", [])[:2]]
+                + [str(item) for item in previous.get("protected_traits", [])]
+            )
+        )
+        transformations = {
+            str(item["from"]): str(item["to"])
+            for item in direction.get("trait_transformations", [])
+            if isinstance(item, dict) and item.get("from") and item.get("to")
+        }
+        inherited = [transformations.get(item, item) for item in inherited]
         chemistry_world = spec.get("world", {}).get("id") == "hydrothermal_origin"
         constraint_mode = spec.get("world", {}).get(
             "constraint_mode", "historical_reconstruction"
