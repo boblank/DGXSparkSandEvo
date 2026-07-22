@@ -8,12 +8,14 @@ keys and absolute host paths never become part of either representation.
 from __future__ import annotations
 
 import copy
+import hashlib
 import html
 import importlib.util
 import json
 import os
 import re
 import shutil
+import subprocess
 import sys
 import threading
 import time
@@ -34,6 +36,8 @@ STEP_ENDPOINT = "https://api.stepfun.com/step_plan/v1/chat/completions"
 STEP_MODEL = "step-3.7-flash"
 SESSION_ID_PATTERN = re.compile(r"^[0-9]{8}T[0-9]{6}-[a-f0-9]{8}$")
 SAFE_ID_PATTERN = re.compile(r"^[a-z0-9_]+$")
+CHINESE_PATTERN = re.compile(r"[\u3400-\u9fff]")
+LATIN_LETTER_PATTERN = re.compile(r"[A-Za-z]")
 
 
 def _load_helper() -> Any:
@@ -105,6 +109,22 @@ def _atomic_write_json(path: Path, data: Any) -> None:
         encoding="utf-8",
     )
     temporary.replace(path)
+
+
+def _sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for block in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(block)
+    return digest.hexdigest()
+
+
+def _is_natural_chinese(value: Any) -> bool:
+    if not isinstance(value, str) or not value.strip():
+        return False
+    chinese_count = len(CHINESE_PATTERN.findall(value))
+    latin_count = len(LATIN_LETTER_PATTERN.findall(value))
+    return chinese_count > 0 and latin_count <= max(12, chinese_count)
 
 
 def _as_choice_map(items: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
@@ -257,6 +277,69 @@ class InteractiveEvolutionService:
             session,
         )
 
+    def _public_stage(self, source: dict[str, Any]) -> dict[str, Any]:
+        stage = copy.deepcopy(source)
+        selection = stage.get("selection") if isinstance(stage.get("selection"), dict) else {}
+        environment = selection.get("environment") if isinstance(selection.get("environment"), dict) else {}
+        contingency = selection.get("contingency") if isinstance(selection.get("contingency"), dict) else {}
+        direction = selection.get("direction") if isinstance(selection.get("direction"), dict) else {}
+        direction_title = str(direction.get("title") or "").strip()
+        direction_detail = str(direction.get("description") or "").strip()
+        environment_title = str(environment.get("title") or "").strip()
+        contingency_title = str(contingency.get("title") or "").strip()
+        chemistry = stage.get("scenario_id") == "hydrothermal_origin"
+
+        if not _is_natural_chinese(stage.get("organism_name")):
+            if direction_title:
+                stage["organism_name"] = (
+                    f"沿“{direction_title}”继续的反应系统"
+                    if chemistry
+                    else f"沿“{direction_title}”延续的谱系"
+                )
+            else:
+                stage["organism_name"] = "尚未命名的化学系统" if chemistry else "尚未命名的谱系"
+        if not _is_natural_chinese(stage.get("lineage_summary")):
+            if chemistry:
+                stage["lineage_summary"] = (
+                    f"周围变成“{environment_title or '新的环境'}”，“{contingency_title or '一次偶然变化'}”"
+                    f"又扰动了原有反应。系统沿“{direction_title or '当前方向'}”继续，但这还不能证明生命已经出现。"
+                )
+            else:
+                stage["lineage_summary"] = (
+                    f"周围变成“{environment_title or '新的环境'}”，“{contingency_title or '一次偶然变化'}”"
+                    f"又把它推离原路。这条谱系沿“{direction_title or '当前方向'}”继续，没有凭空跳成一个新物种。"
+                )
+        if not _is_natural_chinese(stage.get("change_summary")):
+            stage["change_summary"] = direction_detail or "这一阶段保留了来路，也增加了新的代价。"
+
+        def localized_list(field: str, fallbacks: list[str]) -> None:
+            original = stage.get(field)
+            if not isinstance(original, list) and not fallbacks:
+                return
+            values = original if isinstance(original, list) else []
+            chinese_values = [str(item).strip() for item in values if _is_natural_chinese(item)]
+            if not chinese_values:
+                for fallback in fallbacks:
+                    if _is_natural_chinese(fallback) and fallback not in chinese_values:
+                        chinese_values.append(fallback)
+            stage[field] = chinese_values[:6]
+
+        localized_list("traits", [direction_title, environment_title])
+        localized_list("inherited_traits", [])
+        localized_list("internal_causes", [direction_detail or direction_title])
+        localized_list("external_causes", [environment_title, contingency_title])
+        localized_list("benefits", ["更容易应对当前环境的压力"])
+        localized_list("costs", ["这种变化也会增加维持成本，并可能失去原有优势"])
+        if not _is_natural_chinese(stage.get("uncertainty_note")):
+            stage["uncertainty_note"] = "这是受约束的情景推演，不是已经发现的物种，也不是确定预测。"
+        parent = stage.get("lineage_parent")
+        if isinstance(parent, dict):
+            if not _is_natural_chinese(parent.get("organism_name")):
+                parent["organism_name"] = "上一阶段"
+            if not _is_natural_chinese(parent.get("lineage_summary")):
+                parent["lineage_summary"] = "上一阶段的结构和生活方式为这次改变提供了起点。"
+        return stage
+
     def _knowledge_match(
         self,
         knowledge_card_id: str,
@@ -403,10 +486,97 @@ class InteractiveEvolutionService:
         public_session["scenario"] = self._public_scenario(
             self._scenario(session.get("scenario_id"))
         )
+        public_session["current_stage"] = self._public_stage(session["current_stage"])
+        public_session["history"] = [
+            self._public_stage(stage)
+            for stage in session.get("history", [])
+            if isinstance(stage, dict)
+        ]
+        public_session["lineage_video_url"] = (
+            f"/api/sessions/{session['session_id']}/lineage-video"
+            if session.get("status") == "completed"
+            else None
+        )
         return {
             "session": public_session,
             "choices": self._choices_for(session),
         }
+
+    def lineage_video_path(self, session_id: str) -> Path:
+        with self._session_lock(session_id):
+            session = self._load_session(session_id)
+            if session.get("status") != "completed":
+                raise InteractiveError(
+                    "video_not_ready",
+                    "三次改变完成后，才能整理这条路线的回放。",
+                    http_status=409,
+                    retryable=True,
+                )
+            session_dir = self._session_dir(session_id).resolve()
+            output = session_dir / "lineage_recap.mp4"
+            manifest = output.with_suffix(".json")
+            if output.is_file() and manifest.is_file():
+                try:
+                    evidence = _read_json(manifest)
+                except (OSError, json.JSONDecodeError):
+                    evidence = {}
+                output_evidence = (
+                    evidence.get("output")
+                    if isinstance(evidence.get("output"), dict)
+                    else {}
+                )
+                if (
+                    evidence.get("contract_version") == "1.1.0"
+                    and evidence.get("session_updated_at") == session.get("updated_at")
+                    and evidence.get("input_stage_count", 0) >= 4
+                    and output.stat().st_size >= 50_000
+                    and output_evidence.get("sha256") == _sha256_file(output)
+                ):
+                    return output
+
+            default_video_python = Path(
+                "/home/Developer/build_a_claw_workshop-bundle/"
+                "comfyui-app/comfyui-env/bin/python"
+            )
+            configured = os.environ.get("EVOLAB_VIDEO_PYTHON", "").strip()
+            executable = Path(configured).expanduser() if configured else default_video_python
+            if not executable.is_file():
+                executable = Path(sys.executable)
+            command = [
+                str(executable),
+                str(SCRIPT_DIR / "lineage_video.py"),
+                "--session",
+                str(session_dir / "session.json"),
+                "--output",
+                str(output),
+            ]
+            try:
+                result = subprocess.run(
+                    command,
+                    check=False,
+                    capture_output=True,
+                    text=True,
+                    timeout=int(os.environ.get("EVOLAB_VIDEO_TIMEOUT", "180")),
+                )
+            except (OSError, subprocess.TimeoutExpired) as exc:
+                raise InteractiveError(
+                    "video_generation_failed",
+                    "回放没有生成出来，四张阶段图仍然保留。",
+                    http_status=502,
+                    retryable=True,
+                ) from exc
+            if result.returncode != 0 or not output.is_file() or output.stat().st_size < 50_000:
+                helper.log(
+                    "Lineage recap failed: "
+                    + (result.stderr or result.stdout or "unknown encoder error")[-800:]
+                )
+                raise InteractiveError(
+                    "video_generation_failed",
+                    "回放没有生成出来，四张阶段图仍然保留。",
+                    http_status=502,
+                    retryable=True,
+                )
+            return output
 
     def create_session(self, scenario_id: str | None = None) -> dict[str, Any]:
         scenario = self._scenario(scenario_id)
@@ -691,7 +861,8 @@ class InteractiveEvolutionService:
             "image_prompt 必须使用英文，描述一张无文字、无标签、单一主体明确的电影感科学插画；"
             f"遵循当前世界的视觉锚点：{spec['world'].get('visual_anchor', '')}；"
             f"避免：{spec['world'].get('visual_negative', '')}；并保留上一阶段至少一项可辨认视觉特征。"
-            "其余字段使用自然、简洁的简体中文。只返回符合指定 JSON Schema 的 JSON。"
+            "其余字段只使用自然、简洁的简体中文；除通用缩写外，任何整句英文都会被拒绝。"
+            "只返回符合指定 JSON Schema 的 JSON。"
         )
         user = (
             f"当前世界：{spec['world']['title']}（{spec['world']['era']}，{spec['world']['habitat']}）\n"
@@ -781,6 +952,8 @@ class InteractiveEvolutionService:
                     for item in values
                 ):
                     errors.append(f"$.{field}: unsupported pseudo-precision")
+                if any(isinstance(item, str) and not _is_natural_chinese(item) for item in values):
+                    errors.append(f"$.{field}: must use natural Simplified Chinese")
             if not errors:
                 return result, {
                     "planner": STEP_MODEL,

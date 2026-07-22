@@ -4,59 +4,72 @@
   "properties": {
     "organism_name": {
       "type": "string",
-      "minLength": 1
+      "minLength": 1,
+      "description": "使用自然、简洁的简体中文，不要输出整句英文。"
     },
     "lineage_summary": {
       "type": "string",
-      "minLength": 1
+      "minLength": 1,
+      "description": "使用自然、简洁的简体中文，不要输出整句英文。"
     },
     "change_summary": {
       "type": "string",
-      "minLength": 1
+      "minLength": 1,
+      "description": "使用自然、简洁的简体中文，不要输出整句英文。"
     },
     "traits": {
       "type": "array",
       "minItems": 2,
       "maxItems": 6,
+      "description": "每一项都使用自然、简洁的简体中文。",
       "items": {
         "type": "string",
-        "minLength": 1
+        "minLength": 1,
+        "description": "使用简体中文，不要输出整句英文。"
       }
     },
     "internal_causes": {
       "type": "array",
       "minItems": 1,
       "maxItems": 3,
+      "description": "每一项都使用自然、简洁的简体中文。",
       "items": {
         "type": "string",
-        "minLength": 1
+        "minLength": 1,
+        "description": "使用简体中文，不要输出整句英文。"
       }
     },
     "external_causes": {
       "type": "array",
       "minItems": 1,
       "maxItems": 3,
+      "description": "每一项都使用自然、简洁的简体中文。",
       "items": {
         "type": "string",
-        "minLength": 1
+        "minLength": 1,
+        "description": "使用简体中文，不要输出整句英文。"
       }
     },
     "benefits": {
       "type": "array",
       "minItems": 1,
       "maxItems": 3,
+      "description": "每一项都使用自然、简洁的简体中文。",
       "items": {
         "type": "string",
-        "minLength": 1
+        "minLength": 1,
+        "description": "使用简体中文，不要输出整句英文。"
       }
     },
     "costs": {
       "type": "array",
       "minItems": 1,
       "maxItems": 3,
+      "description": "每一项都使用自然、简洁的简体中文。",
       "items": {
         "type": "string",
-        "minLength": 1
+        "minLength": 1,
+        "description": "使用简体中文，不要输出整句英文。"
       }
     },
     "evidence_tag": {
@@ -69,11 +82,13 @@
     },
     "uncertainty_note": {
       "type": "string",
-      "minLength": 1
+      "minLength": 1,
+      "description": "使用自然、简洁的简体中文，不要输出整句英文。"
     },
     "image_prompt": {
       "type": "string",
-      "minLength": 1
+      "minLength": 1,
+      "description": "仅此字段使用英文，供图像模型读取；不要夹入中文。"
     }
   },
   "required": [

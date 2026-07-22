@@ -104,7 +104,7 @@ class EvoLabHandler(SimpleHTTPRequestHandler):
     def do_OPTIONS(self) -> None:  # noqa: N802 - stdlib handler API
         if urlparse(self.path).path.startswith("/api/"):
             self.send_response(204)
-            self.send_header("Allow", "GET, POST, OPTIONS")
+            self.send_header("Allow", "GET, HEAD, POST, OPTIONS")
             self.send_header("Content-Length", "0")
             self.end_headers()
             return
@@ -129,6 +129,16 @@ class EvoLabHandler(SimpleHTTPRequestHandler):
                 return
             if path == "/api/scenarios":
                 self._send_json(200, self.service.list_scenarios())
+                return
+            lineage_video = re.fullmatch(
+                r"/api/sessions/([0-9]{8}T[0-9]{6}-[a-f0-9]{8})/lineage-video",
+                path,
+            )
+            if lineage_video:
+                self._send_video_file(
+                    self.service.lineage_video_path(lineage_video.group(1)),
+                    head_only=False,
+                )
                 return
             match = re.fullmatch(r"/api/sessions/([0-9]{8}T[0-9]{6}-[a-f0-9]{8})", path)
             if match:
@@ -160,13 +170,26 @@ class EvoLabHandler(SimpleHTTPRequestHandler):
 
     def do_HEAD(self) -> None:  # noqa: N802 - stdlib handler API
         path = unquote(urlparse(self.path).path)
-        if not self._public_static_path(path):
-            self.send_error(404)
-            return
-        if path.endswith(".mp4"):
-            self._send_public_video(path, head_only=True)
-            return
-        super().do_HEAD()
+        try:
+            lineage_video = re.fullmatch(
+                r"/api/sessions/([0-9]{8}T[0-9]{6}-[a-f0-9]{8})/lineage-video",
+                path,
+            )
+            if lineage_video:
+                self._send_video_file(
+                    self.service.lineage_video_path(lineage_video.group(1)),
+                    head_only=True,
+                )
+                return
+            if not self._public_static_path(path):
+                self.send_error(404)
+                return
+            if path.endswith(".mp4"):
+                self._send_public_video(path, head_only=True)
+                return
+            super().do_HEAD()
+        except Exception as exc:
+            self._send_api_error(exc)
 
     def _send_public_video(self, request_path: str, *, head_only: bool) -> None:
         target = (REPO_ROOT / request_path.lstrip("/")).resolve()
@@ -178,6 +201,17 @@ class EvoLabHandler(SimpleHTTPRequestHandler):
         if not target.is_file():
             self.send_error(404)
             return
+
+        self._send_video_file(target, head_only=head_only)
+
+    def _send_video_file(self, target: Path, *, head_only: bool) -> None:
+        if not target.is_file():
+            raise engine.InteractiveError(
+                "video_not_found",
+                "这条路线的回放还没有生成出来。",
+                http_status=404,
+                retryable=True,
+            )
 
         size = target.stat().st_size
         start = 0

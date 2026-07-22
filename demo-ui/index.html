@@ -30,7 +30,7 @@
     <main>
       <section id="world-atlas" class="world-atlas" aria-labelledby="atlas-title">
         <header class="atlas-intro">
-          <p class="eyebrow">DEEP TIME ATLAS · 45.4 亿年仍在继续</p>
+          <p class="eyebrow">深时图谱 · 45.4 亿年仍在继续</p>
           <h1 id="atlas-title">你想从哪一段<br />生命史开始？</h1>
           <p>
             四个世界，四套起点和规则。你可以从生命出现以前开始，也可以站到海床、潮池或水陆边缘。没有一条路默认通向人类。
@@ -149,29 +149,28 @@
             <div id="ending-content" class="ending-content" hidden>
               <figure id="ending-video-card" class="ending-video-card" hidden>
                 <div class="ending-video-heading">
-                  <span>同一浅海世界 · DGX 留档</span>
-                  <strong>03.375 S</strong>
+                  <span id="ending-video-label">这条路线 · 四阶段回放</span>
+                  <strong id="ending-video-state">正在整理</strong>
                 </div>
                 <div class="ending-video-window">
                   <video
                     id="ending-video"
                     controls
                     muted
-                    loop
                     playsinline
-                    preload="metadata"
-                    poster="/demo-assets/video/tidal-symbiosis-dgx-poster.png"
-                    aria-label="同一浅海场景在 DGX Spark 上生成的三点三七五秒视频"
+                    preload="auto"
+                    aria-label="本次会话四个阶段及用户选择的回放"
                     aria-describedby="ending-video-boundary"
-                  >
-                    <source src="/demo-assets/video/tidal-symbiosis-dgx.mp4" type="video/mp4" />
-                  </video>
+                  ></video>
+                  <p id="ending-video-loading" class="ending-video-loading" role="status">
+                    正在把阶段图和你的选择整理成回放…
+                  </p>
                 </div>
                 <figcaption>
-                  <strong>同一浅海世界的一段真实生成</strong>
-                  <span id="ending-video-boundary">这段运动是艺术表达，不是新的科学证据。</span>
+                  <strong>这条路线的四阶段回放</strong>
+                  <span id="ending-video-boundary">阶段图来自本次会话；转场用来回看选择，不是新的科学证据。</span>
                 </figcaption>
-                <p id="ending-video-error" class="ending-video-error" hidden>这段视频没能播放，最终阶段图还在。</p>
+                <p id="ending-video-error" class="ending-video-error" hidden>回放没有生成出来，四张阶段图仍然保留。</p>
               </figure>
               <p id="ending-kicker" class="deck-step">这条谱系走完了三次改变</p>
               <h2 id="ending-title">它暂时活了下来，世界没有因此停住。</h2>
@@ -199,7 +198,7 @@
 
           <section class="lineage-film" aria-labelledby="film-title">
             <div class="film-heading">
-              <div><span id="film-kicker">YOUR LINEAGE</span><h2 id="film-title">这条谱系留下的四个瞬间</h2></div>
+              <div><span id="film-kicker">谱系记录</span><h2 id="film-title">这条谱系留下的四个瞬间</h2></div>
               <p>后面的图要认得出前一阶段。改变可以很大，来路不能凭空消失。</p>
             </div>
             <ol id="lineage-history" class="film-strip"></ol>

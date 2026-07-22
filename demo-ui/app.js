@@ -65,7 +65,7 @@
       "evolve-button-label", "ending-kicker", "ending-title", "evolution-form", "environment-choices",
       "contingency-choices", "direction-choices", "selection-recap", "evolve-button",
       "ending-restart", "ending-worlds", "ending-summary", "ending-video-card", "ending-video",
-      "ending-video-error", "knowledge-note",
+      "ending-video-label", "ending-video-state", "ending-video-loading", "ending-video-error", "knowledge-note",
       "knowledge-kicker", "knowledge-title", "knowledge-body", "evidence-button",
       "lineage-history", "film-kicker", "film-title", "trace-world", "trace-knowledge", "trace-plan", "trace-render",
       "error-toast", "error-message", "dismiss-error", "evidence-dialog", "evidence-tag",
@@ -103,9 +103,12 @@
       el["image-placeholder"].classList.remove("is-hidden");
     });
     el["ending-video"].addEventListener("loadeddata", function () {
-      el["ending-video-error"].hidden = true;
+      finishEndingVideoLoad();
     });
     el["ending-video"].addEventListener("error", function () {
+      if (el["ending-video-card"].hidden || !el["ending-video"].getAttribute("src")) return;
+      el["ending-video-loading"].hidden = true;
+      el["ending-video-state"].textContent = "未能生成";
       el["ending-video-error"].hidden = false;
     });
   }
@@ -135,7 +138,10 @@
       state.scenarios = Array.isArray(registry.scenarios) ? registry.scenarios : [];
       renderScenarioList();
       selectScenario(registry.default_scenario_id || (state.scenarios[0] && state.scenarios[0].id));
-      setRuntime(health.mode === "live" ? "DGX Spark 已就绪" : "四个世界可以预演", "ready");
+      const restored = await restoreSessionFromUrl();
+      if (!restored) {
+        setRuntime(health.mode === "live" ? "DGX Spark 已就绪" : "四个世界可以预演", "ready");
+      }
     } catch (error) {
       setRuntime("世界图谱暂时没有打开", "error");
       showError(readableError(error));
@@ -211,6 +217,7 @@
       state.envelope = envelope;
       state.currentScenarioId = envelope.session.scenario_id;
       state.selected = { environment: null, contingency: null, direction: null };
+      rememberSession(envelope.session.session_id);
       render(envelope);
       setView("simulation");
       setRuntime("可以开始第一次改变", "ready");
@@ -225,6 +232,7 @@
   function showWorldAtlas() {
     if (state.busy) return;
     hideError();
+    clearRememberedSession();
     setView("atlas");
     if (state.currentScenarioId) selectScenario(state.currentScenarioId);
   }
@@ -398,6 +406,7 @@
         body: JSON.stringify(payload),
       });
       state.envelope = envelope;
+      rememberSession(envelope.session.session_id);
       render(envelope);
       setRuntime(envelope.session.status === "completed"
         ? (isChemistryWorld() ? "这套反应走完三次改变" : "这条谱系走完三次改变")
@@ -470,7 +479,7 @@
 
   function renderHistory(history, maxRounds) {
     const frameCount = maxRounds + 1;
-    el["film-kicker"].textContent = isChemistryWorld() ? "REACTION RECORD" : "YOUR LINEAGE";
+    el["film-kicker"].textContent = isChemistryWorld() ? "反应记录" : "谱系记录";
     el["film-title"].textContent = isChemistryWorld() ? "这套化学系统留下的四个瞬间" : "这条谱系留下的四个瞬间";
     el["lineage-history"].replaceChildren();
     history.slice(0, frameCount).forEach(function (stage, index) {
@@ -510,18 +519,44 @@
   }
 
   function renderEndingVideo() {
-    if (!isTidalWorld()) {
+    const session = state.envelope && state.envelope.session;
+    const videoUrl = session && safeText(session.lineage_video_url);
+    if (!session || !videoUrl) {
       hideEndingVideo();
       return;
     }
+    const video = el["ending-video"];
     el["ending-video-card"].hidden = false;
+    el["ending-video-label"].textContent = isChemistryWorld()
+      ? "这套反应 · 四阶段回放"
+      : "这条路线 · 四阶段回放";
     el["ending-video-error"].hidden = true;
-    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (reducedMotion) {
-      el["ending-video"].pause();
+    video.poster = safeText(session.current_stage && session.current_stage.image_url);
+    if (video.dataset.sessionId === session.session_id && video.readyState >= 2) {
+      finishEndingVideoLoad();
       return;
     }
-    const attempt = el["ending-video"].play();
+    video.pause();
+    video.dataset.sessionId = session.session_id;
+    el["ending-video-loading"].hidden = false;
+    el["ending-video-state"].textContent = "正在整理";
+    const version = encodeURIComponent(safeText(session.updated_at, session.session_id));
+    video.src = videoUrl + "?v=" + version;
+    video.load();
+  }
+
+  function finishEndingVideoLoad() {
+    const video = el["ending-video"];
+    el["ending-video-loading"].hidden = true;
+    el["ending-video-error"].hidden = true;
+    el["ending-video-state"].textContent = Number.isFinite(video.duration)
+      ? "约 " + Math.max(1, Math.round(video.duration)) + " 秒"
+      : "回放就绪";
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      video.pause();
+      return;
+    }
+    const attempt = video.play();
     if (attempt && typeof attempt.catch === "function") {
       attempt.catch(function () {
         // Native controls remain available when the browser blocks autoplay.
@@ -532,6 +567,10 @@
   function hideEndingVideo() {
     el["ending-video-card"].hidden = true;
     el["ending-video"].pause();
+    el["ending-video"].removeAttribute("src");
+    delete el["ending-video"].dataset.sessionId;
+    el["ending-video"].load();
+    el["ending-video-loading"].hidden = true;
     el["ending-video-error"].hidden = true;
   }
 
@@ -546,7 +585,8 @@
     const renderDone = round > 0 && Boolean(stage.render_source);
     const generator = stage.render_source === "fixture"
       ? "浏览器预演图"
-      : safeText(stage.render_metadata && stage.render_metadata.generator, stage.render_source);
+      : safeText(stage.render_metadata && stage.render_metadata.generator, stage.render_source)
+        .replace(/\s+via\s+ComfyUI/gi, " · 通过 ComfyUI");
     setTrace(el["trace-render"], renderDone, renderDone ? generator : "起点图来自场景包；" + (isChemistryWorld() ? "下一阶段" : "下一代") + "将在 DGX 绘制");
   }
 
@@ -621,10 +661,38 @@
     return scenarioId === "hydrothermal_origin";
   }
 
-  function isTidalWorld() {
-    const session = state.envelope && state.envelope.session;
-    const scenarioId = (session && session.scenario_id) || state.currentScenarioId;
-    return scenarioId === "tidal_symbiosis";
+  async function restoreSessionFromUrl() {
+    const sessionId = new URLSearchParams(window.location.search).get("session") || "";
+    if (!/^[0-9]{8}T[0-9]{6}-[a-f0-9]{8}$/.test(sessionId)) return false;
+    try {
+      const envelope = await request("/sessions/" + encodeURIComponent(sessionId));
+      state.envelope = envelope;
+      state.currentScenarioId = envelope.session.scenario_id;
+      state.selected = { environment: null, contingency: null, direction: null };
+      selectScenario(state.currentScenarioId);
+      render(envelope);
+      setView("simulation");
+      setRuntime(envelope.session.status === "completed" ? "这条路线已经完成" : "可以继续下一次改变", "ready");
+      return true;
+    } catch (error) {
+      clearRememberedSession();
+      showError("这段路线暂时没有打开。" + readableError(error));
+      return false;
+    }
+  }
+
+  function rememberSession(sessionId) {
+    if (!sessionId || !window.history || typeof window.history.replaceState !== "function") return;
+    const url = new URL(window.location.href);
+    url.searchParams.set("session", sessionId);
+    window.history.replaceState({}, "", url.pathname + url.search + url.hash);
+  }
+
+  function clearRememberedSession() {
+    if (!window.history || typeof window.history.replaceState !== "function") return;
+    const url = new URL(window.location.href);
+    url.searchParams.delete("session");
+    window.history.replaceState({}, "", url.pathname + url.search + url.hash);
   }
 
   function safeText(value, fallback) {

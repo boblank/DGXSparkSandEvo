@@ -28,6 +28,7 @@ class InteractiveServerTests(unittest.TestCase):
             Path(self.temporary.name),
             dry_run=True,
         )
+        self.service = service
 
         class QuietHandler(server_module.EvoLabHandler):
             def log_message(self, format_string: str, *args) -> None:
@@ -144,6 +145,23 @@ class InteractiveServerTests(unittest.TestCase):
             context.exception.headers["Content-Range"],
             f"bytes */{video.stat().st_size}",
         )
+
+    def test_session_lineage_video_endpoint_supports_browser_range_requests(self) -> None:
+        video = ROOT / "demo-assets" / "video" / "tidal-symbiosis-dgx.mp4"
+        session_id = "20260722T014150-22f27057"
+        self.service.lineage_video_path = lambda requested: video if requested == session_id else None
+        request = urllib.request.Request(
+            self.base_url + f"/api/sessions/{session_id}/lineage-video",
+            headers={"Range": "bytes=32-1055"},
+        )
+        with urllib.request.urlopen(request, timeout=5) as response:
+            self.assertEqual(response.status, 206)
+            self.assertEqual(response.headers.get_content_type(), "video/mp4")
+            self.assertEqual(
+                response.headers["Content-Range"],
+                f"bytes 32-1055/{video.stat().st_size}",
+            )
+            self.assertEqual(response.read(), video.read_bytes()[32:1056])
 
 
 if __name__ == "__main__":

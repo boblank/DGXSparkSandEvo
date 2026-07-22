@@ -65,6 +65,43 @@ class InteractiveEvolutionServiceTests(unittest.TestCase):
         self.assertEqual(future_match["generated_outcome_status"], "no_match")
         persisted = json.loads((self.root / session_id / "session.json").read_text())
         self.assertEqual(persisted["history"], envelope["session"]["history"])
+        self.assertEqual(
+            envelope["session"]["lineage_video_url"],
+            f"/api/sessions/{session_id}/lineage-video",
+        )
+
+    def test_legacy_english_stage_is_localized_before_reaching_the_browser(self) -> None:
+        service = engine.InteractiveEvolutionService(self.root, dry_run=True)
+        envelope = service.create_session("devonian_estuary")
+        envelope = service.evolve(
+            envelope["session"]["session_id"],
+            first_selection(envelope, 1),
+        )
+        session_id = envelope["session"]["session_id"]
+        persisted = json.loads((self.root / session_id / "session.json").read_text())
+        stage = persisted["current_stage"]
+        stage.update(
+            {
+                "organism_name": "Devonian delta fish lineage",
+                "lineage_summary": "An entirely English lineage summary.",
+                "change_summary": "English-only change summary.",
+                "traits": ["English trait"],
+                "benefits": ["English benefit"],
+                "costs": ["English cost"],
+            }
+        )
+        persisted["history"][-1] = stage
+        (self.root / session_id / "session.json").write_text(
+            json.dumps(persisted, ensure_ascii=False),
+            encoding="utf-8",
+        )
+
+        public_stage = service.get_session(session_id)["session"]["current_stage"]
+        for field in ("organism_name", "lineage_summary", "change_summary"):
+            self.assertTrue(engine.CHINESE_PATTERN.search(public_stage[field]))
+        for field in ("traits", "benefits", "costs"):
+            self.assertTrue(public_stage[field])
+            self.assertTrue(all(engine.CHINESE_PATTERN.search(item) for item in public_stage[field]))
 
     def test_open_world_registry_creates_four_distinct_scenarios(self) -> None:
         service = engine.InteractiveEvolutionService(self.root, dry_run=True)
@@ -247,6 +284,36 @@ class InteractiveEvolutionServiceTests(unittest.TestCase):
     def test_strict_schema_contains_no_unsupported_unique_items(self) -> None:
         schema_text = (ROOT / "skills/evolution/interactive_schema.json").read_text()
         self.assertNotIn('"uniqueItems"', schema_text)
+
+    def test_step_retries_when_visible_copy_is_english(self) -> None:
+        service = engine.InteractiveEvolutionService(self.root, dry_run=True)
+        envelope = service.create_session()
+        session = envelope["session"]
+        spec = service._round_spec(1)
+        selection = service._validate_selection(spec, first_selection(envelope, 1))
+        invalid = {
+            "organism_name": "English organism",
+            "lineage_summary": "English summary",
+            "change_summary": "English change",
+            "traits": ["English trait", "Another trait"],
+            "internal_causes": ["English cause"],
+            "external_causes": ["English pressure"],
+            "benefits": ["English benefit"],
+            "costs": ["English cost"],
+            "evidence_tag": "KNOWN_MECHANISM",
+            "uncertainty_note": "English uncertainty",
+            "image_prompt": "A scientific creature reconstruction",
+        }
+        response = {
+            "model": engine.STEP_MODEL,
+            "choices": [{"message": {"content": json.dumps(invalid)}, "finish_reason": "stop"}],
+        }
+        with mock.patch.dict(os.environ, {"STEP_API_KEY": "test-key"}, clear=False):
+            with mock.patch.object(engine.helper, "post_json", return_value=response) as post:
+                with self.assertRaises(engine.InteractiveError) as context:
+                    service._plan_with_step(session["current_stage"], selection, spec)
+        self.assertEqual(context.exception.code, "planner_invalid_output")
+        self.assertEqual(post.call_count, 2)
 
 
 if __name__ == "__main__":
