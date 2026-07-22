@@ -1,5 +1,5 @@
 {
-  "schema_version": "1.0",
+  "schema_version": "1.1",
   "curation_policy": "Only manually reviewed sources are returned. The catalog supports teaching explanations and scenario boundaries; it does not validate generated organisms or make deterministic forecasts.",
   "knowledge_cards": [
     {
@@ -754,6 +754,26 @@
       "transition_ids": ["E05"],
       "pressure_ids": [],
       "knowledge_card_ids": ["CONVERGENT_VISION"]
+    },
+    {
+      "source_id": "SRC-PRO-001",
+      "title": "1.63-billion-year-old multicellular eukaryotes from the Chuanlinggou Formation in North China",
+      "url": "https://doi.org/10.1126/sciadv.adk3208",
+      "supports": "青山虫状化石保存为单列、不分枝的多细胞丝体，支持约 16.35 亿年前已经存在形态复杂的简单多细胞真核生物。",
+      "boundary": "化石没有保存可确认的线粒体或质体，系统分类和光合属性仍需谨慎，不能用来直接证明某一次内共生事件。",
+      "transition_ids": ["M05"],
+      "pressure_ids": [],
+      "knowledge_card_ids": ["MULTICELLULARITY"]
+    },
+    {
+      "source_id": "SRC-EDI-001",
+      "title": "Ancient steroids establish the Ediacaran fossil Dickinsonia as one of the earliest animals",
+      "url": "https://doi.org/10.1126/science.aat7228",
+      "supports": "狄更逊虫化石中的胆固醇类分子化石支持其动物亲缘，并把真实宏体动物参照带入晚埃迪卡拉纪海床。",
+      "boundary": "分子化石不能还原软组织器官、运动方式和精确系统位置，也不证明后续形态都由狄更逊虫直接演化而来。",
+      "transition_ids": ["E01"],
+      "pressure_ids": [],
+      "knowledge_card_ids": ["CAMBRIAN_TRANSITION"]
     }
   ]
 }

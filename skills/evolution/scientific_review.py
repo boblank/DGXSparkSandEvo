@@ -171,6 +171,39 @@ def deterministic_review(
         if allowed_parents and previous_direction not in allowed_parents:
             issues.append("HISTORICAL_PREREQUISITE_SKIPPED")
 
+        if evidence_pack.get("historical_match_status") == "historical_reference":
+            external_anchors = _string_list(
+                evidence_pack.get("historical_required_external_traits"), maximum=8
+            )
+            internal_anchors = _string_list(
+                evidence_pack.get("historical_required_internal_traits"), maximum=8
+            )
+            if (
+                not external_anchors
+                or not internal_anchors
+                or not any(anchor in draft_text for anchor in external_anchors)
+                or not any(anchor in draft_text for anchor in internal_anchors)
+            ):
+                issues.append("HISTORICAL_ANALOG_DIVERGENCE")
+        elif evidence_pack.get("historical_match_status") in {
+            "partial_reference",
+            "bounded_inference",
+        }:
+            candidate_names = _string_list(
+                evidence_pack.get("historical_candidate_names"), maximum=12
+            )
+            organism_name = str(draft.get("organism_name", "")).strip().casefold()
+            named_as_candidate = any(
+                organism_name == candidate.casefold() for candidate in candidate_names
+            )
+            asserted_candidate = any(
+                candidate in draft_text
+                and any(term in draft_text for term in ("就是", "已经确认", "已知物种"))
+                for candidate in candidate_names
+            )
+            if named_as_candidate or asserted_candidate:
+                issues.append("UNSUPPORTED_TAXON_CLAIM")
+
     if constraint_mode == "future_scenario":
         short_term = any(term in draft_text for term in ("短期适应", "个体适应", "即时适应", "一次飞行", "宇航员个体"))
         hereditary = any(term in draft_text for term in ("遗传", "后代", "跨世代", "演化"))

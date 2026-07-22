@@ -13,6 +13,7 @@ from knowledge.knowledge_adapter import (
     load_interactive_cards,
     lookup_knowledge,
     lookup_sources,
+    match_historical_taxa,
 )
 
 
@@ -21,6 +22,88 @@ ADAPTER_PATH = REPO_ROOT / "knowledge" / "knowledge_adapter.py"
 
 
 class KnowledgeAdapterTests(unittest.TestCase):
+    def test_historical_taxon_match_prefers_a_real_devonian_analog(self) -> None:
+        result = match_historical_taxa(
+            scenario_id="devonian_estuary",
+            transition_id="M07",
+            direction_id="bottom_support",
+            environment_id="weedy_shallows",
+        )
+
+        self.assertEqual(result["status"], "historical_reference")
+        self.assertEqual(result["candidates"][0]["taxon_id"], "TAXON_TIKTAALIK_ROSEAE")
+        self.assertGreaterEqual(result["candidates"][0]["score"], 0.72)
+        self.assertTrue(result["required_external_traits"])
+        self.assertTrue(result["required_internal_traits"])
+        self.assertTrue(result["source_ids"])
+
+    def test_missing_cellular_fossil_evidence_stays_a_bounded_inference(self) -> None:
+        result = match_historical_taxa(
+            scenario_id="tidal_symbiosis",
+            transition_id="M02",
+            direction_id="endosymbiotic_cell",
+            environment_id="oxygen_pulses",
+        )
+
+        self.assertEqual(result["status"], "bounded_inference")
+        self.assertEqual(result["candidates"][0]["taxon_id"], "TAXON_QINGSHANIA_MAGNIFICA")
+        self.assertEqual(result["required_external_traits"], [])
+        self.assertEqual(result["required_internal_traits"], [])
+        self.assertIn("细胞器", result["candidates"][0]["boundary"])
+
+    def test_avian_flight_match_uses_archaeopteryx_body_plan(self) -> None:
+        result = match_historical_taxa(
+            scenario_id="avian_flight",
+            transition_id="B03",
+            direction_id="burst_flight",
+            environment_id="broken_canopy",
+        )
+
+        self.assertEqual(result["status"], "historical_reference")
+        candidate = result["candidates"][0]
+        self.assertEqual(candidate["taxon_id"], "TAXON_ARCHAEOPTERYX_LITHOGRAPHICA")
+        self.assertIn("不对称飞羽", result["required_external_traits"])
+        self.assertIn("支持主动飞行负荷的翼骨几何", result["required_internal_traits"])
+
+    def test_hominin_match_preserves_mosaic_bipedal_anatomy(self) -> None:
+        result = match_historical_taxa(
+            scenario_id="hominin_origins",
+            transition_id="H01",
+            direction_id="habitual_biped",
+            environment_id="patchy_woodland",
+        )
+
+        self.assertEqual(result["status"], "historical_reference")
+        candidate = result["candidates"][0]
+        self.assertEqual(candidate["taxon_id"], "TAXON_AUSTRALOPITHECUS_AFARENSIS")
+        self.assertIn("双足承重", "".join(result["required_internal_traits"]))
+        self.assertIn("仍保留攀爬相关比例", result["required_external_traits"])
+
+    def test_ediacaran_fossil_is_context_not_a_fabricated_direct_ancestor(self) -> None:
+        result = match_historical_taxa(
+            scenario_id="ediacaran_seafloor",
+            transition_id="E02",
+            direction_id="active_crawler",
+            environment_id="oxygen_pocket",
+        )
+
+        self.assertEqual(result["status"], "bounded_inference")
+        candidate = result["candidates"][0]
+        self.assertEqual(candidate["taxon_id"], "TAXON_DICKINSONIA")
+        self.assertEqual(candidate["score_components"]["transition"], 0.0)
+        self.assertIn("不能据此确认", candidate["boundary"])
+
+    def test_historical_taxa_fail_closed_on_an_unknown_source(self) -> None:
+        invalid_path = Path(self.id().replace(".", "_") + ".json")
+        try:
+            graph = json.loads(DEFAULT_GRAPH_PATH.read_text(encoding="utf-8"))
+            graph["historical_taxa"][0]["source_ids"] = ["SRC-NOT-CURATED"]
+            invalid_path.write_text(json.dumps(graph, ensure_ascii=False), encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "historical_taxa.*unknown sources"):
+                load_graph(invalid_path)
+        finally:
+            invalid_path.unlink(missing_ok=True)
+
     def test_catalog_has_unique_valid_sources_and_required_coverage(self) -> None:
         catalog = load_catalog()
         source_ids = [source["source_id"] for source in catalog["sources"]]
@@ -236,6 +319,32 @@ class KnowledgeAdapterTests(unittest.TestCase):
         payload = json.loads(completed.stdout)
         self.assertEqual(payload["status"], "no_match")
         self.assertEqual(payload["sources"], [])
+
+    def test_cli_can_match_a_historical_taxon_for_a_user_selection(self) -> None:
+        completed = subprocess.run(
+            [
+                sys.executable,
+                str(ADAPTER_PATH),
+                "--transition-id",
+                "M07",
+                "--match-historical",
+                "--scenario-id",
+                "devonian_estuary",
+                "--direction-id",
+                "bottom_support",
+                "--environment-id",
+                "weedy_shallows",
+            ],
+            cwd=REPO_ROOT,
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+
+        self.assertEqual(completed.returncode, 0, completed.stderr)
+        payload = json.loads(completed.stdout)
+        self.assertEqual(payload["status"], "historical_reference")
+        self.assertEqual(payload["candidates"][0]["taxon_id"], "TAXON_TIKTAALIK_ROSEAE")
 
     def test_invalid_catalog_fails_closed(self) -> None:
         invalid_path = Path(self.id().replace(".", "_"))

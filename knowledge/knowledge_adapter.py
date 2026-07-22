@@ -169,7 +169,7 @@ def load_graph(
         graph = json.load(handle)
     if not isinstance(graph, dict):
         raise ValueError("evolution_graph.json root must be an object")
-    for field in ("nodes", "edges"):
+    for field in ("nodes", "historical_taxa", "edges"):
         if not isinstance(graph.get(field), list):
             raise ValueError(f"evolution_graph.json must contain a {field} array")
 
@@ -188,6 +188,89 @@ def load_graph(
         unknown_sources = set(node["source_ids"]).difference(known_source_ids)
         if unknown_sources:
             raise ValueError(f"nodes[{index}] references unknown sources: {sorted(unknown_sources)}")
+
+    taxon_ids: set[str] = set()
+    taxon_string_fields = (
+        "scenario_ids",
+        "localities",
+        "environment_tags",
+        "environment_ids",
+        "ecological_roles",
+        "external_traits",
+        "internal_traits",
+        "required_external_traits",
+        "required_internal_traits",
+        "transition_ids",
+        "direction_ids",
+        "source_ids",
+    )
+    for index, taxon in enumerate(graph["historical_taxa"]):
+        label = f"historical_taxa[{index}]"
+        if not isinstance(taxon, dict):
+            raise ValueError(f"{label} must be an object")
+        required = {
+            "taxon_id",
+            "node_type",
+            "scientific_name",
+            "display_name",
+            "visual_anchor_en",
+            "age_ma",
+            "boundary",
+            *taxon_string_fields,
+        }
+        missing = required.difference(taxon)
+        if missing:
+            raise ValueError(
+                f"{label} is missing required fields: {', '.join(sorted(missing))}"
+            )
+        for field in (
+            "taxon_id",
+            "scientific_name",
+            "display_name",
+            "visual_anchor_en",
+            "boundary",
+        ):
+            if not _non_empty_string(taxon[field]):
+                raise ValueError(f"{label}.{field} must be a non-empty string")
+        if taxon["node_type"] != "historical_taxon":
+            raise ValueError(f"{label}.node_type must be historical_taxon")
+        for field in taxon_string_fields:
+            if not _string_list(taxon[field]):
+                raise ValueError(f"{label}.{field} must be a string array")
+        for field in (
+            "scenario_ids",
+            "localities",
+            "environment_tags",
+            "external_traits",
+            "internal_traits",
+            "source_ids",
+        ):
+            if not taxon[field]:
+                raise ValueError(f"{label}.{field} must not be empty")
+
+        age = taxon["age_ma"]
+        if not isinstance(age, dict) or set(age) != {"older", "younger"}:
+            raise ValueError(f"{label}.age_ma must contain older and younger")
+        older, younger = age["older"], age["younger"]
+        if (
+            not isinstance(older, (int, float))
+            or isinstance(older, bool)
+            or not isinstance(younger, (int, float))
+            or isinstance(younger, bool)
+            or older < younger
+            or younger < 0
+        ):
+            raise ValueError(f"{label}.age_ma must satisfy older >= younger >= 0")
+
+        taxon_id = taxon["taxon_id"]
+        if taxon_id in taxon_ids:
+            raise ValueError(f"duplicate taxon_id: {taxon_id}")
+        taxon_ids.add(taxon_id)
+        unknown_sources = set(taxon["source_ids"]).difference(known_source_ids)
+        if unknown_sources:
+            raise ValueError(
+                f"{label} references unknown sources: {sorted(unknown_sources)}"
+            )
 
     edge_ids: set[str] = set()
     for index, edge in enumerate(graph["edges"]):
@@ -335,6 +418,91 @@ def lookup_knowledge(
     }
 
 
+def match_historical_taxa(
+    *,
+    scenario_id: str,
+    transition_id: str,
+    direction_id: str,
+    environment_id: str,
+    graph_path: str | Path = DEFAULT_GRAPH_PATH,
+    source_path: str | Path = DEFAULT_SOURCE_PATH,
+    limit: int = 3,
+) -> dict[str, Any]:
+    """Rank fossil taxa before a historical reconstruction is planned.
+
+    The score is deliberately transparent and uses curated graph links rather
+    than semantic guessing. A strong match becomes a morphological reference;
+    a missing match becomes a bounded inference and never an invented taxon.
+    """
+
+    graph = load_graph(graph_path, source_path)
+    taxa = graph.get("historical_taxa", [])
+    ranked: list[dict[str, Any]] = []
+    for taxon in taxa:
+        components = {
+            "scenario": 0.30 if scenario_id in taxon.get("scenario_ids", []) else 0.0,
+            "transition": 0.25 if transition_id in taxon.get("transition_ids", []) else 0.0,
+            "direction": 0.25 if direction_id in taxon.get("direction_ids", []) else 0.0,
+            "environment": 0.20 if environment_id in taxon.get("environment_ids", []) else 0.0,
+        }
+        score = round(sum(components.values()), 4)
+        if score <= 0:
+            continue
+        ranked.append({**taxon, "score": score, "score_components": components})
+
+    ranked.sort(key=lambda item: (-item["score"], item["taxon_id"]))
+    candidates = ranked[: max(1, min(int(limit), 10))]
+    top = candidates[0] if candidates else None
+    if (
+        top
+        and top["score"] >= 0.72
+        and top.get("required_external_traits")
+        and top.get("required_internal_traits")
+    ):
+        status = "historical_reference"
+        message = "真实类群与当前年代、环境和变化方向高度相似；生成应优先贴近该类群的外部与内部性状组合。"
+    elif (
+        top
+        and top["score"] >= 0.45
+        and top["score_components"].get("transition", 0.0) > 0
+    ):
+        status = "partial_reference"
+        message = "存在部分相似的真实类群，但证据不足以把生成结果直接贴成该物种。"
+    else:
+        status = "bounded_inference"
+        message = "没有找到足够相似且证据完整的历史类群；只能做有限推测，并明确知识缺口。"
+
+    source_ids = list(
+        dict.fromkeys(
+            source_id
+            for candidate in candidates
+            for source_id in candidate.get("source_ids", [])
+        )
+    )
+    return {
+        "status": status,
+        "query": {
+            "scenario_id": scenario_id,
+            "transition_id": transition_id,
+            "direction_id": direction_id,
+            "environment_id": environment_id,
+        },
+        "candidates": candidates,
+        "required_external_traits": (
+            list(top.get("required_external_traits", []))
+            if status == "historical_reference" and top
+            else []
+        ),
+        "required_internal_traits": (
+            list(top.get("required_internal_traits", []))
+            if status == "historical_reference" and top
+            else []
+        ),
+        "source_ids": source_ids,
+        "message": message,
+    }
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description="Retrieve manually curated EvoLab source cards as JSON."
@@ -348,6 +516,14 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Return graph nodes, knowledge cards and sources; unknown IDs are no_match.",
     )
+    parser.add_argument(
+        "--match-historical",
+        action="store_true",
+        help="Rank curated fossil taxa for one scenario, direction and environment.",
+    )
+    parser.add_argument("--scenario-id", help="Scenario id for --match-historical.")
+    parser.add_argument("--direction-id", help="Direction id for --match-historical.")
+    parser.add_argument("--environment-id", help="Environment id for --match-historical.")
     parser.add_argument(
         "--sources",
         default=str(DEFAULT_SOURCE_PATH),
@@ -369,7 +545,26 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     try:
-        if args.explain:
+        if args.match_historical:
+            if (
+                not args.transition_id
+                or not args.scenario_id
+                or not args.direction_id
+                or not args.environment_id
+            ):
+                raise ValueError(
+                    "--match-historical requires --transition-id, --scenario-id, "
+                    "--direction-id and --environment-id"
+                )
+            result = match_historical_taxa(
+                scenario_id=args.scenario_id,
+                transition_id=args.transition_id,
+                direction_id=args.direction_id,
+                environment_id=args.environment_id,
+                graph_path=args.graph,
+                source_path=args.sources,
+            )
+        elif args.explain:
             result = lookup_knowledge(
                 knowledge_card_id=args.knowledge_card_id,
                 transition_id=args.transition_id,

@@ -290,6 +290,30 @@ class InteractiveEvolutionServiceTests(unittest.TestCase):
         self.assertIn("带趾、仍适合浅水的承重附肢", final_stage["traits"])
         self.assertNotIn("能在湿泥短距推进的成对附肢", final_stage["protected_traits"])
 
+    def test_historical_route_exposes_real_taxon_reference_before_rendering(self) -> None:
+        service = engine.InteractiveEvolutionService(
+            self.root,
+            dry_run=True,
+            review_mode="off",
+        )
+        envelope = service.create_session("devonian_estuary")
+        envelope = service.evolve(
+            envelope["session"]["session_id"],
+            {
+                "environment_id": "weedy_shallows",
+                "contingency_id": "stronger_wrist_joint",
+                "direction_id": "bottom_support",
+                "expected_round": 1,
+            },
+        )
+
+        reference = envelope["session"]["current_stage"]["historical_reference"]
+        self.assertEqual(reference["status"], "historical_reference")
+        self.assertEqual(reference["candidates"][0]["taxon_id"], "TAXON_TIKTAALIK_ROSEAE")
+        self.assertTrue(reference["required_external_traits"])
+        self.assertTrue(reference["required_internal_traits"])
+        self.assertNotIn("score_components", reference["candidates"][0])
+
     def test_historical_choices_cannot_skip_required_branch(self) -> None:
         service = engine.InteractiveEvolutionService(self.root, dry_run=True)
         envelope = service.create_session("devonian_estuary")
@@ -374,6 +398,40 @@ class InteractiveEvolutionServiceTests(unittest.TestCase):
         )[0]["content"]
         self.assertIn("未来推演模式", future_system)
         self.assertIn("不能把适应性反应写成可遗传演化", future_system)
+
+    def test_planner_receives_historical_taxon_boundaries_and_anatomy(self) -> None:
+        service = engine.InteractiveEvolutionService(self.root, dry_run=True)
+        envelope = service.create_session("devonian_estuary")
+        spec = service._round_spec(1, "devonian_estuary")
+        selection = service._validate_selection(
+            spec,
+            {
+                "environment_id": "weedy_shallows",
+                "contingency_id": "stronger_wrist_joint",
+                "direction_id": "bottom_support",
+                "expected_round": 1,
+            },
+        )
+        spec["historical_reference"] = service._historical_reference(selection, spec)
+
+        messages = service._messages(
+            envelope["session"]["current_stage"], selection, spec
+        )
+        prompt = "\n".join(message["content"] for message in messages)
+
+        self.assertIn("Tiktaalik roseae", prompt)
+        self.assertIn("成对肉质鳍", prompt)
+        self.assertIn("鳍内具有腕样承重关节", prompt)
+        self.assertIn("不能写成直接祖先", prompt)
+
+        evidence = service._review_evidence_pack(selection, spec)
+        self.assertEqual(evidence["historical_match_status"], "historical_reference")
+        self.assertIn("SRC-LAND-001", evidence["source_ids"])
+        self.assertIn("成对肉质鳍", evidence["historical_required_external_traits"])
+        self.assertIn(
+            "鳍内具有腕样承重关节",
+            evidence["historical_required_internal_traits"],
+        )
 
     def test_every_world_has_three_complete_rounds_and_curated_direction_cards(self) -> None:
         service = engine.InteractiveEvolutionService(self.root, dry_run=True)
@@ -669,6 +727,9 @@ class InteractiveEvolutionServiceTests(unittest.TestCase):
                 "expected_round": 2,
             },
         )
+        selection["historical_reference"] = service._historical_reference(
+            selection, spec
+        )
         captured: dict = {}
 
         def fake_render(_chain, **kwargs):
@@ -702,6 +763,8 @@ class InteractiveEvolutionServiceTests(unittest.TestCase):
         self.assertIn("Devonian appendage lock", captured["prompt"])
         self.assertIn("Required visible change", captured["prompt"])
         self.assertIn("obvious at thumbnail scale", captured["prompt"])
+        self.assertIn("Evidence-backed historical analog", captured["prompt"])
+        self.assertIn("Tiktaalik-like aquatic lobe-finned body plan", captured["prompt"])
         self.assertIn("still continuous paddles without separate digits", captured["prompt"])
         self.assertIn("separate digits", captured["negative_prompt"])
         self.assertNotIn("Preserve the same individual body plan", captured["prompt"])
