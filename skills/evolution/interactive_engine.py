@@ -7,6 +7,7 @@ keys and absolute host paths never become part of either representation.
 
 from __future__ import annotations
 
+import calendar
 import copy
 import hashlib
 import html
@@ -207,6 +208,7 @@ class InteractiveEvolutionService:
         self.schema = _read_json(SCHEMA_FILE)
         self.step_timeout = step_timeout
         self.comfy_timeout = comfy_timeout
+        self.generation_lease_seconds = max(300, step_timeout + comfy_timeout + 120)
         self._planner = planner or self._plan_with_step
         self._renderer = renderer or self._render_with_comfy
         self._option_planner = option_planner or (
@@ -315,6 +317,18 @@ class InteractiveEvolutionService:
             self._session_dir(session["session_id"]) / "session.json",
             session,
         )
+
+    def _generation_is_stale(self, session: dict[str, Any]) -> bool:
+        try:
+            started_at = calendar.timegm(
+                time.strptime(
+                    str(session.get("updated_at", "")),
+                    "%Y-%m-%dT%H:%M:%SZ",
+                )
+            )
+        except (TypeError, ValueError):
+            return True
+        return time.time() - started_at > self.generation_lease_seconds
 
     def _public_stage(self, source: dict[str, Any]) -> dict[str, Any]:
         stage = copy.deepcopy(source)
@@ -986,12 +1000,24 @@ class InteractiveEvolutionService:
             if next_round > max_rounds:
                 raise InteractiveError("session_completed", "这条路线已经走完三轮。", http_status=409)
             if session["status"] == "generating":
-                raise InteractiveError(
-                    "session_busy",
-                    "这一轮还在生成，请稍等片刻。",
-                    http_status=409,
-                    retryable=True,
-                )
+                if not self._generation_is_stale(session):
+                    raise InteractiveError(
+                        "session_busy",
+                        "这一轮还在生成，请稍等片刻。",
+                        http_status=409,
+                        retryable=True,
+                    )
+                stale_updated_at = str(session.get("updated_at", ""))
+                recovered_at = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+                session["status"] = "ready"
+                session["last_error"] = None
+                session["generation_recovery"] = {
+                    "stale_updated_at": stale_updated_at,
+                    "recovered_at": recovered_at,
+                    "lease_seconds": self.generation_lease_seconds,
+                }
+                session["updated_at"] = recovered_at
+                self._write_session(session)
             spec = self._effective_round_spec(session, next_round)
             selection = self._validate_selection(spec, payload)
             if selection["expected_round"] != next_round:

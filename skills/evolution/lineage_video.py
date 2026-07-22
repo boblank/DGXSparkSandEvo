@@ -245,6 +245,40 @@ def _cover(image: Any, width: int, height: int) -> Any:
     return resized.crop((left, top, left + width, top + height))
 
 
+def _rasterize_svg_with_cairo(path: Path, destination: Path) -> bool:
+    try:
+        from cairosvg import svg2png
+    except (ImportError, OSError):
+        return False
+    try:
+        svg2png(
+            url=str(path),
+            write_to=str(destination),
+            output_width=max(WIDTH, HEIGHT),
+            output_height=max(WIDTH, HEIGHT),
+        )
+    except Exception:
+        return False
+    return destination.is_file() and destination.stat().st_size > 0
+
+
+def _rasterize_svg_with_gdk(path: Path, destination: Path) -> bool:
+    rasterizer = shutil.which("gdk-pixbuf-thumbnailer")
+    if not rasterizer:
+        return False
+    result = subprocess.run(
+        [rasterizer, "-s", str(max(WIDTH, HEIGHT)), str(path), str(destination)],
+        check=False,
+        capture_output=True,
+        timeout=20,
+    )
+    return (
+        result.returncode == 0
+        and destination.is_file()
+        and destination.stat().st_size > 0
+    )
+
+
 def _load_background(stage: dict[str, Any]) -> Any:
     from PIL import Image
 
@@ -253,24 +287,16 @@ def _load_background(stage: dict[str, Any]) -> Any:
         with Image.open(path) as source:
             source.load()
             return _cover(source.convert("RGB"), WIDTH, HEIGHT)
-    rasterizer = shutil.which("gdk-pixbuf-thumbnailer")
-    if not rasterizer:
-        raise LineageVideoError(
-            f"SVG rasterizer unavailable; refusing to render a placeholder video: {path.name}"
-        )
-    with tempfile.NamedTemporaryFile(suffix=".png") as temporary:
-        result = subprocess.run(
-            [rasterizer, "-s", str(max(WIDTH, HEIGHT)), str(path), temporary.name],
-            check=False,
-            capture_output=True,
-            timeout=20,
-        )
-        if result.returncode == 0 and Path(temporary.name).stat().st_size > 0:
-            with Image.open(temporary.name) as source:
-                source.load()
-                return _cover(source.convert("RGB"), WIDTH, HEIGHT)
+    with tempfile.TemporaryDirectory() as temporary:
+        raster = Path(temporary) / "stage.png"
+        for adapter in (_rasterize_svg_with_cairo, _rasterize_svg_with_gdk):
+            if adapter(path, raster):
+                with Image.open(raster) as source:
+                    source.load()
+                    return _cover(source.convert("RGB"), WIDTH, HEIGHT)
+            raster.unlink(missing_ok=True)
     raise LineageVideoError(
-        f"SVG rasterization failed; refusing to render a placeholder video: {path.name}"
+        f"SVG rasterizer unavailable or failed; refusing to render a placeholder video: {path.name}"
     )
 
 

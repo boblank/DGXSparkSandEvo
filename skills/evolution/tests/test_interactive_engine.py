@@ -499,6 +499,32 @@ class InteractiveEvolutionServiceTests(unittest.TestCase):
         self.assertEqual(context.exception.code, "invalid_choice")
         self.assertEqual(service.get_session(session_id)["session"]["round_index"], 0)
 
+    def test_stale_generating_session_recovers_without_skipping_a_round(self) -> None:
+        service = engine.InteractiveEvolutionService(self.root, dry_run=True)
+        envelope = service.create_session()
+        session_id = envelope["session"]["session_id"]
+        payload = first_selection(envelope, 1)
+        session_path = self.root / session_id / "session.json"
+        persisted = json.loads(session_path.read_text(encoding="utf-8"))
+        persisted["status"] = "generating"
+        session_path.write_text(json.dumps(persisted), encoding="utf-8")
+
+        with self.assertRaises(engine.InteractiveError) as context:
+            service.evolve(session_id, payload)
+        self.assertEqual(context.exception.code, "session_busy")
+
+        persisted["updated_at"] = "2000-01-01T00:00:00Z"
+        session_path.write_text(json.dumps(persisted), encoding="utf-8")
+        recovered = service.evolve(session_id, payload)
+        self.assertEqual(recovered["session"]["round_index"], 1)
+        self.assertEqual(recovered["session"]["status"], "ready")
+        recovered_manifest = json.loads(session_path.read_text(encoding="utf-8"))
+        self.assertEqual(
+            recovered_manifest["generation_recovery"]["stale_updated_at"],
+            "2000-01-01T00:00:00Z",
+        )
+        self.assertEqual(len(recovered_manifest["history"]), 2)
+
     def test_failure_state_never_persists_downstream_secret(self) -> None:
         secret = "never-write-this-key"
 

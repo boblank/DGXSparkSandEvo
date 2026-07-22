@@ -11,6 +11,7 @@ import urllib.error
 import urllib.request
 from http.server import ThreadingHTTPServer
 from pathlib import Path
+from unittest import mock
 
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -83,6 +84,32 @@ class InteractiveServerTests(unittest.TestCase):
             self.assertEqual(response.headers.get_content_type(), "image/svg+xml")
             self.assertTrue(response.read().startswith(b"<svg"))
 
+    def test_health_response_survives_closed_log_stream(self) -> None:
+        class ClosedLogStream:
+            def write(self, _message: str) -> int:
+                raise BrokenPipeError("log consumer closed")
+
+            def flush(self) -> None:
+                return
+
+        handler = functools.partial(server_module.EvoLabHandler, directory=str(ROOT))
+        server_module.EvoLabHandler.service = self.service
+        server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        try:
+            with mock.patch.object(server_module.sys, "stderr", ClosedLogStream()):
+                with urllib.request.urlopen(
+                    f"http://127.0.0.1:{server.server_port}/api/health",
+                    timeout=5,
+                ) as response:
+                    self.assertEqual(response.status, 200)
+                    self.assertEqual(json.loads(response.read())["status"], "ok")
+        finally:
+            server.shutdown()
+            server.server_close()
+            thread.join(timeout=2)
+
     def test_environment_choice_endpoint_recomputes_candidates(self) -> None:
         status, envelope = self._json_request(
             "/api/sessions",
@@ -105,6 +132,36 @@ class InteractiveServerTests(unittest.TestCase):
             [item["id"] for item in second["directions"]],
         )
         self.assertTrue(all(item.get("context_reason") for item in second["directions"]))
+
+    def test_svg_origin_scenario_produces_a_lineage_video(self) -> None:
+        status, envelope = self._json_request(
+            "/api/sessions",
+            {"scenario_id": "devonian_estuary"},
+        )
+        self.assertEqual(status, 201)
+        session_id = envelope["session"]["session_id"]
+        for expected_round in range(1, 4):
+            choices = envelope["choices"]
+            status, envelope = self._json_request(
+                f"/api/sessions/{session_id}/evolve",
+                {
+                    "environment_id": choices["environments"][0]["id"],
+                    "contingency_id": choices["contingencies"][0]["id"],
+                    "direction_id": choices["directions"][0]["id"],
+                    "expected_round": expected_round,
+                },
+            )
+            self.assertEqual(status, 200)
+        self.assertEqual(envelope["session"]["status"], "completed")
+
+        with urllib.request.urlopen(
+            self.base_url + f"/api/sessions/{session_id}/lineage-video",
+            timeout=30,
+        ) as response:
+            payload = response.read()
+            self.assertEqual(response.status, 200)
+            self.assertEqual(response.headers.get_content_type(), "video/mp4")
+            self.assertIn(b"ftyp", payload[:32])
 
     def test_scenario_registry_and_scene_selection_contract(self) -> None:
         status, registry = self._json_request("/api/scenarios")

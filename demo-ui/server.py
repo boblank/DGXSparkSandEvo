@@ -326,7 +326,12 @@ class EvoLabHandler(SimpleHTTPRequestHandler):
 
     def log_message(self, format_string: str, *args: Any) -> None:
         # Do not log request bodies, headers, environment variables, or downstream errors.
-        sys.stderr.write("[evolab-http] " + (format_string % args) + "\n")
+        try:
+            sys.stderr.write("[evolab-http] " + (format_string % args) + "\n")
+        except (OSError, ValueError):
+            # A detached launcher may leave stdout/stderr pointing at a closed pipe.
+            # Access logging must never prevent an otherwise valid HTTP response.
+            return
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:

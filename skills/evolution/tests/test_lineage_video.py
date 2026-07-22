@@ -94,20 +94,17 @@ class LineageVideoTests(unittest.TestCase):
             self.assertIsNotNone(ImageChops.difference(card, moving_card).getbbox())
             self.assertEqual(lineage_video.expected_frame_count(4), 234)
 
-    def test_svg_without_rasterizer_fails_instead_of_drawing_placeholder(self) -> None:
-        with tempfile.TemporaryDirectory() as temporary:
-            image = Path(temporary) / "stage_00_origin.svg"
-            image.write_text(
-                '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20"></svg>',
-                encoding="utf-8",
-            )
-            stage = {"image": str(image)}
-            with mock.patch.object(lineage_video.shutil, "which", return_value=None):
-                with self.assertRaisesRegex(
-                    lineage_video.LineageVideoError,
-                    "refusing to render a placeholder video",
-                ):
-                    lineage_video.render_stage_card(stage)
+    def test_svg_renders_without_a_system_rasterizer(self) -> None:
+        stage = {
+            "image": str(ROOT / "demo-assets" / "interactive" / "origin-devonian.svg"),
+            "round": 0,
+            "chapter": "起点",
+            "title": "泥盆纪河口",
+            "visible_copy": {"eyebrow": "起点", "headline": "泥盆纪河口"},
+        }
+        with mock.patch.object(lineage_video.shutil, "which", return_value=None):
+            card = lineage_video.render_stage_card(stage)
+        self.assertEqual(card.size, (1280, 720))
 
 
 if __name__ == "__main__":
