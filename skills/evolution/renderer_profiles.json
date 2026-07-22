@@ -6,14 +6,16 @@
       "label": "FLUX.1 dev FP8",
       "generator": "FLUX.1 dev FP8 via ComfyUI",
       "workflow_file": "creature_workflow.json",
+      "reference_workflow_file": "creature_workflow_flux1_reference.json",
       "negative_mode": "negative_node",
       "nodes": {
         "prompt": {"id": "2", "field": "text"},
         "negative": {"id": "3", "field": "text"},
-        "seed": {"id": "6", "field": "seed"},
-        "output": {"id": "8", "field": "filename_prefix"},
+        "seed": {"id": "6", "reference_id": "8", "field": "seed"},
+        "output": {"id": "8", "reference_id": "10", "field": "filename_prefix"},
+        "reference": {"id": "5", "field": "image"},
         "dimensions": [
-          {"id": "5", "width_field": "width", "height_field": "height"}
+          {"id": "5", "reference_id": "6", "width_field": "width", "height_field": "height"}
         ]
       },
       "required_models": [

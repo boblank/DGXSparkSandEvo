@@ -37,6 +37,28 @@ class RendererProfileTests(unittest.TestCase):
         self.assertEqual(workflow["8"]["inputs"]["filename_prefix"], "ab/flux1")
         self.assertEqual(metadata["renderer"], "flux1")
 
+    def test_flux1_reference_workflow_uses_parent_latent(self) -> None:
+        workflow, metadata = rendering.build_image_workflow(
+            "flux1",
+            prompt="same lineage with a gradual change",
+            negative_prompt="unrelated anatomy",
+            seed=19,
+            filename_prefix="lineage/flux1_stage_02",
+            width=768,
+            height=1024,
+            reference_image="evolab_parent.png",
+        )
+        self.assertEqual(workflow["5"]["class_type"], "LoadImage")
+        self.assertEqual(workflow["5"]["inputs"]["image"], "evolab_parent.png")
+        self.assertEqual(workflow["6"]["class_type"], "ImageScale")
+        self.assertEqual(workflow["6"]["inputs"]["width"], 768)
+        self.assertEqual(workflow["6"]["inputs"]["height"], 1024)
+        self.assertEqual(workflow["7"]["class_type"], "VAEEncode")
+        self.assertEqual(workflow["8"]["inputs"]["latent_image"], ["7", 0])
+        self.assertEqual(workflow["8"]["inputs"]["denoise"], 0.45)
+        self.assertEqual(metadata["workflow_file"], "creature_workflow_flux1_reference.json")
+        self.assertTrue(metadata["reference_conditioning"])
+
     def test_klein_workflow_uses_official_distilled_contract(self) -> None:
         workflow, metadata = rendering.build_image_workflow(
             "flux2-klein-4b",
@@ -153,32 +175,46 @@ class RendererProfileTests(unittest.TestCase):
             self.assertEqual(rendered.fallback_from, "flux2-klein-4b")
             self.assertEqual(destination.read_bytes(), b"stable-flux1-output")
 
-    def test_reference_render_never_drops_to_an_unconditioned_profile(self) -> None:
+    def test_klein_reference_failure_falls_back_to_conditioned_flux1(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             parent = root / "stage_01.png"
             parent.write_bytes(b"parent-image")
-            with self.assertRaises(rendering.RendererExhaustedError) as raised:
-                rendering.render_image_with_fallback(
-                    ["flux1"],
-                    prompt="preserve the same lineage",
-                    negative_prompt="unrelated species",
-                    seed=41,
-                    filename_prefix="reference-required",
-                    destination=root / "stage_02.png",
-                    comfy_url="http://127.0.0.1:7000",
-                    comfy_output=root,
-                    timeout=5,
-                    submit_prompt=lambda *_args: "must-not-submit",
-                    wait_for_prompt=lambda *_args: {},
-                    locate_output=lambda *_args: root / "missing.png",
-                    reference_image=parent,
-                    upload_reference=lambda *_args: "parent.png",
-                )
-            self.assertEqual(
-                raised.exception.attempts,
-                [{"renderer": "flux1", "error": "RendererConfigurationError"}],
+            source = root / "comfy.png"
+            source.write_bytes(b"conditioned-flux1-output")
+            destination = root / "stage_02.png"
+            submitted: list[str] = []
+
+            def submit(workflow: dict, _url: str) -> str:
+                if workflow.get("1", {}).get("class_type") == "UNETLoader":
+                    submitted.append("flux2-klein-4b")
+                    raise RuntimeError("injected Klein failure")
+                submitted.append("flux1-reference")
+                self.assertEqual(workflow["5"]["inputs"]["image"], "parent.png")
+                self.assertEqual(workflow["8"]["inputs"]["latent_image"], ["7", 0])
+                return "prompt-flux1-reference"
+
+            rendered = rendering.render_image_with_fallback(
+                ["flux2-klein-4b", "flux1"],
+                prompt="preserve the same lineage",
+                negative_prompt="unrelated species",
+                seed=41,
+                filename_prefix="reference-required",
+                destination=destination,
+                comfy_url="http://127.0.0.1:7000",
+                comfy_output=root,
+                timeout=5,
+                submit_prompt=submit,
+                wait_for_prompt=lambda *_args: {},
+                locate_output=lambda *_args: source,
+                reference_image=parent,
+                upload_reference=lambda *_args: "parent.png",
             )
+            self.assertEqual(submitted, ["flux2-klein-4b", "flux1-reference"])
+            self.assertEqual(rendered.renderer, "flux1")
+            self.assertEqual(rendered.fallback_from, "flux2-klein-4b")
+            self.assertTrue(rendered.reference_conditioning)
+            self.assertEqual(destination.read_bytes(), b"conditioned-flux1-output")
 
     def test_unknown_renderer_fails_closed(self) -> None:
         with self.assertRaises(rendering.RendererConfigurationError):

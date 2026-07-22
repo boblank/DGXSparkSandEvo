@@ -85,7 +85,7 @@
       "ending-video-label", "ending-video-state", "ending-video-loading", "ending-video-error", "knowledge-note",
       "ending-video-guide", "ending-video-guide-step", "ending-video-guide-title", "ending-video-guide-body",
       "knowledge-kicker", "knowledge-title", "knowledge-body", "evidence-button",
-      "lineage-history", "film-kicker", "film-title", "trace-world", "trace-knowledge", "trace-plan", "trace-render",
+      "lineage-history", "film-kicker", "film-title", "trace-world", "trace-knowledge", "trace-plan", "trace-review", "trace-render",
       "error-toast", "error-message", "dismiss-error", "evidence-dialog", "evidence-tag",
       "evidence-title", "evidence-summary", "evidence-boundary", "evidence-sources",
     ].forEach(function (id) {
@@ -768,11 +768,29 @@
     const plannerLabel = model.planner === "fixture" ? "离线预演" : safeText(model.planner);
     el["trace-plan"].querySelector("strong").textContent = isChemistryWorld() ? "化学路径规划" : "下一代规划";
     setTrace(el["trace-plan"], Boolean(model.planner), model.planner ? plannerLabel + " · 严格结构输出" : "起点来自场景包，还没有生成" + (isChemistryWorld() ? "下一阶段" : "下一代"));
+    const review = stage.review_summary || {};
+    let reviewDetail = "起点来自场景包，还没有进入科学审查";
+    if (review.review_mode === "rules_only") {
+      reviewDetail = "规则门禁 · " + safeText(review.summary, "没有发现证据边界冲突");
+    } else if (review.verdict === "pass") {
+      reviewDetail = review.revision_count > 0
+        ? "按审查意见修订后通过 · " + safeText(review.summary)
+        : "独立审查通过 · " + safeText(review.summary);
+    } else if (review.review_mode === "off") {
+      reviewDetail = "本轮沿用单规划器链路，没有运行科学审查";
+    }
+    setTrace(el["trace-review"], review.verdict === "pass", reviewDetail);
     const renderDone = round > 0 && Boolean(stage.render_source);
-    const generator = stage.render_source === "fixture"
+    let generator = stage.render_source === "fixture"
       ? "浏览器预演图"
       : safeText(stage.render_metadata && stage.render_metadata.generator, stage.render_source)
         .replace(/\s+via\s+ComfyUI/gi, " · 通过 ComfyUI");
+    const visualReview = stage.render_metadata && stage.render_metadata.visual_review;
+    if (visualReview && visualReview.mode === "semantic" && visualReview.verdict === "pass") {
+      generator += " · 图像连续性审查通过";
+    } else if (stage.render_metadata && stage.render_metadata.technical_visual_gate) {
+      generator += " · 结构门禁通过";
+    }
     setTrace(el["trace-render"], renderDone, renderDone ? generator : "起点图来自场景包；" + (isChemistryWorld() ? "下一阶段" : "下一代") + "将在 DGX 绘制");
   }
 

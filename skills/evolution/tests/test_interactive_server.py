@@ -64,6 +64,12 @@ class InteractiveServerTests(unittest.TestCase):
         self.assertEqual(status, 200)
         self.assertEqual(health["mode"], "fixture")
         self.assertTrue(health["strict_schema"])
+        self.assertEqual(health["readiness"]["url"], "/api/readiness")
+
+        status, readiness = self._json_request("/api/readiness")
+        self.assertEqual(status, 200)
+        self.assertTrue(readiness["ready"])
+        self.assertTrue(readiness["components"]["step"]["ready"])
 
         status, envelope = self._json_request("/api/sessions", {})
         self.assertEqual(status, 201)
@@ -83,6 +89,26 @@ class InteractiveServerTests(unittest.TestCase):
             self.assertEqual(response.status, 200)
             self.assertEqual(response.headers.get_content_type(), "image/svg+xml")
             self.assertTrue(response.read().startswith(b"<svg"))
+
+    def test_public_trace_has_a_real_scientific_review_checkpoint(self) -> None:
+        index = (ROOT / "demo-ui" / "index.html").read_text(encoding="utf-8")
+        app = (ROOT / "demo-ui" / "app.js").read_text(encoding="utf-8")
+        self.assertIn('id="trace-review"', index)
+        self.assertIn("科学审查", index)
+        self.assertIn("stage.review_summary", app)
+        self.assertNotIn("chain of thought", index.lower())
+
+    def test_readiness_returns_503_when_a_dependency_is_not_ready(self) -> None:
+        self.service.readiness = lambda **_kwargs: {
+            "ready": False,
+            "mode": "live",
+            "components": {"models": {"ready": False, "missing": ["model.safetensors"]}},
+        }
+        with self.assertRaises(urllib.error.HTTPError) as context:
+            urllib.request.urlopen(self.base_url + "/api/readiness", timeout=5)
+        self.assertEqual(context.exception.code, 503)
+        payload = json.loads(context.exception.read())
+        self.assertFalse(payload["ready"])
 
     def test_health_response_survives_closed_log_stream(self) -> None:
         class ClosedLogStream:

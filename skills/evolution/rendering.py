@@ -102,6 +102,12 @@ def _node(workflow: dict[str, Any], role: dict[str, str]) -> dict[str, Any]:
     return inputs
 
 
+def _workflow_role(role: dict[str, Any], *, reference: bool) -> dict[str, Any]:
+    if reference and role.get("reference_id"):
+        return {**role, "id": str(role["reference_id"])}
+    return role
+
+
 def build_image_workflow(
     renderer_id: str,
     *,
@@ -141,9 +147,11 @@ def build_image_workflow(
             item for item in (negative_prompt.strip(), existing) if item
         )
 
-    seed_inputs = _node(workflow, roles["seed"])
+    seed_role = _workflow_role(roles["seed"], reference=bool(reference_image))
+    seed_inputs = _node(workflow, seed_role)
     seed_inputs[str(roles["seed"]["field"])] = int(seed)
-    output_inputs = _node(workflow, roles["output"])
+    output_role = _workflow_role(roles["output"], reference=bool(reference_image))
+    output_inputs = _node(workflow, output_role)
     output_inputs[str(roles["output"]["field"])] = filename_prefix
     if reference_image:
         reference_role = roles.get("reference")
@@ -154,7 +162,11 @@ def build_image_workflow(
         reference_inputs = _node(workflow, reference_role)
         reference_inputs[str(reference_role["field"])] = reference_image
     for dimension_role in roles.get("dimensions", []):
-        dimension_inputs = _node(workflow, dimension_role)
+        selected_role = _workflow_role(
+            dimension_role,
+            reference=bool(reference_image),
+        )
+        dimension_inputs = _node(workflow, selected_role)
         dimension_inputs[str(dimension_role["width_field"])] = int(width)
         dimension_inputs[str(dimension_role["height_field"])] = int(height)
 

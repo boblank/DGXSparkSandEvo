@@ -38,7 +38,7 @@ class EvoLabHandler(SimpleHTTPRequestHandler):
     """Same-origin static and JSON handler."""
 
     protocol_version = "HTTP/1.1"
-    server_version = "EvoLab/0.7"
+    server_version = "EvoLab/0.8"
     service: Any
 
     def _send_json(self, status: int, payload: dict[str, Any]) -> None:
@@ -120,12 +120,22 @@ class EvoLabHandler(SimpleHTTPRequestHandler):
                         "status": "ok",
                         "contract_version": self.service.contract_version,
                         "mode": "fixture" if self.service.dry_run else "live",
-                        "planner": "fixture" if self.service.dry_run else engine.STEP_MODEL,
+                        "planner": "fixture" if self.service.dry_run else engine.configured_step_model(),
                         "reasoning_effort": "not_applicable" if self.service.dry_run else "high",
                         "strict_schema": True,
                         "scenario_count": len(self.service.list_scenarios()["scenarios"]),
+                        "review_mode": self.service.review_mode,
+                        "visual_review_mode": self.service.visual_review_mode,
+                        "readiness": {
+                            "status": "separate_probe",
+                            "url": "/api/readiness",
+                        },
                     },
                 )
+                return
+            if path == "/api/readiness":
+                readiness = self.service.readiness(force=True)
+                self._send_json(200 if readiness.get("ready") else 503, readiness)
                 return
             if path == "/api/scenarios":
                 self._send_json(200, self.service.list_scenarios())
