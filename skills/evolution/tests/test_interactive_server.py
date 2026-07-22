@@ -106,6 +106,19 @@ class InteractiveServerTests(unittest.TestCase):
                 urllib.request.urlopen(self.base_url + path, timeout=5)
             self.assertEqual(context.exception.code, 404)
 
+    def test_final_round_announces_video_before_and_during_generation(self) -> None:
+        index = (ROOT / "demo-ui" / "index.html").read_text(encoding="utf-8")
+        app = (ROOT / "demo-ui" / "app.js").read_text(encoding="utf-8")
+        self.assertIn("最后一轮之后还有一段回放", index)
+        self.assertIn("选完这一轮，继续等到视频出现", index)
+        self.assertIn("第 2 / 2 步 · 正在制作回放", index)
+        self.assertIn("生成最终阶段并制作回放", app)
+        self.assertIn("第 1 / 2 步：最终阶段正在生成。", app)
+        self.assertIn("先别离开，四阶段回放还在生成", app)
+        self.assertIn("视频已经生成", app)
+        self.assertIn("watchEndingVideoReady(session.session_id, Date.now() + 30000)", app)
+        self.assertIn('["loadeddata", "canplay"]', app)
+
     def test_retained_hunyuan_video_matches_public_manifest(self) -> None:
         asset_root = ROOT / "demo-assets" / "video"
         manifest = json.loads(

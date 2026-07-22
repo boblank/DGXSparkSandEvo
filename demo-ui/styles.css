@@ -265,8 +265,28 @@ button:focus-visible, a:focus-visible { outline: 3px solid var(--sulfur); outlin
 .choice-option.is-selected small, .direction-option.is-selected small { color: rgba(233,226,208,.62); }
 .choice-option.is-selected .choice-mark, .direction-option.is-selected .direction-mark { border: 5px solid var(--active-accent); background: var(--abyss); }
 .selection-recap { min-height: 50px; margin: 25px 0 12px; padding-top: 13px; border-top: 1px solid var(--line-dark); color: rgba(6,23,29,.57); font-size: 10px; line-height: 1.55; }
+.final-video-hint { margin: 2px 0 22px; padding: 15px 14px 13px; border: 1px solid rgba(6,23,29,.22); border-left: 4px solid var(--iron); background: rgba(105,211,190,.12); color: var(--abyss); }
+.final-video-hint[hidden] { display: none; }
+.final-video-hint > div:first-child { display: grid; gap: 4px; }
+.final-video-hint > div:first-child span, .ending-video-guide > span { color: #3e6768; font: 700 8px var(--utility); letter-spacing: .11em; }
+.final-video-hint > div:first-child strong { font: 600 16px var(--display); }
+.final-video-hint p { margin: 10px 0 0; color: rgba(6,23,29,.64); font-size: 10px; line-height: 1.6; }
+.recap-track { height: 28px; margin-top: 10px; position: relative; display: grid; grid-template-columns: auto 1fr auto 1fr auto 1fr auto auto; align-items: center; gap: 6px; overflow: hidden; font: 700 8px var(--utility); }
+.recap-track i { height: 1px; background: currentColor; opacity: .34; }
+.recap-track b { margin-left: 3px; color: var(--iron); font-size: 12px; }
+.recap-track::after { content: ""; width: 24%; height: 2px; position: absolute; left: -24%; bottom: 1px; background: var(--active-accent); }
 .ending-content { min-height: 100%; display: flex; flex-direction: column; justify-content: flex-start; }
-.ending-video-card { margin: 0 0 26px; border-top: 3px solid var(--active-accent); background: var(--abyss); color: var(--fossil); box-shadow: 6px 6px 0 rgba(6,23,29,.17); }
+.ending-video-guide { margin: 0; padding: 17px 15px 14px; border-top: 4px solid var(--iron); background: var(--abyss); color: var(--fossil); box-shadow: 6px 0 0 rgba(6,23,29,.17); }
+.ending-video-guide[hidden] { display: none; }
+.ending-video-guide:focus-visible { outline: 3px solid var(--sulfur); outline-offset: -3px; }
+.ending-video-guide > span { color: var(--active-accent); }
+.ending-video-guide > strong { display: block; margin-top: 7px; font: 600 21px/1.08 var(--display); }
+.ending-video-guide > p { margin: 8px 0 0; color: rgba(233,226,208,.68); font-size: 10px; line-height: 1.6; }
+.ending-video-guide .recap-track { color: rgba(233,226,208,.78); }
+.ending-video-guide.is-loading .recap-track::after { animation: recap-scan 1.8s ease-in-out infinite; }
+.ending-video-guide.is-ready { border-top-color: var(--active-accent); }
+.ending-video-guide.is-error { border-top-color: var(--sulfur); }
+.ending-video-card { margin: 0 0 26px; border-top: 1px solid rgba(233,226,208,.18); background: var(--abyss); color: var(--fossil); box-shadow: 6px 6px 0 rgba(6,23,29,.17); }
 .ending-video-heading { min-height: 36px; padding: 0 11px; display: flex; align-items: center; justify-content: space-between; gap: 12px; color: rgba(233,226,208,.64); font: 700 8px var(--utility); letter-spacing: .11em; }
 .ending-video-heading strong { color: var(--active-accent); font: inherit; }
 .ending-video-window { aspect-ratio: 16 / 9; position: relative; overflow: hidden; background: #071318; }
@@ -349,6 +369,7 @@ button:focus-visible, a:focus-visible { outline: 3px solid var(--sulfur); outlin
 @keyframes spin { to { transform: rotate(360deg); } }
 @keyframes breathe { 50% { opacity: .35; transform: scale(.72); } }
 @keyframes drift { to { transform: translate(28px,-18px) rotate(42deg) scale(1.08); } }
+@keyframes recap-scan { 0% { left: -24%; } 65%, 100% { left: 100%; } }
 
 @media (max-width: 1180px) {
   .world-atlas { grid-template-columns: 1fr; grid-template-rows: auto auto auto; }
@@ -447,4 +468,5 @@ button:focus-visible, a:focus-visible { outline: 3px solid var(--sulfur); outlin
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+  .generation-orbit, .ending-video-guide .recap-track::after { animation: none !important; }
 }

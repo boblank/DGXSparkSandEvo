@@ -12,8 +12,8 @@
       rel="icon"
       href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='42' fill='%2306171d'/%3E%3Cpath d='M25 58c14-34 36-34 50 0' fill='none' stroke='%2369d3be' stroke-width='8'/%3E%3Ccircle cx='50' cy='42' r='8' fill='%23d8663f'/%3E%3C/svg%3E"
     />
-    <link rel="stylesheet" href="./styles.css" />
-    <script src="./app.js" defer></script>
+    <link rel="stylesheet" href="./styles.css?v=0.7.5-video-guide" />
+    <script src="./app.js?v=0.7.5-video-guide" defer></script>
   </head>
   <body>
     <header class="topbar">
@@ -139,6 +139,17 @@
                   <div id="direction-choices" class="direction-list"></div>
                 </fieldset>
 
+                <section id="final-video-hint" class="final-video-hint" aria-labelledby="final-video-hint-title" hidden>
+                  <div>
+                    <span>最后一轮之后还有一段回放</span>
+                    <strong id="final-video-hint-title">选完这一轮，继续等到视频出现</strong>
+                  </div>
+                  <div class="recap-track" aria-hidden="true">
+                    <span>00</span><i></i><span>01</span><i></i><span>02</span><i></i><span>03</span><b>▶</b>
+                  </div>
+                  <p>生成最终阶段后，我们会把起点、三次改变和你的选择整理成约 7 秒视频。</p>
+                </section>
+
                 <div id="selection-recap" class="selection-recap">先选出这一轮的环境、偶然事件和方向。</div>
                 <button id="evolve-button" class="primary-button" type="submit" disabled>
                   <span id="evolve-button-label">让下一代出现</span><i aria-hidden="true">→</i>
@@ -147,6 +158,21 @@
             </div>
 
             <div id="ending-content" class="ending-content" hidden>
+              <section
+                id="ending-video-guide"
+                class="ending-video-guide"
+                tabindex="-1"
+                aria-live="polite"
+                aria-labelledby="ending-video-guide-title"
+                hidden
+              >
+                <span id="ending-video-guide-step">第 2 / 2 步 · 正在制作回放</span>
+                <strong id="ending-video-guide-title">先别离开，四阶段回放还在生成</strong>
+                <p id="ending-video-guide-body">我们正在把起点、三次改变和你的选择整理成约 7 秒视频。完成后会自动出现。</p>
+                <div class="recap-track" aria-hidden="true">
+                  <span>00</span><i></i><span>01</span><i></i><span>02</span><i></i><span>03</span><b>▶</b>
+                </div>
+              </section>
               <figure id="ending-video-card" class="ending-video-card" hidden>
                 <div class="ending-video-heading">
                   <span id="ending-video-label">这条路线 · 四阶段回放</span>
@@ -163,7 +189,7 @@
                     aria-describedby="ending-video-boundary"
                   ></video>
                   <p id="ending-video-loading" class="ending-video-loading" role="status">
-                    正在把阶段图和你的选择整理成回放…
+                    第 2 / 2 步 · 正在整理 00–03 阶段…
                   </p>
                 </div>
                 <figcaption>

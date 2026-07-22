@@ -30,6 +30,12 @@
     "正在检查获得了什么，又付出了什么…",
     "DGX Spark 正在画出这一阶段的环境与化学系统…",
   ];
+  const FINAL_WAITING_MESSAGES = [
+    "第 1 / 2 步：最终阶段正在生成。",
+    "图片完成后还会继续制作四阶段回放，请先别关闭页面。",
+    "正在保留前面三次选择，回放会从起点开始。",
+    "DGX Spark 正在画出最后一张阶段图…",
+  ];
 
   const state = {
     scenarios: [],
@@ -40,6 +46,7 @@
     busy: false,
     waitingTimer: null,
     waitingIndex: 0,
+    videoReadyTimer: null,
   };
 
   const el = {};
@@ -62,10 +69,11 @@
       "habitat-label", "stage-kicker", "organism-name", "organism-summary", "trait-list",
       "generation-overlay", "generation-title", "generation-message", "choice-deck", "choice-content", "ending-content",
       "round-number", "chapter-label", "choice-title", "choice-lead", "direction-legend",
-      "evolve-button-label", "ending-kicker", "ending-title", "evolution-form", "environment-choices",
+      "evolve-button-label", "final-video-hint", "ending-kicker", "ending-title", "evolution-form", "environment-choices",
       "contingency-choices", "direction-choices", "selection-recap", "evolve-button",
       "ending-restart", "ending-worlds", "ending-summary", "ending-video-card", "ending-video",
       "ending-video-label", "ending-video-state", "ending-video-loading", "ending-video-error", "knowledge-note",
+      "ending-video-guide", "ending-video-guide-step", "ending-video-guide-title", "ending-video-guide-body",
       "knowledge-kicker", "knowledge-title", "knowledge-body", "evidence-button",
       "lineage-history", "film-kicker", "film-title", "trace-world", "trace-knowledge", "trace-plan", "trace-render",
       "error-toast", "error-message", "dismiss-error", "evidence-dialog", "evidence-tag",
@@ -102,14 +110,20 @@
       el["organism-image"].classList.remove("is-visible");
       el["image-placeholder"].classList.remove("is-hidden");
     });
-    el["ending-video"].addEventListener("loadeddata", function () {
-      finishEndingVideoLoad();
+    ["loadeddata", "canplay"].forEach(function (eventName) {
+      el["ending-video"].addEventListener(eventName, function () {
+        finishEndingVideoLoad();
+      });
     });
     el["ending-video"].addEventListener("error", function () {
       if (el["ending-video-card"].hidden || !el["ending-video"].getAttribute("src")) return;
+      window.clearTimeout(state.videoReadyTimer);
+      state.videoReadyTimer = null;
       el["ending-video-loading"].hidden = true;
       el["ending-video-state"].textContent = "未能生成";
       el["ending-video-error"].hidden = false;
+      setEndingVideoGuide("error");
+      setRuntime("回放暂时没有生成", "error");
     });
   }
 
@@ -305,6 +319,10 @@
 
   function renderChoices(choices) {
     const chemistry = isChemistryWorld();
+    const maxRounds = state.envelope && state.envelope.session
+      ? Number(state.envelope.session.max_rounds || 3)
+      : 3;
+    const finalRound = Number(choices.round) === maxRounds;
     el["choice-content"].hidden = false;
     el["ending-content"].hidden = true;
     hideEndingVideo();
@@ -317,7 +335,10 @@
       ? "先改变周围条件，再让偶然扰动进入系统。最后决定哪类化学路径更容易延续。"
       : "先让世界发生变化，再给偶然一次机会。最后决定哪些差异更可能被留下。";
     el["direction-legend"].textContent = chemistry ? "哪类反应路径更容易延续" : "哪些后代会留下更多";
-    el["evolve-button-label"].textContent = chemistry ? "看看下一阶段" : "让下一代出现";
+    el["final-video-hint"].hidden = !finalRound;
+    el["evolve-button-label"].textContent = finalRound
+      ? "生成最终阶段并制作回放"
+      : chemistry ? "看看下一阶段" : "让下一代出现";
     state.selected = { environment: null, contingency: null, direction: null };
     renderChoiceGroup("environment", choices.environments || [], el["environment-choices"], false);
     renderChoiceGroup("contingency", choices.contingencies || [], el["contingency-choices"], false);
@@ -390,6 +411,7 @@
     if (!selected.environment || !selected.contingency || !selected.direction) return;
     const session = state.envelope.session;
     const expectedRound = state.envelope.choices && state.envelope.choices.round;
+    const finalRound = Number(expectedRound) === Number(session.max_rounds || 3);
     const payload = {
       environment_id: selected.environment.id,
       contingency_id: selected.contingency.id,
@@ -398,7 +420,7 @@
     };
     hideError();
     setBusy(true);
-    startWaitingMessages();
+    startWaitingMessages(finalRound);
     try {
       const envelope = await request("/sessions/" + encodeURIComponent(session.session_id) + "/evolve", {
         method: "POST",
@@ -408,11 +430,18 @@
       state.envelope = envelope;
       rememberSession(envelope.session.session_id);
       render(envelope);
-      setRuntime(envelope.session.status === "completed"
-        ? (isChemistryWorld() ? "这套反应走完三次改变" : "这条谱系走完三次改变")
-        : "可以继续下一次改变", "ready");
+      setRuntime(
+        envelope.session.status === "completed" ? "第 2 / 2 步：正在制作四阶段回放" : "可以继续下一次改变",
+        envelope.session.status === "completed" ? "busy" : "ready"
+      );
       if (window.matchMedia("(max-width: 820px)").matches) {
-        document.querySelector(".evolution-stage").scrollIntoView({ behavior: "smooth", block: "start" });
+        const target = envelope.session.status === "completed"
+          ? el["ending-video-guide"]
+          : document.querySelector(".evolution-stage");
+        target.scrollIntoView({
+          behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
+          block: "start",
+        });
       }
     } catch (error) {
       setRuntime("原来的记录还在，可以重试", "error");
@@ -509,6 +538,11 @@
     window.scrollTo({ top: 0, behavior: "auto" });
     el["choice-deck"].scrollTo({ top: 0, behavior: "auto" });
     renderEndingVideo();
+    if (state.busy) {
+      window.requestAnimationFrame(function () {
+        el["ending-video-guide"].focus({ preventScroll: true });
+      });
+    }
     el["ending-kicker"].textContent = isChemistryWorld() ? "这套反应走完了三次改变" : "这条谱系走完了三次改变";
     const benefits = Array.isArray(stage.benefits) ? stage.benefits[0] : "适应了新的环境";
     const costs = Array.isArray(stage.costs) ? stage.costs[0] : "也承担了新的代价";
@@ -526,6 +560,7 @@
       return;
     }
     const video = el["ending-video"];
+    setEndingVideoGuide("loading");
     el["ending-video-card"].hidden = false;
     el["ending-video-label"].textContent = isChemistryWorld()
       ? "这套反应 · 四阶段回放"
@@ -543,15 +578,20 @@
     const version = encodeURIComponent(safeText(session.updated_at, session.session_id));
     video.src = videoUrl + "?v=" + version;
     video.load();
+    watchEndingVideoReady(session.session_id, Date.now() + 30000);
   }
 
   function finishEndingVideoLoad() {
     const video = el["ending-video"];
+    window.clearTimeout(state.videoReadyTimer);
+    state.videoReadyTimer = null;
     el["ending-video-loading"].hidden = true;
     el["ending-video-error"].hidden = true;
     el["ending-video-state"].textContent = Number.isFinite(video.duration)
       ? "约 " + Math.max(1, Math.round(video.duration)) + " 秒"
       : "回放就绪";
+    setEndingVideoGuide("ready");
+    setRuntime("四阶段回放已经生成", "ready");
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
       video.pause();
       return;
@@ -559,12 +599,52 @@
     const attempt = video.play();
     if (attempt && typeof attempt.catch === "function") {
       attempt.catch(function () {
-        // Native controls remain available when the browser blocks autoplay.
+        el["ending-video-guide-body"].textContent = "从起点到第三次改变都在里面。点一下画面左下角开始播放。";
       });
     }
   }
 
+  function watchEndingVideoReady(sessionId, deadline) {
+    window.clearTimeout(state.videoReadyTimer);
+    const video = el["ending-video"];
+    if (video.dataset.sessionId !== sessionId || el["ending-video-card"].hidden) return;
+    if (video.readyState >= 2) {
+      finishEndingVideoLoad();
+      return;
+    }
+    if (Date.now() >= deadline) return;
+    state.videoReadyTimer = window.setTimeout(function () {
+      watchEndingVideoReady(sessionId, deadline);
+    }, 250);
+  }
+
+  function setEndingVideoGuide(mode) {
+    const guide = el["ending-video-guide"];
+    guide.hidden = false;
+    guide.classList.toggle("is-loading", mode === "loading");
+    guide.classList.toggle("is-ready", mode === "ready");
+    guide.classList.toggle("is-error", mode === "error");
+    if (mode === "ready") {
+      el["ending-video-guide-step"].textContent = "完成 · 回放可以播放";
+      el["ending-video-guide-title"].textContent = "视频已经生成";
+      el["ending-video-guide-body"].textContent = "从起点到第三次改变都在里面。如果没有自动播放，点一下画面左下角。";
+      return;
+    }
+    if (mode === "error") {
+      el["ending-video-guide-step"].textContent = "回放暂时没有生成";
+      el["ending-video-guide-title"].textContent = "四张阶段图还在";
+      el["ending-video-guide-body"].textContent = "刷新页面会再次尝试，不必重走这条路线。";
+      return;
+    }
+    el["ending-video-guide-step"].textContent = "第 2 / 2 步 · 正在制作回放";
+    el["ending-video-guide-title"].textContent = "先别离开，四阶段回放还在生成";
+    el["ending-video-guide-body"].textContent = "我们正在把起点、三次改变和你的选择整理成约 7 秒视频。完成后会自动出现。";
+  }
+
   function hideEndingVideo() {
+    window.clearTimeout(state.videoReadyTimer);
+    state.videoReadyTimer = null;
+    el["ending-video-guide"].hidden = true;
     el["ending-video-card"].hidden = true;
     el["ending-video"].pause();
     el["ending-video"].removeAttribute("src");
@@ -608,11 +688,16 @@
     updateSelectionRecap();
   }
 
-  function startWaitingMessages() {
-    const messages = isChemistryWorld() ? CHEMISTRY_WAITING_MESSAGES : LINEAGE_WAITING_MESSAGES;
+  function startWaitingMessages(finalRound) {
+    const messages = finalRound
+      ? FINAL_WAITING_MESSAGES
+      : isChemistryWorld() ? CHEMISTRY_WAITING_MESSAGES : LINEAGE_WAITING_MESSAGES;
     state.waitingIndex = 0;
-    el["generation-title"].textContent = isChemistryWorld() ? "下一阶段正在形成" : "下一代正在形成";
+    el["generation-title"].textContent = finalRound
+      ? "最终阶段正在生成"
+      : isChemistryWorld() ? "下一阶段正在形成" : "下一代正在形成";
     el["generation-message"].textContent = messages[0];
+    if (finalRound) setRuntime("第 1 / 2 步：生成最终阶段", "busy");
     window.clearInterval(state.waitingTimer);
     state.waitingTimer = window.setInterval(function () {
       state.waitingIndex = (state.waitingIndex + 1) % messages.length;
@@ -672,7 +757,14 @@
       selectScenario(state.currentScenarioId);
       render(envelope);
       setView("simulation");
-      setRuntime(envelope.session.status === "completed" ? "这条路线已经完成" : "可以继续下一次改变", "ready");
+      if (envelope.session.status === "completed" && el["ending-video"].readyState >= 2) {
+        finishEndingVideoLoad();
+      } else {
+        setRuntime(
+          envelope.session.status === "completed" ? "正在读取四阶段回放" : "可以继续下一次改变",
+          envelope.session.status === "completed" ? "busy" : "ready"
+        );
+      }
       return true;
     } catch (error) {
       clearRememberedSession();
